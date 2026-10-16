@@ -1,6 +1,11 @@
 # Class Project Template
 
-Start here. Keep this README updated with your team name, members, and a short plan.
+## Team Members
+- Malik Brown
+- Dayna Perez Colon
+- Daniel Dusky
+- William Jones
+- Omarion Walter
 
 Prototype pages:
 
