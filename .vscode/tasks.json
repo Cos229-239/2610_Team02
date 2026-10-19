@@ -1,0 +1,30 @@
+﻿{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "TowerFlow: Start local server",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/TowerFlow/server.js"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/TowerFlow"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": "^(.*)$",
+            "file": 1
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^TowerFlow server listening at",
+          "endsPattern": "^TowerFlow server listening at http://127\\.0\\.0\\.1:4173$"
+        }
+      }
+    }
+  ]
+}
