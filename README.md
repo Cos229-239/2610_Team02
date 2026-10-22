@@ -1,6 +1,12 @@
 # Class Project Template
 
 Start here. Keep this README updated with your team name, members, and a short plan.
+Team 02
+
+William
+Omarion
+Dayna
+Daniel
 
 Prototype pages:
 

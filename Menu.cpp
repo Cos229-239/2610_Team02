@@ -24,4 +24,23 @@ void Intro() {
 	Divider();
 	std::cout << "7. List Bulk" << std::endl;
 	Divider();
+	std::cout << "8. Edit Bulk" << std::endl;
+	Divider();
+	std::cout << "9. Delete Bulk" << std::endl;
+	Divider();
+	std::cout << "10.Create Work Order" << std::endl;
+	Divider();
+	std::cout << "11. Edit Work Order" << std::endl;
+	Divider();
+	std::cout << "12. Delete Work Order" << std::endl;
+	Divider();
+	std::cout << "13. Purchase Part" << std::endl;
+	Divider();
+	std::cout << "14. Purchase Order" << std::endl;
+	Divider();
+	std::cout << "15. Create Sale" << std::endl;
+	Divider();
+	std::cout << "16. Quit" << std::endl;
+	Divider();
+	std::cout << "Please enter your choice: ";
 }
