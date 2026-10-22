@@ -1,6 +1,8 @@
 #include <iostream>
 
-
+void Wipe() {
+	std::system("cls");
+}
 
 void Divider() {
 	std::cout << "----------------------------------------" << std::endl;

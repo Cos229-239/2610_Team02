@@ -24,26 +24,33 @@ int main() {
 
 		switch (UserInput) {
 		case(TOTAL_STOCK):
+			Wipe();
 			TotalStockCount();
 			break;
 		case(CREATE_PART):
+			Wipe();
 			CreatePart();
 			break;
 		case(LIST_PART):
+			Wipe();
 			ListParts();
 			break;
 		case(EDIT_PART):
+			Wipe();
 			EditPart();
 			break;
 		case(DELETE_PART):
+			Wipe();
 			DeletePart();
 			break;
 
 		case(QUIT): // enter 16 to quit, currently on the enum list
+			Wipe();
 			PowerOn = false;
 			break;
 
 		default:
+			Wipe();
 			std::cout << "Invalid selection. Please try again." << std::endl;
 			break;
 

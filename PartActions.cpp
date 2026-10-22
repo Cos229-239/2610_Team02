@@ -33,7 +33,12 @@ void CreatePart() {
 void TotalStockCount() {
 	int Total = 0;
 	for (const Part& part : Parts) {
+		Total += part.Name.length();
+		Total += part.PartNumber;
+		Total += part.SerialNumber;
 		Total += part.Quantity;
+		std::cout << "Current Part Total: " << Total << std::endl;
+		Divider();
 	}
 	std::cout << "Total Stock: " << Total << std::endl;
 }
