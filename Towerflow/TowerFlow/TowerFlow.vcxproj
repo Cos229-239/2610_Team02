@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{1cb79431-d1aa-4a87-9812-ab263d845534}</ProjectGuid>
+    <ProjectGuid>{cb57c5f5-b41f-4d45-847b-91e710555206}</ProjectGuid>
     <RootNamespace>TowerFlow</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -139,7 +139,12 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Inventory.cpp" />
     <ClCompile Include="TowerFlow.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Inventory.h" />
+    <ClInclude Include="Product.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
