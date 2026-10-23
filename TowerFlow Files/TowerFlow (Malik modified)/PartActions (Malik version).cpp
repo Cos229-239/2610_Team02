@@ -68,6 +68,8 @@ void TotalStockCount() {
     long long Total = 0; // Wider than int so several large quantities can be summed.
     for (const Part& part : Parts) {
         Total += part.Quantity;
+        std::cout << "Current Part Total: " << Total << std::endl;
+        Divider();
     }
     std::cout << "Total Stock: " << Total << '\n';
 }

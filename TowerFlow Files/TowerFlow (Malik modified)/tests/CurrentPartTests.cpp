@@ -1,3 +1,4 @@
+#include "../Menu (Malik version).cpp"
 #include "../PartActions (Malik version).cpp"
 #include <sstream>
 #include <functional>
@@ -71,4 +72,5 @@ int main() {
     std::cout << failures << " checks failed.\n";
     return failures ? 1 : 0;
 }
+
 

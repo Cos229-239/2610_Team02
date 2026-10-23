@@ -7,3 +7,6 @@ add_executable(TowerFlow "TowerFlow (Malik version).cpp")
 add_executable(PartTests tests/CurrentPartTests.cpp)
 enable_testing()
 add_test(NAME PartTests COMMAND PartTests)
+
+add_executable(OperationsTests tests/OperationsTests.cpp)
+add_test(NAME OperationsTests COMMAND OperationsTests)

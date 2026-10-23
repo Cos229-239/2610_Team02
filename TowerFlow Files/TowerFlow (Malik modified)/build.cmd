@@ -12,4 +12,6 @@ cl /nologo /EHsc /std:c++17 /W4 /Zi /Od "TowerFlow (Malik version).cpp" /Fe:buil
 if errorlevel 1 exit /b 1
 cl /nologo /EHsc /std:c++17 /W4 /Zi /Od tests\CurrentPartTests.cpp /Fe:build\PartTests.exe /Fo:build\PartTests.obj /Fd:build\PartTests-compile.pdb /link /DEBUG /PDB:build\PartTests.pdb
 if errorlevel 1 exit /b 1
+cl /nologo /EHsc /std:c++17 /W4 /Zi /Od tests\OperationsTests.cpp /Fe:build\OperationsTests.exe /Fo:build\OperationsTests.obj /Fd:build\OperationsTests-compile.pdb /link /DEBUG /PDB:build\OperationsTests.pdb
 exit /b %errorlevel%
+
