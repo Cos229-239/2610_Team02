@@ -1,0 +1,6 @@
+/build/
+/original-backup/
+*.obj
+*.exe
+*.pdb
+*.ilk
