@@ -1,30 +1,21 @@
-﻿# TowerFlow Native — Initial C++ Foundation
+# TowerFlow Native — CLI Portfolio Foundation
 
 ## Build
-Open `TowerFlow.Native.sln` in Visual Studio and select Debug | x64.
-Build with Ctrl+Shift+B; run with F5.
+Open `TowerFlow.Native.sln` in Visual Studio, select **Debug | x64**, build with **Ctrl+Shift+B**, and run with **F5**.
 
-The project uses the installed Windows SDK and Microsoft WebView2 Runtime.
-The WebView2 SDK is a project-local NuGet package dependency.
+## Current working layer
+- `src/main.cpp`: command-line portfolio menu and local save/load.
+- `src/Portfolio.h/.cpp`: portfolio operations, valuation, and versioned persistence.
+- `src/Asset.h`: asset and position valuation data.
+- `src/Transaction.h/.cpp`: transaction history records.
+- `bin/` and `obj/`: generated build output.
 
-## Architecture
-- `src/main.cpp`: Windows application entry point.
-- `src/TowerFlowApp.h/.cpp`: native application lifecycle and main window.
-- `src/WebViewHost.h/.cpp`: WebView2 creation, sizing, and navigation.
-- `packages/`: WebView2 SDK dependency.
-- `bin/` and `obj/`: generated build outputs.
+The CLI stores its portfolio in `towerflow.dat` in the process working directory. The current persistence feature is local-only; it is not yet a remote API or cloud database.
 
-The host searches upward from its executable for the existing `index.html`.
-Keep the original `index.html`, `app.js`, and `styles.css` together.
+## Phased progression
+See [PMP3 TowerFlow Phased Development](../../Documents/PMP3_TowerFlow_Phased_Development.md) for the planned CLI → API/service → cloud backend → web/GUI sequence, API contract, security boundaries, and phase acceptance gates.
 
-## Scope and limitations
-This initial foundation hosts the existing interface inside a native Windows
-application; it does not rewrite the business logic into C++. The separate
-Node static server is not needed for local file navigation.
+## Scope and verification
+The active project file currently builds the CLI portfolio sources. The separate browser dashboard and any WebView host code are not yet proven to share the same portfolio service. Do not treat a successful compile as proof of API integration, cloud deployment, or full feature parity.
 
-WebView2 stores browser data separately from the user's ordinary browser
-profile. Export the existing TowerFlow portfolio JSON before switching, then
-use TowerFlow's Import data feature to migrate that data.
-
-A successful compile verifies the native host build, not complete feature
-parity. The interface and financial workflows must still be tested.
+After building, verify that a deposit or trade is saved and that the cash, positions, cost basis, and transaction history reload correctly after closing and relaunching the CLI.
