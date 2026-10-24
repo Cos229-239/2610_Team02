@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 #include "Asset.h"
 #include "Transaction.h"
 #include <map>
+#include <string>
 #include <vector>
 
 struct Position {
@@ -18,6 +19,9 @@ public:
     bool Buy(const Asset& asset, double shares);
     bool Sell(const std::string& symbol, double shares);
     bool UpdatePrice(const std::string& symbol, double price);
+
+    bool Save(const std::string& path) const;
+    bool Load(const std::string& path);
 
     double Cash() const;
     double MarketValue() const;
