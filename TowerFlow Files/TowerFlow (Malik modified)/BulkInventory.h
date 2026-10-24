@@ -96,7 +96,3 @@ private:
         }
         return BulkResult::success;
     }
-};
-
-} // namespace towerflow
-
