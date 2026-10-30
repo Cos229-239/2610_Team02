@@ -1,0 +1,82 @@
+﻿
+<!doctype html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TowerFlow | Portfolio Command</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#"><span class="brand-mark">T</span><span>TowerFlow<small>PORTFOLIO COMMAND</small></span></a>
+  <div class="top-status"><span class="pulse"></span> LOCAL WORKSPACE <span id="marketState" class="badge">Checking market…</span></div>
+  <div class="top-actions"><button id="exportBtn" class="btn secondary">Export data</button><button id="importBtn" class="btn primary">Import data</button><input id="fileInput" type="file" accept=".json,.csv,.xml,.pdf" hidden></div>
+</header>
+<main class="shell">
+  <section class="welcome">
+    <div><div class="eyebrow">INVESTMENT WORKSPACE / OVERVIEW</div><h1>Your money. <span>In motion.</span></h1><p>Track holdings, review activity, and model your next move.</p></div>
+    <div class="clock-card"><span class="muted">NEW YORK MARKET TIME</span><strong id="marketClock">--:--:--</strong><span id="marketCountdown" class="muted">Calculating market schedule…</span></div>
+  </section>
+  <section class="metrics">
+    <article class="metric"><div class="metric-label">PORTFOLIO VALUE <span>◈</span></div><div id="portfolioValue" class="metric-value">$0.00</div><div class="metric-foot">Cash + current holdings</div></article>
+    <article class="metric"><div class="metric-label">INVESTED VALUE <span>▥</span></div><div id="investedValue" class="metric-value">$0.00</div><div class="metric-foot">Market value of holdings</div></article>
+    <article class="metric"><div class="metric-label">TOTAL RETURN <span>↗</span></div><div id="totalReturn" class="metric-value">$0.00</div><div id="returnPercent" class="metric-foot">Based on recorded cost basis</div></article>
+    <article class="metric"><div class="metric-label">AVAILABLE CASH <span>◉</span></div><div id="cashValue" class="metric-value">$0.00</div><div class="metric-foot">Ready for a new position</div></article>
+  </section>
+  <section class="layout">
+    <article class="panel holdings-panel">
+      <div class="panel-head"><div><div class="eyebrow">YOUR POSITIONS</div><h2>Holdings</h2></div><button id="addAssetBtn" class="btn primary">+ Add asset</button></div>
+      <div class="table-wrap"><table><thead><tr><th>ASSET</th><th>SHARES</th><th>PRICE</th><th>MARKET VALUE</th><th>RETURN</th><th></th></tr></thead><tbody id="holdingsBody"></tbody></table></div>
+      <div id="emptyHoldings" class="empty" hidden>No holdings yet. Add an asset or import your portfolio to begin.</div>
+      <div class="disclaimer">Demo prices are illustrative, not live quotes. Update prices manually before making financial decisions.</div>
+    </article>
+    <aside class="panel action-panel">
+      <div class="eyebrow">TRADE DESK</div><h2>Record a trade</h2>
+      <form id="tradeForm">
+        <label>Action<select id="tradeSide"><option value="buy">Buy</option><option value="sell">Sell</option></select></label>
+        <label>Symbol<input id="tradeSymbol" maxlength="12" placeholder="e.g. AAPL" required></label>
+        <div class="form-row"><label>Shares<input id="tradeShares" type="number" min="0.000001" step="any" placeholder="10" required></label><label>Price per share ($)<input id="tradePrice" type="number" min="0.000001" step="any" placeholder="150.00" required></label></div>
+        <div class="trade-total"><span>Estimated order total</span><strong id="tradeTotal">$0.00</strong></div>
+        <button class="btn primary full" type="submit">Record transaction</button>
+      </form>
+      <div id="tradeMessage" class="message" role="status"></div>
+    </aside>
+  </section>
+  <section class="layout lower-layout">
+    <article class="panel">
+      <div class="panel-head"><div><div class="eyebrow">PERFORMANCE</div><h2>Portfolio allocation</h2></div><span class="badge">BY MARKET VALUE</span></div>
+      <div class="chart-area"><canvas id="allocationChart" height="220" aria-label="Portfolio allocation chart"></canvas><div id="allocationLegend" class="legend"></div></div>
+    </article>
+    <article class="panel">
+      <div class="panel-head"><div><div class="eyebrow">WHAT-IF MODEL</div><h2>Investment projection</h2></div></div>
+      <label>Starting amount ($)<input id="projectionStart" type="number" min="0" step="100" value="1000"></label>
+      <div class="form-row"><label>Monthly contribution ($)<input id="monthlyContribution" type="number" min="0" step="25" value="100"></label><label>Annual return (%)<input id="annualReturn" type="number" min="-99" max="100" step="0.5" value="6"></label></div>
+      <label>Time horizon <select id="projectionYears"><option value="1">1 year</option><option value="3">3 years</option><option value="5" selected>5 years</option><option value="10">10 years</option><option value="20">20 years</option><option value="30">30 years</option></select></label>
+      <div class="projection-result"><span>Illustrative future value</span><strong id="projectionValue">$0.00</strong><small id="projectionNote">Excludes taxes, fees, and inflation.</small></div>
+    </article>
+  </section>
+  <section class="layout lower-layout">
+    <article class="panel">
+      <div class="panel-head"><div><div class="eyebrow">RECENT ACTIVITY</div><h2>Transactions</h2></div><button id="clearTransactions" class="btn secondary">Clear history</button></div>
+      <div class="table-wrap"><table><thead><tr><th>DATE</th><th>ACTION</th><th>ASSET</th><th>SHARES</th><th>PRICE</th><th>TOTAL</th></tr></thead><tbody id="transactionsBody"></tbody></table></div>
+      <div id="emptyTransactions" class="empty" hidden>No transactions recorded yet.</div>
+    </article>
+    <article class="panel">
+      <div class="panel-head"><div><div class="eyebrow">WATCHLIST</div><h2>Market watch</h2></div><button id="addWatchBtn" class="btn secondary">+ Add</button></div>
+      <form id="watchForm" class="inline-form" hidden><input id="watchSymbol" maxlength="12" placeholder="Symbol" required><input id="watchPrice" type="number" min="0.000001" step="any" placeholder="Price ($)" required><button class="btn primary" type="submit">Save</button></form>
+      <div id="watchlist" class="watchlist"></div>
+    </article>
+  </section>
+  <section class="panel settings-panel">
+    <div><div class="eyebrow">PERSONALIZE</div><h2>Workspace settings</h2><p class="muted">Choose an interface theme. Your portfolio stays in this browser.</p></div>
+    <label class="theme-label">COLOR THEME<select id="themeSelect"><option value="emerald">Emerald</option><option value="platinum">Platinum</option><option value="silver">Silver</option><option value="blue">Dark blue</option><option value="cyan">Cyan</option><option value="magenta">Magenta</option><option value="violet">Violet</option><option value="space">Space</option><option value="aquatic">Aquatic</option><option value="mural">Mural</option><option value="holiday">Holiday</option></select></label>
+    <button id="resetDemo" class="btn secondary">Reset demo workspace</button>
+  </section>
+  <footer><span>TOWERFLOW LOCAL • PERSONAL WORKSPACE</span><span>Stored in this browser · No account connection</span></footer>
+</main>
+<div id="modal" class="modal" hidden><div class="modal-card"><div class="panel-head"><h2 id="modalTitle">Add asset</h2><button id="closeModal" class="btn secondary" type="button">Close</button></div><form id="assetForm"><label>Symbol<input id="assetSymbol" maxlength="12" required placeholder="MSFT"></label><label>Asset name<input id="assetName" maxlength="60" placeholder="Microsoft"></label><div class="form-row"><label>Shares owned<input id="assetShares" type="number" min="0.000001" step="any" required></label><label>Cost basis per share ($)<input id="assetCost" type="number" min="0.000001" step="any" required></label></div><label>Current price ($)<input id="assetPrice" type="number" min="0.000001" step="any" required></label><div class="modal-actions"><button class="btn primary" type="submit">Save asset</button></div></form></div></div>
+<script src="app.js"></script>
+</body>
+</html>
