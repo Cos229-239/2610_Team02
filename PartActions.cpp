@@ -35,10 +35,13 @@ void CreatePart() {
 void TotalStockCount() {
 	int Total = 0;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	if (Parts.empty()) {
 		std::cout << " No Parts in stock." << std::endl;
 		return;
 =======
+=======
+>>>>>>> 2cfac7235adce631798c173c33a7e0384e6185f4
 	for (const Part& part : Parts) {  //storing temporary data from the vector of Parts
 		Total += part.Name.length();
 		Total += part.PartNumber;
@@ -46,6 +49,9 @@ void TotalStockCount() {
 		Total += part.Quantity;
 		std::cout << "Current Part Total: " << Total << std::endl;
 		
+<<<<<<< HEAD
+>>>>>>> 2cfac7235adce631798c173c33a7e0384e6185f4
+=======
 >>>>>>> 2cfac7235adce631798c173c33a7e0384e6185f4
 	}
 	else {
