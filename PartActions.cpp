@@ -1,10 +1,8 @@
-
-#include "FileData.cpp"
-#include "Part.cpp"
-#include <Menu.cpp>
-#include "InputCheck.cpp"
 #include <iostream>
+#include "InputCheck.cpp"
 #include <vector>
+#include "Part.cpp"
+#include "Menu.cpp"
 
 static std::vector<Part> Parts;
 
@@ -34,25 +32,9 @@ void CreatePart() {
 
 void TotalStockCount() {
 	int Total = 0;
-<<<<<<< HEAD
-<<<<<<< HEAD
 	if (Parts.empty()) {
 		std::cout << " No Parts in stock." << std::endl;
 		return;
-=======
-=======
->>>>>>> 2cfac7235adce631798c173c33a7e0384e6185f4
-	for (const Part& part : Parts) {  //storing temporary data from the vector of Parts
-		Total += part.Name.length();
-		Total += part.PartNumber;
-		Total += part.SerialNumber;
-		Total += part.Quantity;
-		std::cout << "Current Part Total: " << Total << std::endl;
-		
-<<<<<<< HEAD
->>>>>>> 2cfac7235adce631798c173c33a7e0384e6185f4
-=======
->>>>>>> 2cfac7235adce631798c173c33a7e0384e6185f4
 	}
 	else {
 			for (const Part& part : Parts) {
@@ -61,7 +43,7 @@ void TotalStockCount() {
 			Total += part.SerialNumber;
 			Total += part.Quantity;
 			std::cout << "Current Part Total: " << Total << std::endl;
-			Divider();
+			
 			}
 		std::cout << "Total Stock: " << Total << std::endl;
 	}
@@ -128,15 +110,4 @@ void DeletePart() {
 	}
 	Parts.erase(Parts.begin() + (PartNumber - 1));
 	std::cout << "Part deleted successfully!" << std::endl;
-}
-
-void LoadPartsFromFile() {
-	//ifstream file ("PartData.txt")
-	// Implementation for loading parts from a file
-}
-
-
-void SavePartsToFile() {
-	//ofstream file ("PartData.txt")
-	// Implementation for saving parts to a file
 }

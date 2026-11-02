@@ -1,4 +1,6 @@
+#pragma once
 #include <iostream>
+
 
 void Wipe() {
 	std::system("cls");
@@ -9,6 +11,7 @@ void Divider() {
 }
 
 void Intro() {
+	Wipe();
 	std::cout << "Welcome to TowerFlow, the ultimate inventory management system for all businesses!" << std::endl;
 	std::cout << "INVENTORY MANAGEMENT" << std::endl;
 	Divider();
