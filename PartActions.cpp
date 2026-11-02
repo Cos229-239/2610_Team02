@@ -1,5 +1,7 @@
 
+#include "FileData.cpp"
 #include "Part.cpp"
+#include <Menu.cpp>
 #include "InputCheck.cpp"
 #include <iostream>
 #include <vector>
@@ -9,7 +11,7 @@ static std::vector<Part> Parts;
 void CreatePart() {
 	Part NewPart;
 	std::cout << "Enter Part Name: ";
-	std::cin >> NewPart.Name;
+	std::getline(std::cin, NewPart.Name); // Get the full line for the part name, including spaces
 	std::cout << "Enter Part Number: ";
 	GetValidatedInt(NewPart.PartNumber);
 	std::cout << "Enter Serial Number: ";
@@ -23,7 +25,7 @@ void CreatePart() {
 	std::cout << "Part Number: " << NewPart.PartNumber << std::endl;
 	std::cout << "Serial Number: " << NewPart.SerialNumber << std::endl;
 	std::cout << "Quantity: " << NewPart.Quantity << std::endl;
-	std::cin.get(); // Wait for user input before returning to the menu
+	std::cin.get(); // Wait for user input before going back to Menu
 
 	// Here you would typically add the new part to a collection of parts
 	// For example, you could have a vector<Part> to store all parts
@@ -32,16 +34,34 @@ void CreatePart() {
 
 void TotalStockCount() {
 	int Total = 0;
-	for (const Part& part : Parts) {
+<<<<<<< HEAD
+	if (Parts.empty()) {
+		std::cout << " No Parts in stock." << std::endl;
+		return;
+=======
+	for (const Part& part : Parts) {  //storing temporary data from the vector of Parts
 		Total += part.Name.length();
 		Total += part.PartNumber;
 		Total += part.SerialNumber;
 		Total += part.Quantity;
 		std::cout << "Current Part Total: " << Total << std::endl;
-		Divider();
+		
+>>>>>>> 2cfac7235adce631798c173c33a7e0384e6185f4
 	}
-	std::cout << "Total Stock: " << Total << std::endl;
+	else {
+			for (const Part& part : Parts) {
+			Total += part.Name.length();
+			Total += part.PartNumber;
+			Total += part.SerialNumber;
+			Total += part.Quantity;
+			std::cout << "Current Part Total: " << Total << std::endl;
+			Divider();
+			}
+		std::cout << "Total Stock: " << Total << std::endl;
+	}
+	std::cin.get(); // Waits for user input before going back to Menu
 }
+
 
 void ListParts() {
 	if (Parts.empty()) {
@@ -54,6 +74,7 @@ void ListParts() {
 		std::cout << "Serial Number: " << part.SerialNumber << std::endl;
 		std::cout << "Quantity: " << part.Quantity << std::endl;
 	}
+	std::cin.get(); // Wait for user input before going back to Menu
 }
 
 void EditPart() {
@@ -74,7 +95,8 @@ void EditPart() {
 
 	Part& TargetPart = Parts[PartNumber - 1];
 	std::cout << "Editing Part Name: (current: " << TargetPart.Name << ")" << std::endl;
-	std::cin >> TargetPart.Name;
+	std::cin.ignore(); // Ignore the newline character left in the input buffer
+	std::getline(std::cin, TargetPart.Name);
 	std::cout << "Editing Part Number (current: " << TargetPart.PartNumber << "): ";
 	GetValidatedInt(TargetPart.PartNumber);
 	std::cout << "Editing Serial Number (current: " << TargetPart.SerialNumber << "): ";
@@ -100,4 +122,15 @@ void DeletePart() {
 	}
 	Parts.erase(Parts.begin() + (PartNumber - 1));
 	std::cout << "Part deleted successfully!" << std::endl;
+}
+
+void LoadPartsFromFile() {
+	//ifstream file ("PartData.txt")
+	// Implementation for loading parts from a file
+}
+
+
+void SavePartsToFile() {
+	//ofstream file ("PartData.txt")
+	// Implementation for saving parts to a file
 }
