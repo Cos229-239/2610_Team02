@@ -1,5 +1,7 @@
 
+#include "FileData.cpp"
 #include "Part.cpp"
+#include <Menu.cpp>
 #include "InputCheck.cpp"
 #include <iostream>
 #include <vector>
@@ -32,13 +34,13 @@ void CreatePart() {
 
 void TotalStockCount() {
 	int Total = 0;
-	for (const Part& part : Parts) {
+	for (const Part& part : Parts) {  //storing temporary data from the vector of Parts
 		Total += part.Name.length();
 		Total += part.PartNumber;
 		Total += part.SerialNumber;
 		Total += part.Quantity;
 		std::cout << "Current Part Total: " << Total << std::endl;
-		Divider();
+		
 	}
 	std::cout << "Total Stock: " << Total << std::endl;
 }
@@ -100,4 +102,15 @@ void DeletePart() {
 	}
 	Parts.erase(Parts.begin() + (PartNumber - 1));
 	std::cout << "Part deleted successfully!" << std::endl;
+}
+
+void LoadPartsFromFile() {
+	//ifstream file ("PartData.txt")
+	// Implementation for loading parts from a file
+}
+
+
+void SavePartsToFile() {
+	//ofstream file ("PartData.txt")
+	// Implementation for saving parts to a file
 }
