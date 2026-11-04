@@ -5,6 +5,8 @@
 #include "Menu.cpp"
 #include "PartActions.cpp"
 #include "MenuEnums.cpp"
+#include <fstream>
+#include <sstream>
 
 
 //TowerFlow is going to be a shell of an inventory to grow
@@ -16,6 +18,8 @@ int main() {
 
 	bool PowerOn = true;
 	int UserInput;
+
+	LoadParts(); // Restore saved parts before showing the menu
 
 	while (PowerOn) {
 		Intro();

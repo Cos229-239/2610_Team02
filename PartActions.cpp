@@ -3,13 +3,51 @@
 #include <vector>
 #include "Part.cpp"
 #include "Menu.cpp"
+#include <fstream>
+#include <sstream>
 
 static std::vector<Part> Parts;
+
+const std::string PartsFile = "parts.txt";
+
+void SaveParts() {
+	std::ofstream OutFile(PartsFile);
+	if (!OutFile) {
+		std::cout << "Error opening file for saving parts." << std::endl;
+		return;
+	}
+	for (const Part& part : Parts) {
+		OutFile << part.Name << "," << part.ID << "," << part.PartNumber << "," << part.SerialNumber << "," << part.Quantity << '\n';
+	}
+}
+
+void LoadParts() {
+	std::ifstream InFile(PartsFile);
+	if (!InFile) {
+		return; // No file yet (first run): start with an empty list
+	}
+	Parts.clear();
+	std::string Line;
+	while (std::getline(InFile, Line)) {
+		std::istringstream Iss(Line);
+		Part part;
+		char Comma;
+		if (std::getline(Iss, part.Name, ',') &&
+			(Iss >> part.ID >> Comma) &&
+			(Iss >> part.PartNumber >> Comma) &&
+			(Iss >> part.SerialNumber >> Comma) &&
+			(Iss >> part.Quantity)) {
+			Parts.push_back(part);
+		}
+	}
+}
 
 void CreatePart() {
 	Part NewPart;
 	std::cout << "Enter Part Name: ";
 	std::getline(std::cin, NewPart.Name); // Get the full line for the part name, including spaces
+	std::cout << "Enter ID#: ";
+	GetValidatedInt(NewPart.ID);
 	std::cout << "Enter Part Number: ";
 	GetValidatedInt(NewPart.PartNumber);
 	std::cout << "Enter Serial Number: ";
@@ -17,36 +55,37 @@ void CreatePart() {
 	std::cout << "Enter Quantity: ";
 	GetValidatedInt(NewPart.Quantity);
 	Parts.push_back(NewPart);
-
+	
 	std::cout << "Part created successfully!" << std::endl;
 	std::cout << "Part Name: " << NewPart.Name << std::endl;
+	std::cout << "ID#: " << NewPart.ID << std::endl;
 	std::cout << "Part Number: " << NewPart.PartNumber << std::endl;
 	std::cout << "Serial Number: " << NewPart.SerialNumber << std::endl;
 	std::cout << "Quantity: " << NewPart.Quantity << std::endl;
 	std::cin.get(); // Wait for user input before going back to Menu
-
+	SaveParts(); // Save the parts to the file after creating a new part
+	
 	// Here you would typically add the new part to a collection of parts
 	// For example, you could have a vector<Part> to store all parts
 	// parts.push_back(NewPart);
 }
 
 void TotalStockCount() {
-	int Total = 0;
 	if (Parts.empty()) {
 		std::cout << " No Parts in stock." << std::endl;
+		std::cin.get(); 
 		return;
 	}
-	else {
-			for (const Part& part : Parts) {
-			Total += part.Name.length();
-			Total += part.PartNumber;
-			Total += part.SerialNumber;
-			Total += part.Quantity;
-			std::cout << "Current Part Total: " << Total << std::endl;
-			
-			}
-		std::cout << "Total Stock: " << Total << std::endl;
+	
+	int Total = 0;
+	for (const Part& part : Parts) {
+		std::cout << part.Name << " - Quantity: " << part.Quantity << std::endl;
+		Total += part.Quantity;
+		Divider();
+		
 	}
+	std::cout << "Total Stock: " << Total << std::endl;
+	
 	std::cin.get(); // Waits for user input before going back to Menu
 }
 
@@ -58,6 +97,7 @@ void ListParts() {
 	}
 	for (const auto& part : Parts) {
 		std::cout << "Part Name: " << part.Name << std::endl;
+		std::cout << "ID# " << part.ID << std::endl;
 		std::cout << "Part Number: " << part.PartNumber << std::endl;
 		std::cout << "Serial Number: " << part.SerialNumber << std::endl;
 		std::cout << "Quantity: " << part.Quantity << std::endl;
@@ -70,20 +110,19 @@ void EditPart() {
 		std::cout << "No parts available to edit." << std::endl;
 		return;
 	}
-
+	
 	ListParts();
 	std::cout << "Enter the Part Number of the part you want to edit: ";
 	int PartNumber;
 	GetValidatedInt(PartNumber);
-
+	
 	if (PartNumber < 1 || PartNumber >(int)Parts.size()) {
 		std::cout << "Invalid Part Number." << std::endl;
 		return;
 	}
-
+	
 	Part& TargetPart = Parts[PartNumber - 1];
 	std::cout << "Editing Part Name: (current: " << TargetPart.Name << ")" << std::endl;
-	std::cin.ignore(); // Ignore the newline character left in the input buffer
 	std::getline(std::cin, TargetPart.Name);
 	std::cout << "Editing Part Number (current: " << TargetPart.PartNumber << "): ";
 	GetValidatedInt(TargetPart.PartNumber);
@@ -91,11 +130,13 @@ void EditPart() {
 	GetValidatedInt(TargetPart.SerialNumber);
 	std::cout << "Editing Quantity (current: " << TargetPart.Quantity << "): ";
 	GetValidatedInt(TargetPart.Quantity);
-
+	
 	std::cout << "Part updated successfully!" << std::endl;
+	SaveParts(); // Save the parts to the file after editing a part
 }
 
 void DeletePart() {
+	
 	if (Parts.empty()) {
 		std::cout << "No parts available to delete." << std::endl;
 		return;
@@ -110,4 +151,6 @@ void DeletePart() {
 	}
 	Parts.erase(Parts.begin() + (PartNumber - 1));
 	std::cout << "Part deleted successfully!" << std::endl;
+	SaveParts(); // Save the parts to the file after deleting a part
+	
 }
