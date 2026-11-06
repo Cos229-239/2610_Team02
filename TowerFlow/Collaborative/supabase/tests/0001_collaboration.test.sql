@@ -1,5 +1,5 @@
 begin;
-select plan(13);
+select plan(15);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -48,20 +48,41 @@ select lives_ok(
     current_setting('test.room_a'), '10000000-0000-4000-8000-000000000002', 'editor'),
   'owner can promote viewer to editor'
 );
+select is((select count(*)::integer from public.list_room_members(current_setting('test.room_a')::uuid)), 2, 'room member list is available to owner');
+
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000002',true);
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+select lives_ok(
+  format('insert into public.room_messages(room_id,user_id,body) values (%L,%L,%L)',
+    current_setting('test.room_a'), auth.uid(), 'editor can post'),
+  'editor can send messages after promotion'
+);
+select is((select count(*)::integer from public.rooms where id=current_setting('test.room_c')::uuid), 0, 'member cannot read another room');
+
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select lives_ok(
   format('select public.revoke_room_invite(%L,%L)',
     current_setting('test.room_a'),
     (select id from public.room_invites where room_id=current_setting('test.room_a')::uuid limit 1)),
   'owner can revoke an invitation'
 );
-
-select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000002',true);
-select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
-select is((select count(*)::integer from public.rooms where id=current_setting('test.room_c')::uuid), 0, 'member cannot read another room');
 select throws_ok(
-  format('insert into public.room_messages(room_id,user_id,body) values (%L,%L,%L)',
-    current_setting('test.room_a'), auth.uid(), 'editor can post'),
-  '42501', null, 'viewer role remains viewer until owner role change is committed'
+  format('select public.set_room_member_role(%L,%L,%L)',
+    current_setting('test.room_a'), auth.uid(), 'viewer'),
+  'P0001', 'Owner role cannot be changed through this function', 'owner cannot demote own owner account'
+);
+select throws_ok(
+  format('select public.remove_room_member(%L,%L)',
+    current_setting('test.room_a'), auth.uid()),
+  'P0001', 'Owner cannot be removed through this function', 'owner cannot remove own owner account'
+);
+
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000003',true);
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+select throws_ok(
+  format('select public.accept_room_invite(%L)', current_setting('test.invite')),
+  'P0001', 'Invitation is invalid, expired, revoked, or already used', 'revoked invitation cannot be accepted'
 );
 
 select * from finish();
