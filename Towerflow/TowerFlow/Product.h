@@ -1,14 +1,24 @@
 #pragma once
 #include <string>
 #include <map>
+#include <cstdint>
 
 struct Product {
     int id = 0;
     std::string name;
     std::string barcode;
-    double price = 0.0;
+
+    std::int64_t priceCents = 0;
     int minimumStock = 0;
 
-    // Location name, Quantity
     std::map<std::string, int> stock;
+
+    std::int64_t totalStock() const {
+        std::int64_t total = 0;
+
+        for (const auto& [location, quantity] : stock)
+            total += quantity;
+
+        return total;
+    }
 };
