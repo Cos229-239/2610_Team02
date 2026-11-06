@@ -4,6 +4,8 @@
 
 create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
+-- Normalize an installation that may already have pgcrypto in another schema.
+alter extension pgcrypto set schema extensions;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
