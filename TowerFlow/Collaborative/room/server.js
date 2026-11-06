@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express=require("express"),http=require("node:http"),crypto=require("node:crypto"),path=require("node:path"),{WebSocketServer,WebSocket}=require("ws");
 const app=express(),server=http.createServer(app),wss=new WebSocketServer({noServer:true}),sessions=new Map(),states=new Map(),peers=new Map();
 const port=Number(process.env.PORT||4173),base=process.env.APP_URL||"http://localhost:"+port;
