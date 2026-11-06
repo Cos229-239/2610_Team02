@@ -120,7 +120,7 @@ begin
     where room_id = p_room_id and user_id = auth.uid() and role = 'owner') then
     raise exception 'Only room owners can create invitations';
   end if;
-  if p_role not in ('editor','viewer') then raise exception 'Invalid invitation role'; end if;
+  if p_role is null or p_role not in ('editor','viewer') then raise exception 'Invalid invitation role'; end if;
   if p_expires_at is not null and p_expires_at <= now() then
     raise exception 'Invitation expiry must be in the future';
   end if;
