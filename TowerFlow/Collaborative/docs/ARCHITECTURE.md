@@ -6,7 +6,14 @@
 
 ## 1. Product outcome
 
-TowerFlow is a persistent, cross-platform 3D development room in which invited people can enter the same room, see one another, navigate the environment, communicate, and contribute to a shared software project.
+TowerFlow is a shared, browser-accessible production environment for building the Towerflow application itself. Invited collaborators enter a persistent 3D room, see one another as simple colored orbs, and open the tools needed to contribute code, designs, assets, and other production materials.
+
+The 3D room is a spatial collaboration and presence layer—not a character-based game. Human-shaped avatars, character customization, and elaborate avatar animation are explicitly unnecessary for the initial product. Each participant is represented by a distinct colored orb with a readable identity label.
+
+The room connects three first-class work surfaces:
+- The 3D room for presence, navigation, and access to shared workstations.
+- The development IDE for simultaneous shared editing and individual development.
+- The actual Towerflow application preview/workbench, where collaborators inspect the product, validate changes, and contribute designs and production materials.
 
 A room has two first-class development modes:
 
@@ -22,8 +29,8 @@ Both modes operate on the room's project repository. Work is preserved through G
 1. A room owner creates a private room and generates an invitation link.
 2. The invitation is an opaque, random, revocable, expiring token. The server stores only a token hash and enforces its role, expiry, use limit, and revocation.
 3. The recipient opens the link and authenticates. The server validates the invite and authorizes room membership.
-4. The server creates or resumes that participant's room session and spawns their avatar at a safe room location.
-5. The room client loads room state, participant presence, and available workstations.
+4. The server creates or resumes that participant's room session and spawns a colored orb at a safe room location. The orb has a stable participant identity, distinct color, and readable name label; it is not a humanoid character.
+5. The room client loads room state, participant presence, orb positions/colors, and available workstations.
 
 Rooms are private by default. Share links are invitations, not authorization bypasses. Owner/editor/viewer permissions are checked by the server for every protected operation.
 
@@ -44,7 +51,7 @@ Initial desktop controls:
 
 The controls must be configurable and must not capture keystrokes while a text editor, terminal, form, or other text input has focus. Pointer camera control and touch controls are secondary accessibility paths; the requested keyboard layout remains the default.
 
-### 2.3 Room workstations
+### 2.3 Participant representation\n\n- Render each participant as a simple orb with a distinct, stable color and readable name/identity label.\n- Use a small, consistent set of visual effects for presence/selection only where useful.\n- Do not build humanoid characters, character customization, inventories, or game-like avatar progression.\n- Orb positions and presence are synchronized by the authoritative room server.\n- Provide accessible identity cues beyond color alone, such as labels, to avoid relying exclusively on color perception.\n\n### 2.4 Room workstations
 
 Interactive workstations open tools without removing the user from the room:
 - Shared Code workstation: collaborative Monaco editor with live cursors and selections.
@@ -60,12 +67,12 @@ Use a self-hostable, vendor-neutral modular monolith initially. Local developmen
 
 | Layer | Direction | Responsibility |
 |---|---|---|
-| 3D client | Three.js + TypeScript | Room scene, avatars, camera, movement, interactive workstations |
+| 3D client | Three.js + TypeScript | Room scene, colored orb markers, identity labels, camera, movement, interactive workstations |
 | Room application | TypeScript web client | Room UI, member controls, shared editor, individual IDE launch |
 | API and realtime | Node.js + TypeScript, HTTP API + WebSocket | Authentication, room lifecycle, authorization, presence, collaboration transport |
 | Shared editing | Monaco Editor + Yjs + Monaco binding | Concurrent source editing, cursor/selection awareness, CRDT merge |
 | Individual IDE | Self-hosted code-server session per participant | Independent editor, terminal, extensions, debugging, filesystem |
-| Project source of truth | Git repository + isolated worktrees/branches | Durable source, independent contributions, reviews, rollback |
+| Project source of truth | Git repository + isolated worktrees/branches | Durable source, independent contributions, reviews, rollback |\n| Application preview | Isolated development preview | Run and inspect the actual Towerflow application from the room |\n| Production assets | Versioned project asset workflow | Contribute, preview, review, and version designs and other production materials |
 | Persistence | Self-hosted PostgreSQL | Accounts, rooms, membership, invite hashes, activity, Yjs updates/snapshots, workspace metadata |
 | Execution isolation | Per-user/per-workspace containers | Build/test/debug commands, resource limits, process isolation |
 | Local orchestration | Docker Compose | Repeatable local development and integration tests |
@@ -187,15 +194,15 @@ The existing top-level static scaffold is a prior prototype and must not be trea
 - Per-participant code-server container, isolated worktree/branch, terminal and process limits.
 - Acceptance: two participants can independently run commands and modify files without crossing filesystem/process boundaries.
 
-### Phase 5 — Git integration and safe handoffs
+### Phase 5 — Towerflow application and production assets\n- Add an application preview/workbench connected to the actual Towerflow application project.\n- Add a versioned contribution workflow for designs, layouts, images, icons, documents, and other production assets, including previews and review.\n- Acceptance: collaborators can open the running application from the room, inspect a change, contribute a design/asset, preview it, and preserve it as a reviewable project change.\n\n### Phase 6 — Git integration and safe handoffs
 - Shared-lane checkpoints, personal branches, diff/review/merge, conflict resolution, restore.
 - Acceptance: contributions are attributable, reviewable, reversible, and never silently overwrite another branch.
 
-### Phase 6 — Product capabilities
+### Phase 7 — Product capabilities
 - AI room participant, public corporate intelligence, inventory/simulation, equities provider, and cross-domain analysis.
 - Keep public facts, user-supplied company data, and hypothetical simulation values distinct.
 
-### Phase 7 — Hybrid deployment and SaaS readiness
+### Phase 8 — Hybrid deployment and SaaS readiness
 - HTTPS deployment, backups/restore, monitoring, resource controls, subscription tiers, operational security.
 - Requires explicit owner approval before creating paid resources or deploying.
 
@@ -205,7 +212,7 @@ Automated tests are required before claiming the capability exists.
 
 - Unit tests: invite hashing/expiry/revocation, role checks, path safety, workspace authorization, Git state transitions.
 - Integration tests: PostgreSQL migrations, HTTP authorization, WebSocket room isolation, Yjs persistence/reconnect, container lifecycle.
-- Browser tests: two independent browser contexts, room join/spawn, movement/presence, simultaneous edits, independent terminals, Git contribution handoff.
+- Browser tests: two independent browser contexts, room join/spawn, colored orb identity and movement, simultaneous edits, independent terminals, application preview access, asset contribution/review, Git contribution handoff.
 - Security tests: guessed room IDs, expired/revoked invites, cross-room WebSocket subscription, path traversal, symlink escape, container boundary, command/resource exhaustion.
 - Recovery tests: server restart, workspace resume, Yjs snapshot recovery, Git rollback.
 
