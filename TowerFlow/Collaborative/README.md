@@ -1,7 +1,8 @@
 # TowerFlow — Collaborative Production Workspace
 
 **Architecture:** [Approved architecture](docs/ARCHITECTURE.md)  
-**Implementation status:** The replacement runtime is not yet built. The former Supabase prototype is retired and must not be configured or deployed.
+**Current runnable deliverable:** [production-desk.html](production-desk.html) — a lightweight task and goals workspace that runs directly in a modern browser.  
+**Important:** This first deliverable is a local/browser prototype. It stores data in that browser and supports JSON export/import; it is not yet a live multi-user server, 3D room, or integrated IDE. The former Supabase prototype is retired and must not be configured or deployed.
 
 ## Product vision
 
@@ -15,6 +16,28 @@ The room provides access to two connected work areas:
 2. **Towerflow application workspace:** The actual application being built, available inside the room so collaborators can inspect it, run previews, contribute interface designs, add assets and other production materials, and validate how changes appear in the product.
 
 The objective is an end-to-end production workspace—not simply a 3D chat room or a code editor.
+
+## Run the current product
+
+1. Open [production-desk.html](production-desk.html) in a modern desktop browser.
+2. Add a goal describing an outcome the team is trying to achieve.
+3. Add tasks using the short task form: deliverable, success outcome, why it matters, acceptance check, owner, goal, status, and priority.
+4. Click any task to update it or move it between To do, In progress, and Done.
+5. Use **Export workspace** to create a JSON backup and share it with teammates. Teammates can use **Import** to load that workspace in their own browser.
+
+No installation, database, API key, or Supabase setup is needed for this first product slice. Data is saved in the browser's local storage. Export/import is the current team handoff mechanism; changes made by different people do not synchronize automatically.
+
+## Task-writing standard
+
+Keep work items concise and actionable:
+- **Task:** the deliverable or change.
+- **Success outcome:** what will exist or be possible when finished.
+- **Why:** optional context, one or two sentences.
+- **Done when:** an observable acceptance check.
+- **Owner:** one person accountable for moving it forward.
+- **Goal:** the larger outcome it supports.
+
+Avoid turning every task into a long requirements document. Add detail only when it prevents ambiguity or rework.
 
 ## Core experience
 
@@ -102,6 +125,8 @@ The previous Supabase-oriented implementation is historical prototype material o
 ## Current verified status
 
 - The architecture and product direction are documented on this feature branch.
-- No replacement Node.js runtime, Three.js room, orb presence system, Yjs editor, code-server workspace manager, application preview, or asset contribution workflow has been implemented yet.
+- A runnable browser-based Production Desk exists with goal creation, task creation/edit/delete, status board, priority, owner, goal association, search/filter, local persistence, and JSON import/export.
+- The Production Desk is not yet connected to a shared server; teammates exchange workspace exports manually.
+- No multiplayer 3D room, live orb presence, Yjs editor, code-server workspace manager, integrated application preview, or live asset collaboration has been implemented yet.
 - The former Supabase prototype is superseded and not runtime-verified.
 - No replacement database migrations or two-browser integration tests have been executed.
