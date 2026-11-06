@@ -38,6 +38,30 @@ async function loadRooms() {
     '<button class="room-item '+(currentRoom?.id===room.id?'active':'')+'" data-room="'+room.id+'"><strong>'+safe(room.name)+'</strong><small>'+safe(room.role)+' · '+dateLabel(room.updated_at || room.created_at)+'</small></button>'
   ).join("") : '<p class="muted">No rooms yet. Create one or use an invitation link.</p>';
 }
+async function loadTeam() {
+  if (!currentRoom) return;
+  const {data:members,error:memberError}=await supabase.rpc("list_room_members",{p_room_id:currentRoom.id});
+  if(memberError) throw memberError;
+  $("memberList").innerHTML=(members||[]).map(member=>{
+    const controls=currentRoom.role==="owner" && member.role!=="owner"
+      ? '<div class="member-actions"><select data-member-role="'+member.user_id+'" aria-label="Change role for '+safe(member.display_name)+'"><option value="editor" '+(member.role==="editor"?"selected":"")+'>Editor</option><option value="viewer" '+(member.role==="viewer"?"selected":"")+'>Viewer</option></select><button class="mini-button danger" data-member-remove="'+member.user_id+'">Remove</button></div>'
+      : "";
+    return '<div class="member-row"><div class="member-ident"><strong>'+safe(member.display_name)+'</strong><small>'+safe(member.role)+' · '+safe(member.user_id.slice(0,8))+'</small></div>'+controls+'</div>';
+  }).join("") || '<p class="muted">No members found.</p>';
+
+  $("inviteAdminSection").hidden=currentRoom.role!=="owner";
+  if(currentRoom.role!=="owner") return;
+  const {data:invites,error:inviteError}=await supabase.rpc("list_room_invites",{p_room_id:currentRoom.id});
+  if(inviteError) throw inviteError;
+  $("inviteAdminList").innerHTML=(invites||[]).map(invite=>{
+    const expired=invite.expires_at && new Date(invite.expires_at)<=new Date();
+    const exhausted=invite.max_uses!==null && invite.uses>=invite.max_uses;
+    const state=invite.revoked_at?"Revoked":expired?"Expired":exhausted?"Use limit reached":"Active";
+    const revoke=!invite.revoked_at && !expired && !exhausted
+      ? '<button class="mini-button danger" data-invite-revoke="'+invite.invite_id+'">Revoke</button>' : "";
+    return '<div class="invite-admin-row"><div><strong>'+safe(invite.role)+' invitation</strong><small>'+state+' · '+invite.uses+'/'+(invite.max_uses??"∞")+' uses · expires '+(invite.expires_at?dateLabel(invite.expires_at):"never")+'</small></div>'+revoke+'</div>';
+  }).join("") || '<p class="muted">No invitations created.</p>';
+}
 async function openRoom(roomId) {
   const room = rooms.find(item => item.id === roomId);
   if (!room) return;
@@ -50,6 +74,8 @@ async function openRoom(roomId) {
   $("activeRoomRole").textContent = "Your role: " + room.role;
   $("inviteButton").hidden = room.role !== "owner";
   $("invitePanel").hidden = true;
+  $("messageText").disabled = room.role === "viewer";
+  $("messageForm").querySelector("button").disabled = room.role === "viewer";
   $("messages").innerHTML = '<p class="muted">Loading conversation…</p>';
   $("activityList").innerHTML = '<p class="muted">Loading activity…</p>';
   await loadRooms();
@@ -61,6 +87,7 @@ async function openRoom(roomId) {
   if (activityResult.error) throw activityResult.error;
   renderMessages(messagesResult.data || []);
   renderActivity(activityResult.data || []);
+  await loadTeam();
   messageChannel = supabase.channel("room-messages-"+roomId)
     .on("postgres_changes",{event:"INSERT",schema:"public",table:"room_messages",filter:"room_id=eq."+roomId},payload=>{
       appendMessage(payload.new);
@@ -115,7 +142,7 @@ async function initializeSession(session) {
 }
 $("signInForm").addEventListener("submit",async event=>{
   event.preventDefault();
-  if (!supabase) return authMessage("Setup required: copy config.example.js to config.js and add your Supabase project URL and public anon/publishable key.",true);
+  if (!supabase) return authMessage("Setup required: add your Supabase project URL and public anon/publishable key to config.js.",true);
   const email=$("email").value.trim();
   const {error}=await supabase.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname+location.search}});
   authMessage(error?error.message:"Sign-in link sent. Open the email on this device to continue.",Boolean(error));
@@ -154,6 +181,27 @@ $("inviteButton").addEventListener("click",async()=>{
   $("inviteLink").value=link.toString();
   $("inviteRoleLabel").textContent="· Viewer · expires in 7 days · up to 10 uses";
   $("inviteMessage").textContent="Anyone with this link must sign in. Share it only with intended collaborators.";
+  await loadTeam();
+});
+$("memberList").addEventListener("change",async event=>{
+  const select=event.target.closest("[data-member-role]"); if(!select||!currentRoom)return;
+  const {error}=await supabase.rpc("set_room_member_role",{p_room_id:currentRoom.id,p_user_id:select.dataset.memberRole,p_role:select.value});
+  if(error){alert(error.message);return;}
+  await loadTeam();
+});
+$("memberList").addEventListener("click",async event=>{
+  const button=event.target.closest("[data-member-remove]"); if(!button||!currentRoom)return;
+  if(!confirm("Remove this person from the room? They will lose access immediately."))return;
+  const {error}=await supabase.rpc("remove_room_member",{p_room_id:currentRoom.id,p_user_id:button.dataset.memberRemove});
+  if(error){alert(error.message);return;}
+  await loadTeam();
+});
+$("inviteAdminList").addEventListener("click",async event=>{
+  const button=event.target.closest("[data-invite-revoke]"); if(!button||!currentRoom)return;
+  if(!confirm("Revoke this invitation? Anyone who has not joined with it will no longer be able to use it."))return;
+  const {error}=await supabase.rpc("revoke_room_invite",{p_room_id:currentRoom.id,p_invite_id:button.dataset.inviteRevoke});
+  if(error){alert(error.message);return;}
+  await loadTeam();
 });
 $("copyInvite").addEventListener("click",async()=>{
   try{await navigator.clipboard.writeText($("inviteLink").value);$("inviteMessage").textContent="Invitation link copied.";}
