@@ -2,7 +2,8 @@
 -- Apply to a Supabase project using the SQL editor or Supabase CLI.
 -- All room data is private by default and protected by RLS.
 
-create extension if not exists pgcrypto;
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -119,9 +120,9 @@ begin
   end if;
   if p_role not in ('editor','viewer') then raise exception 'Invalid invitation role'; end if;
   if p_max_uses is not null and p_max_uses < 1 then raise exception 'Maximum uses must be positive'; end if;
-  v_token := encode(gen_random_bytes(32), 'hex');
+  v_token := encode(extensions.gen_random_bytes(32), 'hex');
   insert into public.room_invites(room_id, token_hash, role, expires_at, max_uses, created_by)
-    values (p_room_id, digest(v_token, 'sha256'), p_role, p_expires_at, p_max_uses, auth.uid());
+    values (p_room_id, extensions.digest(v_token, 'sha256'), p_role, p_expires_at, p_max_uses, auth.uid());
   insert into public.room_activity(room_id, actor_id, action, details)
     values (p_room_id, auth.uid(), 'invite.created', jsonb_build_object('role', p_role, 'expires_at', p_expires_at));
   return v_token;
@@ -139,7 +140,7 @@ begin
   if v_user is null then raise exception 'Authentication required'; end if;
   if p_token is null or p_token !~ '^[a-f0-9]{64}$' then raise exception 'Invalid invitation'; end if;
   select * into v_invite from public.room_invites
-    where token_hash = digest(p_token, 'sha256')
+    where token_hash = extensions.digest(p_token, 'sha256')
     for update;
   if not found or v_invite.revoked_at is not null
     or (v_invite.expires_at is not null and v_invite.expires_at <= now())
@@ -218,7 +219,8 @@ grant execute on function public.is_room_member(uuid) to authenticated;
 grant execute on function public.can_edit_room(uuid) to authenticated;
 
 grant select, insert, update on public.profiles to authenticated;
-grant select, update on public.rooms to authenticated;
+grant select on public.rooms to authenticated;
+grant update (name, updated_at) on public.rooms to authenticated;
 grant select on public.room_members to authenticated;
 grant select, insert on public.room_messages to authenticated;
 grant select on public.room_activity to authenticated;
@@ -226,5 +228,6 @@ grant select on public.room_activity to authenticated;
 do $$
 begin
   alter publication supabase_realtime add table public.room_messages;
+  alter publication supabase_realtime add table public.room_activity;
 exception when duplicate_object then null;
 end $$;
