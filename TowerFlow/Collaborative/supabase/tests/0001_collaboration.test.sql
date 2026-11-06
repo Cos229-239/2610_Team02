@@ -1,3 +1,5 @@
+create extension if not exists pgtap with schema extensions;
+set search_path = public, extensions;
 begin;
 select plan(16);
 
