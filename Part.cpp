@@ -3,7 +3,7 @@
 
 struct Part {
     std::string Name;
-    int ID;
+    int Revision;
     int PartNumber;
     int SerialNumber;
     int Quantity;
