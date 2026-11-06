@@ -1,81 +1,58 @@
-# TowerFlow Collaborative Foundation
+# TowerFlow — Multiplayer Development Workspace
 
-**Status:** implementation scaffold committed to a separate branch. It is not yet a deployed or verified multi-user service.
+**Architecture status:** Approved baseline documented in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).  
+**Implementation status:** The new runtime has not yet been built. The existing Supabase scaffold is superseded and must not be configured or deployed.
 
-## Purpose
+## Product direction
 
-Add a cross-platform room foundation alongside the existing TowerFlow portfolio application. The original `TowerFlow/` files are not replaced.
+TowerFlow is a persistent, cross-platform 3D development room where invited collaborators enter together, move through a shared environment, and contribute to the same software project.
 
-## Current scope
+It supports two development modes:
 
-- Responsive browser UI for desktop, tablet, and mobile.
-- Supabase email-link authentication.
-- Persistent rooms and owner/editor/viewer membership.
-- Private-by-default room visibility through PostgreSQL row-level security.
-- Owner-created, expiring, use-limited viewer invitation links.
-- Persistent room messages and server-side activity events.
-- Realtime message and activity subscriptions.
+1. **Shared simultaneous editing:** Monaco + Yjs, with live source changes, collaborator cursors, and persisted collaboration state.
+2. **Individual development:** a separate self-hosted code-server session, terminal, and isolated Git worktree/branch for each participant.
 
-## Not included yet
+Both modes connect to the same room project through explicit Git checkpoints, diffs, review, and merge. Individual workspaces do not share uncommitted files or processes.
 
-- Production deployment, custom domain, billing, backups or disaster recovery.
-- Live multi-user document editing / conflict resolution.
-- AI room participant or AI provider credentials.
-- Corporate public-data research.
-- Equity quote provider or live market feed.
-- Full invitation management/revocation UI.
-- Automated browser/e2e or live two-account tests.
+## Room controls
 
-## Architecture choice
+| Key | Action |
+|---|---|
+| W / A / S / D | Move |
+| I / K / J / L | Camera up / down / left / right |
 
-This initial scaffold uses Supabase (PostgreSQL, Auth, RLS and Realtime) to reduce operational cost and avoid operating a separate authentication, database, and WebSocket stack at the outset. The frontend uses the Supabase JavaScript client from an ESM CDN.
+Controls must not intercept typing while an editor, terminal, or form has focus.
 
-Supabase is a **proposed implementation choice** for the approved provider-based/hybrid hosting direction. Hosting provider and paid tier still require owner approval before production use.
+## Selected architecture
 
-## Setup
+- Three.js + TypeScript for the browser 3D room.
+- Node.js + TypeScript modular monolith for HTTP APIs, authentication, room state, and WebSocket realtime.
+- Monaco Editor + Yjs for simultaneous source editing.
+- Self-hosted code-server in isolated per-participant containers for individual IDE sessions.
+- Git repositories and worktrees as the durable source of truth and contribution workflow.
+- Self-hosted PostgreSQL for accounts, rooms, invitations, activity, and persisted Yjs updates/snapshots.
+- Docker Compose for repeatable local development.
+- Vendor-neutral hybrid hosting later, only with explicit approval.
 
-1. Create a Supabase project.
-2. From this directory, run `supabase start`; the local database will apply both migrations.
-3. Run `supabase test db` to execute the pgTAP permission/isolation suite.
-4. In Supabase project settings, configure Auth email sign-in and the allowed redirect URLs for the local and hosted app origins.
-5. Open `config.js` and set `SUPABASE_URL` and the public anon/publishable key for your project. The committed values are placeholders.
-6. Serve this directory over HTTP (not `file://`). For example, with Node installed, run `npx serve .` from this directory, or use another static web host.
-7. Open `index.html`, sign in using the emailed link, create a room, then invite another signed-in user.
+The complete architecture, data flow, permission boundaries, directory layout, build sequence, and acceptance tests are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-The anon/publishable key is designed for browser use and is safe to expose **only because** RLS is enabled. Never put a Supabase service-role key, AI API key, or market-data secret in browser code or `config.js`.
+## Supabase direction retired
 
-## Data and permissions
+The prior Supabase-oriented files in this branch are retained temporarily as historical prototype material only. They are **not** the approved architecture, must not be configured, and must not be deployed. Do not add new features to that implementation. The next implementation phase should introduce the local Node.js/PostgreSQL/WebSocket foundation and then remove the superseded Supabase client/configuration/migrations from the active application path.
 
-- Room creation is performed by a database function that atomically creates the room and its owner membership.
-- Rooms, membership, messages and activity are protected by RLS.
-- Only owners can create/revoke invitations, change non-owner member roles, and remove non-owner members. These operations are enforced in database functions, not by hiding UI controls alone.
-- Invitation tokens are random and hashed at rest; the UI creates seven-day, ten-use Viewer invitations.
-- Invitation metadata is visible only to room owners; raw invitation tokens are not retrievable after creation.
-- Invitations grant Viewer access by default. The UI currently creates Viewer links only.
-- Editors and owners can send room messages; viewers can read but cannot send.
-- Room activity records room creation, invitation creation, member joining, and message sent events. This is an activity feed, not a tamper-proof compliance audit log.
+## Development and safety constraints
 
-## First verification checklist
+- Preserve the existing TowerFlow browser portfolio and separate native C++ project.
+- No Supabase project, paid managed services, hosted workspaces, or deployment.
+- No secrets in browser code or workspace files.
+- Do not run participant commands on the main application server; use isolated workspace containers with quotas.
+- Enforce room roles, invitation validation, and WebSocket authorization server-side.
+- No silent overwrites between shared and individual development lanes.
+- Do not claim collaboration, security, or deployment is verified until the acceptance tests are run.
 
-- [ ] Apply both SQL migrations without errors.
-- [ ] Run `supabase test db` from the project root against a local Supabase instance; the pgTAP suite is in `supabase/tests/0001_collaboration.test.sql`.
-- [ ] Confirm the pgTAP suite passes all 16 assertions.
-- [ ] Configure Auth redirect URLs and public client config.
-- [ ] Sign in as account A.
-- [ ] Create a room and confirm owner membership.
-- [ ] Create an invitation and open it in a separate browser/device.
-- [ ] Sign in as account B and accept the invitation.
-- [ ] Confirm both accounts can see room messages in realtime.
-- [ ] Confirm Viewer cannot send messages.
-- [ ] Confirm account B cannot read a room it was not invited to.
-- [ ] Confirm expired/revoked/used-up invitation tokens fail.
-- [ ] Confirm refresh and reauthentication preserve rooms and messages.
+## Current verified status
 
-## Security notes / follow-up hardening
-
-- Apply database migrations through controlled deployment and review SQL policy behavior with two independent accounts before public use.
-- Configure Supabase Auth rate limits, email templates, allowed origins, and provider security settings.
-- Add server-enforced rate limiting and abuse monitoring for messages and invite creation.
-- Expand automated SQL/RLS integration tests as the schema evolves.
-- Add backup/restore verification before storing important business data.
-- Keep service-role credentials server-side only.
+- Architecture document committed on the feature branch.
+- No replacement Node.js runtime, Three.js room, Yjs editor, or code-server workspace manager has been implemented yet.
+- Existing Supabase prototype has not been runtime-verified and is superseded.
+- No database migrations or two-browser tests have been executed for the replacement architecture.
