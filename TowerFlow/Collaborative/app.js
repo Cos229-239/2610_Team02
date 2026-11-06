@@ -129,7 +129,7 @@ async function initializeSession(session) {
   showSignedIn(Boolean(user));
   if (!user) { currentRoom=null; status("Not connected"); return; }
   status("Signed in · syncing",true);
-  const displayName = user.user_metadata?.full_name || user.email || "TowerFlow member";
+  const displayName = user.user_metadata?.full_name || "TowerFlow member";
   await supabase.from("profiles").upsert({id:user.id,display_name:displayName},{onConflict:"id"});
   const inviteToken = new URLSearchParams(location.search).get("invite");
   if (inviteToken) {
