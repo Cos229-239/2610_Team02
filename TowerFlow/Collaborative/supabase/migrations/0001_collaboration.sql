@@ -215,6 +215,8 @@ revoke all on function public.accept_room_invite(text) from public, anon;
 grant execute on function public.create_room(text) to authenticated;
 grant execute on function public.create_room_invite(uuid,text,timestamptz,integer) to authenticated;
 grant execute on function public.accept_room_invite(text) to authenticated;
+revoke all on function public.is_room_member(uuid) from public, anon;
+revoke all on function public.can_edit_room(uuid) from public, anon;
 grant execute on function public.is_room_member(uuid) to authenticated;
 grant execute on function public.can_edit_room(uuid) to authenticated;
 
@@ -225,9 +227,13 @@ grant select on public.room_members to authenticated;
 grant select, insert on public.room_messages to authenticated;
 grant select on public.room_activity to authenticated;
 
-do $$
+do $
 begin
   alter publication supabase_realtime add table public.room_messages;
+exception when duplicate_object then null;
+end $;
+do $
+begin
   alter publication supabase_realtime add table public.room_activity;
 exception when duplicate_object then null;
-end $$;
+end $;
