@@ -227,11 +227,6 @@ grant select on public.room_members to authenticated;
 grant select, insert on public.room_messages to authenticated;
 grant select on public.room_activity to authenticated;
 
-do $
-begin
-  alter publication supabase_realtime add table public.room_messages;
-exception when duplicate_object then null;
-end $;
 do $$
 begin
   alter publication supabase_realtime add table public.room_messages;
