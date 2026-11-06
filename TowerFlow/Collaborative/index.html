@@ -37,6 +37,12 @@
           <div id="activeRoom" hidden>
             <div class="room-header"><div><p class="eyebrow">SHARED WORKSPACE</p><h2 id="activeRoomName">Room</h2><p id="activeRoomRole" class="muted"></p></div><button id="inviteButton" class="button secondary">Invite people</button></div>
             <div id="invitePanel" class="invite-panel" hidden><p>Invitation link <span id="inviteRoleLabel" class="muted"></span></p><div class="invite-row"><input id="inviteLink" readonly aria-label="Invitation link"><button id="copyInvite" class="button secondary">Copy</button></div><p id="inviteMessage" class="muted"></p></div>
+            <section class="team-panel">
+              <div class="team-columns">
+                <div><div class="section-heading"><h3>Room members</h3><span class="muted">Roles and access</span></div><div id="memberList" class="member-list"></div></div>
+                <div id="inviteAdminSection"><div class="section-heading"><h3>Invitation links</h3><span class="muted">Owner controls</span></div><div id="inviteAdminList" class="invite-admin-list"></div></div>
+              </div>
+            </section>
             <div class="room-columns">
               <section class="chat-section"><div class="section-heading"><h3>Room conversation</h3><span class="muted">Persistent messages</span></div><div id="messages" class="messages" aria-live="polite"></div><form id="messageForm" class="message-form"><input id="messageText" maxlength="5000" placeholder="Share an update with this room…" required aria-label="Message"><button class="button primary" type="submit">Send</button></form></section>
               <aside class="activity-section"><div class="section-heading"><h3>Room activity</h3></div><div id="activityList" class="activity-list"></div><div class="collab-note"><strong>Collaboration foundation</strong><p>Rooms, role-based membership, invitations, persistent chat, and activity events are the first shared capabilities. Live document editing and AI participation are later milestones.</p></div></aside>
