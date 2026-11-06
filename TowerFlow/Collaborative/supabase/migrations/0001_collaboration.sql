@@ -65,7 +65,7 @@ create index if not exists room_activity_room_created_idx on public.room_activit
 
 create or replace function public.is_room_member(p_room_id uuid)
 returns boolean language sql stable security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select exists (
     select 1 from public.room_members
@@ -75,7 +75,7 @@ $$;
 
 create or replace function public.can_edit_room(p_room_id uuid)
 returns boolean language sql stable security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select exists (
     select 1 from public.room_members
@@ -86,7 +86,7 @@ $$;
 
 create or replace function public.create_room(p_name text)
 returns uuid language plpgsql security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_user uuid := auth.uid();
@@ -110,7 +110,7 @@ create or replace function public.create_room_invite(
   p_max_uses integer default 10
 )
 returns text language plpgsql security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_token text;
@@ -141,7 +141,7 @@ $$;
 
 create or replace function public.accept_room_invite(p_token text)
 returns uuid language plpgsql security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_invite public.room_invites%rowtype;
@@ -172,7 +172,7 @@ $$;
 
 create or replace function public.log_room_message()
 returns trigger language plpgsql security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 begin
   insert into public.room_activity(room_id, actor_id, action, details)
