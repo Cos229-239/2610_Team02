@@ -84,7 +84,7 @@ begin
   ) then
     raise exception 'Only room owners can change member roles';
   end if;
-  if p_role not in ('editor','viewer') then
+  if p_role is null or p_role not in ('editor','viewer') then
     raise exception 'Role must be editor or viewer';
   end if;
 
