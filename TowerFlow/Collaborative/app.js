@@ -71,6 +71,7 @@ async function openRoom(roomId) {
     }).subscribe();
 }
 function appendMessage(message) {
+  const empty = $("messages").querySelector(".muted"); if (empty) empty.remove();
   if ($("messages").querySelector('[data-message="'+message.id+'"]')) return;
   const node = document.createElement("article");
   node.className = "message"+(message.user_id===user.id?" mine":"");
@@ -162,7 +163,7 @@ if (!supabase) {
   status("Configuration needed");
   authMessage("Connect a Supabase project to enable accounts and shared rooms. No data is stored in this prototype.",true);
 } else {
-  supabase.auth.onAuthStateChange((_event,session)=>{initializeSession(session).catch(error=>{status("Connection issue");console.error(error);authMessage(error.message,true);});});
+  supabase.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>initializeSession(session).catch(error=>{status("Connection issue");console.error(error);authMessage(error.message,true);}),0);});
   supabase.auth.getSession().then(({data,error})=>{if(error)throw error;return initializeSession(data.session);})
     .catch(error=>{status("Connection issue");authMessage(error.message,true);});
 }
