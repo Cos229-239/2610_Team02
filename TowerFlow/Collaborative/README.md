@@ -35,8 +35,8 @@ Supabase is a **proposed implementation choice** for the approved provider-based
 ## Setup
 
 1. Create a Supabase project.
-2. In the Supabase SQL editor, run `supabase/migrations/0001_collaboration.sql`.
-3. Run `supabase/migrations/0002_room_administration.sql`.
+2. From this directory, run `supabase start`; the local database will apply both migrations.
+3. Run `supabase test db` to execute the pgTAP permission/isolation suite.
 4. In Supabase project settings, configure Auth email sign-in and the allowed redirect URLs for the local and hosted app origins.
 5. Open `config.js` and set `SUPABASE_URL` and the public anon/publishable key for your project. The committed values are placeholders.
 6. Serve this directory over HTTP (not `file://`). For example, with Node installed, run `npx serve .` from this directory, or use another static web host.
