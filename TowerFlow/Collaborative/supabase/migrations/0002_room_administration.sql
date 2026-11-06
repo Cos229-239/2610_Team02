@@ -4,7 +4,7 @@
 create or replace function public.list_room_members(p_room_id uuid)
 returns table(user_id uuid, display_name text, role text, joined_at timestamptz)
 language plpgsql stable security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 begin
   if not public.is_room_member(p_room_id) then
@@ -25,7 +25,7 @@ returns table(
   max_uses integer, uses integer, revoked_at timestamptz, created_at timestamptz
 )
 language plpgsql stable security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 begin
   if not exists (
@@ -45,7 +45,7 @@ $$;
 create or replace function public.revoke_room_invite(p_room_id uuid, p_invite_id uuid)
 returns void
 language plpgsql security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 begin
   if not exists (
@@ -73,7 +73,7 @@ create or replace function public.set_room_member_role(
 )
 returns void
 language plpgsql security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_target_role text;
@@ -109,7 +109,7 @@ $$;
 create or replace function public.remove_room_member(p_room_id uuid, p_user_id uuid)
 returns void
 language plpgsql security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_target_role text;
