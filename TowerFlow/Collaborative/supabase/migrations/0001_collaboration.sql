@@ -119,7 +119,15 @@ begin
     raise exception 'Only room owners can create invitations';
   end if;
   if p_role not in ('editor','viewer') then raise exception 'Invalid invitation role'; end if;
-  if p_max_uses is not null and p_max_uses < 1 then raise exception 'Maximum uses must be positive'; end if;
+  if p_expires_at is not null and p_expires_at <= now() then
+    raise exception 'Invitation expiry must be in the future';
+  end if;
+  if p_expires_at is not null and p_expires_at > now() + interval '30 days' then
+    raise exception 'Invitation expiry cannot exceed 30 days';
+  end if;
+  if p_max_uses is not null and (p_max_uses < 1 or p_max_uses > 1000) then
+    raise exception 'Maximum uses must be between 1 and 1000';
+  end if;
   v_token := encode(extensions.gen_random_bytes(32), 'hex');
   insert into public.room_invites(room_id, token_hash, role, expires_at, max_uses, created_by)
     values (p_room_id, extensions.digest(v_token, 'sha256'), p_role, p_expires_at, p_max_uses, auth.uid());
