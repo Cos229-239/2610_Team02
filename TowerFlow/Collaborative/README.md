@@ -36,8 +36,9 @@ Supabase is a **proposed implementation choice** for the approved provider-based
 
 1. Create a Supabase project.
 2. In the Supabase SQL editor, run `supabase/migrations/0001_collaboration.sql`.
-3. In Supabase project settings, configure Auth email sign-in and the allowed redirect URLs for the local and hosted app origins.
-4. Open `config.js` and set `SUPABASE_URL` and the public anon/publishable key for your project. The committed values are placeholders.
+3. Run `supabase/migrations/0002_room_administration.sql`.
+4. In Supabase project settings, configure Auth email sign-in and the allowed redirect URLs for the local and hosted app origins.
+5. Open `config.js` and set `SUPABASE_URL` and the public anon/publishable key for your project. The committed values are placeholders.
 6. Serve this directory over HTTP (not `file://`). For example, with Node installed, run `npx serve .` from this directory, or use another static web host.
 7. Open `index.html`, sign in using the emailed link, create a room, then invite another signed-in user.
 
@@ -47,15 +48,18 @@ The anon/publishable key is designed for browser use and is safe to expose **onl
 
 - Room creation is performed by a database function that atomically creates the room and its owner membership.
 - Rooms, membership, messages and activity are protected by RLS.
-- Only owners can create invitations in this first cut.
-- Invitation tokens are random, hashed at rest, expire after seven days by default, and are limited to ten uses by default.
-- Invitations grant Viewer access by default. The SQL function can create Editor invitations, but the current UI intentionally only exposes Viewer invitations.
-- Editors and owners can send room messages; viewers can read.
+- Only owners can create/revoke invitations, change non-owner member roles, and remove non-owner members. These operations are enforced in database functions, not by hiding UI controls alone.
+- Invitation tokens are random and hashed at rest; the UI creates seven-day, ten-use Viewer invitations.
+- Invitation metadata is visible only to room owners; raw invitation tokens are not retrievable after creation.
+- Invitations grant Viewer access by default. The UI currently creates Viewer links only.
+- Editors and owners can send room messages; viewers can read but cannot send.
 - Room activity records room creation, invitation creation, member joining, and message sent events. This is an activity feed, not a tamper-proof compliance audit log.
 
 ## First verification checklist
 
-- [ ] Apply SQL migration without errors.
+- [ ] Apply both SQL migrations without errors.
+- [ ] Run `supabase test db` from the project root against a local Supabase instance; the pgTAP suite is in `supabase/tests/0001_collaboration.test.sql`.
+- [ ] Confirm the pgTAP suite passes all 16 assertions.
 - [ ] Configure Auth redirect URLs and public client config.
 - [ ] Sign in as account A.
 - [ ] Create a room and confirm owner membership.
@@ -71,8 +75,7 @@ The anon/publishable key is designed for browser use and is safe to expose **onl
 
 - Apply database migrations through controlled deployment and review SQL policy behavior with two independent accounts before public use.
 - Configure Supabase Auth rate limits, email templates, allowed origins, and provider security settings.
-- Add invitation revocation RPC/UI and role-management workflow.
 - Add server-enforced rate limiting and abuse monitoring for messages and invite creation.
-- Add automated SQL/RLS integration tests.
+- Expand automated SQL/RLS integration tests as the schema evolves.
 - Add backup/restore verification before storing important business data.
 - Keep service-role credentials server-side only.
