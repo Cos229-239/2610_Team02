@@ -37,8 +37,7 @@ Supabase is a **proposed implementation choice** for the approved provider-based
 1. Create a Supabase project.
 2. In the Supabase SQL editor, run `supabase/migrations/0001_collaboration.sql`.
 3. In Supabase project settings, configure Auth email sign-in and the allowed redirect URLs for the local and hosted app origins.
-4. Copy `config.example.js` to `config.js`.
-5. Set `SUPABASE_URL` and the public anon/publishable key in `config.js`.
+4. Open `config.js` and set `SUPABASE_URL` and the public anon/publishable key for your project. The committed values are placeholders.
 6. Serve this directory over HTTP (not `file://`). For example, with Node installed, run `npx serve .` from this directory, or use another static web host.
 7. Open `index.html`, sign in using the emailed link, create a room, then invite another signed-in user.
 
