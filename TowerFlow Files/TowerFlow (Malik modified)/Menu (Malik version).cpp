@@ -11,6 +11,7 @@ void Divider() {
 void Intro() {
 	std::cout << "Welcome to TowerFlow, the ultimate inventory management system for small businesses!" << std::endl;
 	std::cout << "Please select an option from the menu below:" << std::endl;
+	std::cout << "Type /back at any option prompt to cancel.\n";
 	Divider();
 	std::cout << "1. Total Stock" << std::endl;
 	Divider();
@@ -45,6 +46,5 @@ void Intro() {
 	Divider();
 	std::cout << "16. Quit" << std::endl;
 	Divider();
-	std::cout << "Please enter your selection: ";
 	// MODIFIED BY MALIK BROWN: Added options 8, 9, 16 for Bulk Inventory Management, and closing of program | END //
 }

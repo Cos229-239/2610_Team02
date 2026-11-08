@@ -1,5 +1,6 @@
 #pragma once
 #include "Part (Malik version).cpp"
+#include "PartIdentifiers.h"
 #include <limits>
 #include <string>
 #include <vector>
@@ -8,13 +9,13 @@
 namespace towerflow {
 
 enum class OperationResult {
-    success, invalidData, notFound, duplicatePartNumber,
+    success, invalidData, notFound, duplicatePartId,
     insufficientStock, overflow
 };
 
 // Store a snapshot of the part name so history survives later part edits/deletion.
 struct OrderLine {
-    int partNumber = 0;
+    std::string partId;
     std::string partName;
     int quantity = 0;
 };
@@ -40,30 +41,31 @@ class OperationsInventory {
 public:
     explicit OperationsInventory(std::vector<Part>& parts) : parts_(parts) {}
 
+    const std::vector<Part>& parts() const { return parts_; }
     const std::vector<WorkOrder>& workOrders() const { return workOrders_; }
     const std::vector<StockTransaction>& receipts() const { return receipts_; }
     const std::vector<StockTransaction>& purchaseOrders() const { return purchaseOrders_; }
     const std::vector<StockTransaction>& sales() const { return sales_; }
 
-    OperationResult createWorkOrder(const std::string& description, int number, int quantity) {
+    OperationResult createWorkOrder(const std::string& description, const std::string& partId, int quantity) {
         if (!hasText(description)) return OperationResult::invalidData;
         std::size_t index = 0;
-        auto result = validateLine(number, quantity, index);
+        auto result = validateLine(partId, quantity, index);
         if (result != OperationResult::success) return result;
         if (nextWorkId_ == std::numeric_limits<int>::max()) return OperationResult::overflow;
-        workOrders_.push_back({nextWorkId_, description, {number, parts_[index].Name, quantity}});
+        workOrders_.push_back({nextWorkId_, description, {partId, parts_[index].Name, quantity}});
         ++nextWorkId_;
         return OperationResult::success; // Planned work does not reserve or consume stock.
     }
 
-    OperationResult editWorkOrder(int id, const std::string& description, int number, int quantity) {
+    OperationResult editWorkOrder(int id, const std::string& description, const std::string& partId, int quantity) {
         for (auto& order : workOrders_) {
             if (order.id != id) continue;
             if (!hasText(description)) return OperationResult::invalidData;
             std::size_t index = 0;
-            auto result = validateLine(number, quantity, index);
+            auto result = validateLine(partId, quantity, index);
             if (result != OperationResult::success) return result;
-            WorkOrder replacement{id, description, {number, parts_[index].Name, quantity}};
+            WorkOrder replacement{id, description, {partId, parts_[index].Name, quantity}};
             order = replacement; // Validate everything before replacing the original.
             return OperationResult::success;
         }
@@ -81,18 +83,18 @@ public:
     }
 
     // Option 13: record goods received now and increase stock once.
-    OperationResult purchasePart(const std::string& supplier, int number, int quantity, int cents) {
-        return recordTransaction(receipts_, nextReceiptId_, supplier, number, quantity, cents, 1);
+    OperationResult purchasePart(const std::string& supplier, const std::string& partId, int quantity, int cents) {
+        return recordTransaction(receipts_, nextReceiptId_, supplier, partId, quantity, cents, 1);
     }
 
     // Option 14: record a local supplier request. Nothing has arrived yet.
-    OperationResult createPurchaseOrder(const std::string& supplier, int number, int quantity, int cents) {
-        return recordTransaction(purchaseOrders_, nextPurchaseId_, supplier, number, quantity, cents, 0);
+    OperationResult createPurchaseOrder(const std::string& supplier, const std::string& partId, int quantity, int cents) {
+        return recordTransaction(purchaseOrders_, nextPurchaseId_, supplier, partId, quantity, cents, 0);
     }
 
     // Option 15: prevent overselling, record the sale, then reduce stock once.
-    OperationResult createSale(const std::string& customer, int number, int quantity, int cents) {
-        return recordTransaction(sales_, nextSaleId_, customer, number, quantity, cents, -1);
+    OperationResult createSale(const std::string& customer, const std::string& partId, int quantity, int cents) {
+        return recordTransaction(sales_, nextSaleId_, customer, partId, quantity, cents, -1);
     }
 
 private:
@@ -105,12 +107,12 @@ private:
         return text.find_first_not_of(" \t\r\n\f\v") != std::string::npos;
     }
 
-    OperationResult validateLine(int number, int quantity, std::size_t& index) const {
-        if (number <= 0 || quantity <= 0) return OperationResult::invalidData;
+    OperationResult validateLine(const std::string& partId, int quantity, std::size_t& index) const {
+        if (!IsPartId(partId) || quantity <= 0) return OperationResult::invalidData;
         bool found = false;
         for (std::size_t i = 0; i < parts_.size(); ++i) {
-            if (parts_[i].PartNumber != number) continue;
-            if (found) return OperationResult::duplicatePartNumber;
+            if (parts_[i].PartId != partId) continue;
+            if (found) return OperationResult::duplicatePartId;
             found = true;
             index = i;
         }
@@ -118,10 +120,10 @@ private:
     }
 
     OperationResult recordTransaction(std::vector<StockTransaction>& records, int& nextId,
-        const std::string& contact, int number, int quantity, int cents, int stockDirection) {
+        const std::string& contact, const std::string& partId, int quantity, int cents, int stockDirection) {
         if (!hasText(contact) || cents < 0) return OperationResult::invalidData;
         std::size_t index = 0;
-        auto result = validateLine(number, quantity, index);
+        auto result = validateLine(partId, quantity, index);
         if (result != OperationResult::success) return result;
         Part& part = parts_[index];
         if (part.Quantity < 0) return OperationResult::invalidData;
@@ -132,7 +134,7 @@ private:
             return OperationResult::insufficientStock;
 
         // Append first: if allocation fails, stock and the ID counter are unchanged.
-        records.push_back({nextId, contact, {number, part.Name, quantity}, cents});
+        records.push_back({nextId, contact, {partId, part.Name, quantity}, cents});
         ++nextId;
         if (stockDirection > 0) part.Quantity += quantity;
         if (stockDirection < 0) part.Quantity -= quantity;

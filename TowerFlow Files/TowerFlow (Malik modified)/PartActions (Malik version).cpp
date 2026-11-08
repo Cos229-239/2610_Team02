@@ -1,17 +1,18 @@
 #pragma once
 #include "Part (Malik version).cpp"
 #include "InputCheck (Malik version).cpp"
+#include "PartSelection.h"
 #include <iostream>
 #include <vector>
 
-// MODIFIED BY MALIK BROWN: Updated includes, added name and part validation, modified edit/delete lookup by part number, validated edits before saving, increased stock totals, and streamlined input/output | START //
+// MODIFIED BY MALIK BROWN: Updated includes, added name and part validation, modified edit/delete lookup by Part ID, validated edits before saving, increased stock totals, and streamlined input/output | START //
 
 // Keep one shared collection for part actions and bulk actions.
 static std::vector<Part> Parts;
 
 bool ReadPartName(std::string& name) {
     std::string line;
-    while (std::getline(std::cin, line)) {
+    while (towerflow::ReadOptionLine(std::cin, line)) {
         const auto first = line.find_first_not_of(" \t\r\n\f\v");
         if (first != std::string::npos) {
             const auto last = line.find_last_not_of(" \t\r\n\f\v");
@@ -23,10 +24,10 @@ bool ReadPartName(std::string& name) {
     return false;
 }
 
-// A part number is an ID, not a position in the vector.
-int FindPartIndex(int number) {
+// Search by the stored Part ID rather than by position in the vector.
+int FindPartIndex(const std::string& partId) {
     for (std::size_t i = 0; i < Parts.size(); ++i) {
-        if (Parts[i].PartNumber == number) {
+        if (Parts[i].PartId == partId) {
             return static_cast<int>(i);
         }
     }
@@ -34,13 +35,13 @@ int FindPartIndex(int number) {
 }
 
 bool ValidPart(const Part& part, int ignoredIndex = -1) {
-    if (part.PartNumber <= 0 || part.SerialNumber < 0 || part.Quantity < 0) {
-        std::cout << "Use a positive part number and nonnegative serial number and quantity.\n";
+    if (!towerflow::IsPartId(part.PartId) || !towerflow::IsSerialNumber(part.SerialNumber) || part.Quantity < 0) {
+        std::cout << "Use a Part ID with letters or digits, a Serial Number with 1 to 20 digits, and a nonnegative quantity.\n";
         return false;
     }
     for (std::size_t i = 0; i < Parts.size(); ++i) {
-        if (static_cast<int>(i) != ignoredIndex && Parts[i].PartNumber == part.PartNumber) {
-            std::cout << "That part number already exists. No changes made.\n";
+        if (static_cast<int>(i) != ignoredIndex && Parts[i].PartId == part.PartId) {
+            std::cout << "That Part ID already exists. No changes made.\n";
             return false;
         }
     }
@@ -51,10 +52,8 @@ void CreatePart() {
     Part NewPart;
     std::cout << "Enter Part Name: ";
     if (!ReadPartName(NewPart.Name)) return;
-    std::cout << "Enter Part Number: ";
-    if (!GetValidatedInt(NewPart.PartNumber)) return;
-    std::cout << "Enter Serial Number: ";
-    if (!GetValidatedInt(NewPart.SerialNumber)) return;
+    if (!towerflow::ReadPartId(std::cin, std::cout, "Enter Part ID (letters or digits): ", NewPart.PartId)) return;
+    if (!towerflow::ReadSerialNumber(std::cin, std::cout, "Enter Serial Number (1-20 digits): ", NewPart.SerialNumber)) return;
     std::cout << "Enter Quantity: ";
     if (!GetValidatedInt(NewPart.Quantity)) return;
 
@@ -74,14 +73,17 @@ void TotalStockCount() {
     std::cout << "Total Stock: " << Total << '\n';
 }
 
-void ListParts() {
+void ListParts(bool showDividers = false) {
     if (Parts.empty()) {
         std::cout << "No parts available.\n";
         return;
     }
+    bool first = true;
     for (const Part& part : Parts) {
+        if (showDividers && !first) Divider();
+        first = false;
         std::cout << "Part Name: " << part.Name << '\n'
-                  << "Part Number: " << part.PartNumber << '\n'
+                  << "Part ID: " << part.PartId << '\n'
                   << "Serial Number: " << part.SerialNumber << '\n'
                   << "Quantity: " << part.Quantity << '\n';
     }
@@ -92,13 +94,11 @@ void EditPart() {
         std::cout << "No parts available to edit.\n";
         return;
     }
-    ListParts();
-    std::cout << "Enter the Part Number of the part you want to edit: ";
-    int number = 0;
-    if (!GetValidatedInt(number)) return;
-    int index = FindPartIndex(number);
+    std::string partId;
+    if (!towerflow::ReadExistingPartId(std::cin, std::cout, Parts, "Part ID to edit: ", partId)) return;
+    int index = FindPartIndex(partId);
     if (index == -1) {
-        std::cout << "Part number not found.\n";
+        std::cout << "Part ID not found.\n";
         return;
     }
 
@@ -106,10 +106,8 @@ void EditPart() {
     Part updated = Parts[index];
     std::cout << "Enter replacement Part Name: ";
     if (!ReadPartName(updated.Name)) return;
-    std::cout << "Enter replacement Part Number: ";
-    if (!GetValidatedInt(updated.PartNumber)) return;
-    std::cout << "Enter replacement Serial Number: ";
-    if (!GetValidatedInt(updated.SerialNumber)) return;
+    if (!towerflow::ReadPartId(std::cin, std::cout, "Enter replacement Part ID (letters or digits): ", updated.PartId)) return;
+    if (!towerflow::ReadSerialNumber(std::cin, std::cout, "Enter replacement Serial Number (1-20 digits): ", updated.SerialNumber)) return;
     std::cout << "Enter replacement Quantity: ";
     if (!GetValidatedInt(updated.Quantity)) return;
 
@@ -123,17 +121,22 @@ void DeletePart() {
         std::cout << "No parts available to delete.\n";
         return;
     }
-    ListParts();
-    std::cout << "Enter the Part Number of the part you want to delete: ";
-    int number = 0;
-    if (!GetValidatedInt(number)) return;
-    int index = FindPartIndex(number);
+    std::string partId;
+    if (!towerflow::ReadExistingPartId(std::cin, std::cout, Parts, "Part ID to delete: ", partId)) return;
+    int index = FindPartIndex(partId);
     if (index == -1) {
-        std::cout << "Part number not found.\n";
+        std::cout << "Part ID not found.\n";
+        return;
+    }
+    std::cout << "Type DELETE to confirm, or /back to cancel: ";
+    std::string confirmation;
+    if (!towerflow::ReadOptionLine(std::cin, confirmation)) return;
+    if (confirmation != "DELETE") {
+        std::cout << "Deletion cancelled.\n";
         return;
     }
     Parts.erase(Parts.begin() + index);
     std::cout << "Part deleted successfully!\n";
 }
 
-// MODIFIED BY MALIK BROWN: Updated includes, added name and part validation, modified edit/delete lookup by part number, validated edits before saving, increased stock totals, and streamlined input/output | END //
+// MODIFIED BY MALIK BROWN: Updated includes, added name and part validation, modified edit/delete lookup by Part ID, validated edits before saving, increased stock totals, and streamlined input/output | END //

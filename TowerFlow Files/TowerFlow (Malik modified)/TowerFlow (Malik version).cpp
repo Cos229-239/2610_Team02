@@ -8,6 +8,7 @@
 #include "MenuEnums (Malik version).cpp"
 #include "BulkConsole.h"
 #include "OperationsConsole.h"
+#include "OptionInput.h"
 
 
 //TowerFlow is going to be a shell of an inventory to grow
@@ -26,80 +27,69 @@ int main() {
 
 	while (PowerOn) {
 		Intro();
-		Input(UserInput);
-		if (!std::cin) break;
+		if (!Input(UserInput)) break;
+
+        if (UserInput != QUIT) {
+            Wipe();
+            std::cout << "Type /back at any prompt to cancel and return to the main menu.\n\n";
+        }
 
 		switch (UserInput) {
 		case(TOTAL_STOCK):
-			Wipe();
 			TotalStockCount();
 			break;
 
 		case(CREATE_PART):
-			Wipe();
 			CreatePart();
 			break;
 
 		case(LIST_PART):
-			Wipe();			
-			ListParts();
+			ListParts(true);
 			break;
 
 		case(EDIT_PART):
-			Wipe();
 			EditPart();
 			break;
 
 		case(DELETE_PART):
-			Wipe();
 			DeletePart();
 			break;
 		
 		// MODIFIED BY MALIK BROWN: Added options 6, 7, 8, 9, for Bulk Inventory Management | START //
 		case(CREATE_BULK):
-			Wipe();
 			BulkMenu.create();
 			break;
 
 		case(LIST_BULK):
-			Wipe();
 			BulkMenu.list();
 			break;
 
 		case(EDIT_BULK):
-			Wipe();
 			BulkMenu.edit();
 			break;
 
 		case(DELETE_BULK):
-			Wipe();
 			BulkMenu.remove();
 			break;
 		// MODIFIED BY MALIK BROWN: Added options 6, 7, 8, 9, for Bulk Inventory Management | END //
 
         // MODIFIED BY MALIK BROWN: Connected work order, purchase, and sale options 10-15 | START //
         case(CREATE_WORK_ORDER):
-            Wipe();
             OperationsMenu.createWorkOrder();
             break;
         case(EDIT_WORK_ORDER):
-            Wipe();
             OperationsMenu.editWorkOrder();
             break;
         case(DELETE_WORK_ORDER):
-            Wipe();
             OperationsMenu.deleteWorkOrder();
             break;
         case(PURCHASE_PART):
-            Wipe();
             OperationsMenu.purchasePart();
             break;
         case(PURCHASE_ORDER):
-            Wipe();
             OperationsMenu.purchaseOrder();
             break;
         case(CREATE_SALE):
-            Wipe();
             OperationsMenu.createSale();
             break;
         // MODIFIED BY MALIK BROWN: Connected work order, purchase, and sale options 10-15 | END //
@@ -108,11 +98,11 @@ int main() {
 			break;
 
 		default:
-			Wipe();
 			std::cout << "Invalid selection. Please try again." << std::endl;
 			break;
 
 		}
+		if (towerflow::TakeOptionCancellation()) Wipe();
 	}
 	return 0;
 }

@@ -1,0 +1,13 @@
+TOWERFLOW 1
+2 1 1 1 5
+1
+"RTX NVIDIA 5080" 5080 1234567890 0
+0
+0
+0
+0
+4
+1 12 "Cheese" 0 67 "Initial stock"
+2 5080 "RTX NVIDIA 5080" 0 2 "Initial stock"
+3 12 "Cheese" 67 0 "Part deleted after confirmation"
+4 5080 "RTX NVIDIA 5080" 2 0 "Just 'cause I wanted to"

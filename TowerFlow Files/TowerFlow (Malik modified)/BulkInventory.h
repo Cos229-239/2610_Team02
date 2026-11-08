@@ -9,7 +9,7 @@ enum class BulkResult {
     success,
     invalidAmount,
     notFound,
-    ambiguousPartNumber,
+    ambiguousPartId,
     overflow
 };
 
@@ -22,13 +22,13 @@ public:
         return parts_;
     }
 
-    BulkResult add(int partNumber, int amount) {
+    BulkResult add(const std::string& partId, int amount) {
         if (amount <= 0) {
             return BulkResult::invalidAmount;
         }
 
         std::size_t index = 0;
-        BulkResult result = findIndex(partNumber, index);
+        BulkResult result = findIndex(partId, index);
         if (result != BulkResult::success) {
             return result;
         }
@@ -47,13 +47,13 @@ public:
         return BulkResult::success;
     }
 
-    BulkResult set(int partNumber, int amount) {
+    BulkResult set(const std::string& partId, int amount) {
         if (amount < 0) {
             return BulkResult::invalidAmount;
         }
 
         std::size_t index = 0;
-        BulkResult result = findIndex(partNumber, index);
+        BulkResult result = findIndex(partId, index);
         if (result != BulkResult::success) {
             return result;
         }
@@ -62,29 +62,29 @@ public:
         return BulkResult::success;
     }
 
-    BulkResult clear(int partNumber) {
-        return set(partNumber, 0);
+    BulkResult clear(const std::string& partId) {
+        return set(partId, 0);
     }
 
-    BulkResult lookup(int partNumber) const {
+    BulkResult lookup(const std::string& partId) const {
         std::size_t index = 0;
-        return findIndex(partNumber, index);
+        return findIndex(partId, index);
     }
 
 private:
     std::vector<Part>& parts_;
 
     // Return the position of ONE matching record. Duplicate IDs are unsafe.
-    BulkResult findIndex(int partNumber, std::size_t& index) const {
+    BulkResult findIndex(const std::string& partId, std::size_t& index) const {
         bool found = false;
 
         for (std::size_t i = 0; i < parts_.size(); ++i) {
-            if (parts_[i].PartNumber != partNumber) {
+            if (parts_[i].PartId != partId) {
                 continue;
             }
 
             if (found) {
-                return BulkResult::ambiguousPartNumber;
+                return BulkResult::ambiguousPartId;
             }
 
             index = i;
@@ -96,3 +96,5 @@ private:
         }
         return BulkResult::success;
     }
+}; // Close BulkInventory. Class definitions end with a semicolon.
+} // namespace towerflow

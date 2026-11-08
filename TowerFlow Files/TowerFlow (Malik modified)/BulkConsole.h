@@ -1,5 +1,6 @@
 #pragma once
 #include "BulkInventory.h"
+#include "PartSelection.h"
 #include <istream>
 #include <ostream>
 #include <sstream>
@@ -18,16 +19,16 @@ public:
             return;
         }
 
-        int number = 0;
+        std::string partId;
         int amount = 0;
-        if (!readInt("Part number: ", number)) {
+        if (!ReadExistingPartId(input_, output_, inventory_.items(), "Part ID: ", partId)) {
             return;
         }
         if (!readInt("Units to add: ", amount)) {
             return;
         }
 
-        report(inventory_.add(number, amount));
+        report(inventory_.add(partId, amount));
     }
 
     void list() const { // Option 7: display quantities.
@@ -36,7 +37,7 @@ public:
         }
 
         for (const Part& part : inventory_.items()) {
-            output_ << "Part number: " << part.PartNumber << " | " << part.Name
+            output_ << "Part ID: " << part.PartId << " | " << part.Name
                     << " | Serial: " << part.SerialNumber
                     << " | Units: " << part.Quantity << '\n';
         }
@@ -47,16 +48,16 @@ public:
             return;
         }
 
-        int number = 0;
+        std::string partId;
         int amount = 0;
-        if (!readInt("Part number: ", number)) {
+        if (!ReadExistingPartId(input_, output_, inventory_.items(), "Part ID: ", partId)) {
             return;
         }
         if (!readInt("New total units on hand: ", amount)) {
             return;
         }
 
-        report(inventory_.set(number, amount));
+        report(inventory_.set(partId, amount));
     }
 
     void remove() { // Option 9: clear stock, keeping the part.
@@ -64,12 +65,12 @@ public:
             return;
         }
 
-        int number = 0;
-        if (!readInt("Part number to clear: ", number)) {
+        std::string partId;
+        if (!ReadExistingPartId(input_, output_, inventory_.items(), "Part ID to clear: ", partId)) {
             return;
         }
 
-        BulkResult result = inventory_.lookup(number);
+        BulkResult result = inventory_.lookup(partId);
         if (result != BulkResult::success) {
             report(result);
             return;
@@ -77,13 +78,13 @@ public:
 
         output_ << "Set this part's quantity to zero? Type CLEAR to confirm: ";
         std::string confirmation;
-        std::getline(input_, confirmation);
-        if (!input_ || confirmation != "CLEAR") {
+        if (!ReadOptionLine(input_, confirmation)) return;
+        if (confirmation != "CLEAR") {
             output_ << "Clear cancelled.\n";
             return;
         }
 
-        report(inventory_.clear(number));
+        report(inventory_.clear(partId));
     }
 
 private:
@@ -103,8 +104,8 @@ private:
         while (true) {
             output_ << prompt;
             std::string line;
-            if (!std::getline(input_, line)) {
-                return false; // Input closed: return instead of looping forever.
+            if (!ReadOptionLine(input_, line)) {
+                return false; // Cancelled or input closed.
             }
 
             std::istringstream parser(line);
@@ -131,10 +132,10 @@ private:
             output_ << "Use a positive amount to add, or a nonnegative replacement. Existing negative stock must be corrected with Edit Bulk.\n";
             break;
         case BulkResult::notFound:
-            output_ << "Part number not found.\n";
+            output_ << "Part ID not found.\n";
             break;
-        case BulkResult::ambiguousPartNumber:
-            output_ << "Duplicate part numbers found. No changes made; resolve duplicates first.\n";
+        case BulkResult::ambiguousPartId:
+            output_ << "Duplicate Part IDs found. No changes made; resolve duplicates first.\n";
             break;
         case BulkResult::overflow:
             output_ << "Amount exceeds the maximum supported quantity.\n";
