@@ -1,0 +1,23 @@
+name: Towerflow Foundry Input Tests
+on:
+  push:
+    paths:
+      - 'collaboration-room/**'
+      - '.github/workflows/towerflow-foundry.yml'
+  pull_request:
+    paths:
+      - 'collaboration-room/**'
+      - '.github/workflows/towerflow-foundry.yml'
+jobs:
+  input-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate controller and preview
+        run: |
+          node --check collaboration-room/input/world-movement.js
+          node --check collaboration-room/public/preview.js
+          node --test collaboration-room/input/world-movement.test.mjs
