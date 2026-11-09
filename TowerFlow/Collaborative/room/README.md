@@ -30,7 +30,7 @@ The OAuth app requests `read:user user:email repo` to list repositories and use 
 - Mutating browser requests require the configured same-origin Origin header. WebSocket upgrades require the same origin and a valid server session.
 
 ## Storage and operational limits
-- Room, member, and invitation metadata are persisted in `data/rooms.json` using serialized in-process mutations and atomic file replacement. The data directory is created with restrictive permissions and the file is written as owner-only.
+- Room, member, and invitation metadata are persisted in `data/rooms.json` using serialized in-process mutations and atomic file replacement. The store attempts restrictive directory/file modes (0700/0600 on POSIX); verify filesystem ACLs separately on Windows.
 - This JSON store is intentionally single-process/local-MVP only. Do not run multiple server processes or multiple hosts against the same file. Before multi-instance or production/hybrid hosting, replace this adapter with a transactional shared database (for example self-hosted PostgreSQL) and add a durable shared session store, backups, monitoring, rate limits, and deployment-specific security review.
 - Login sessions and live presence remain in memory. A server restart preserves room membership/invites but signs users out and clears presence.
 - The IDE currently opens `github.dev`; individual code-server workspaces, Monaco/Yjs shared buffers, PR checkpoints, and integrated AI are not implemented yet.
