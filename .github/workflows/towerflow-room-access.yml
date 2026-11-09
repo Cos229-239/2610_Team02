@@ -1,0 +1,29 @@
+name: Towerflow room access tests
+on:
+  push:
+    branches: [towerflow/room-access-controls]
+    paths:
+      - 'TowerFlow/Collaborative/room/**'
+      - '.github/workflows/towerflow-room-access.yml'
+  pull_request:
+    paths:
+      - 'TowerFlow/Collaborative/room/**'
+      - '.github/workflows/towerflow-room-access.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax checks
+        working-directory: TowerFlow/Collaborative/room
+        run: |
+          node --check server.js
+          node --check room-store.js
+          node --check --input-type=module < public/app.js
+          node --check --input-type=module < public/team.js
+      - name: Permission and isolation tests
+        working-directory: TowerFlow/Collaborative/room
+        run: npm test
