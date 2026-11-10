@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{66A26720-8FB5-11D2-AA7E-00C04F688DDE}") = "Towerflow Room", "Towerflow Room", "{C67E0A20-64CC-421F-AF89-57D712065CD5}"
+	ProjectSection(SolutionItems) = preProject
+		collaboration-room\LIVE_ROOM_VSCODE_SYNC.md = collaboration-room\LIVE_ROOM_VSCODE_SYNC.md
+		collaboration-room\live-room\server.js = collaboration-room\live-room\server.js
+		collaboration-room\live-room\package.json = collaboration-room\live-room\package.json
+		collaboration-room\live-room\public\room.js = collaboration-room\live-room\public\room.js
+	EndProjectSection
+EndProject
+Project("{66A26720-8FB5-11D2-AA7E-00C04F688DDE}") = "Engineering", "Engineering", "{847C5A0D-505C-4AF7-B78D-E4FAD7CCFE10}"
+	ProjectSection(SolutionItems) = preProject
+		AGENTS.md = AGENTS.md
+		tools\import-local-towerflow-room.ps1 = tools\import-local-towerflow-room.ps1
+		collaboration-room\input\world-movement.js = collaboration-room\input\world-movement.js
+		collaboration-room\input\world-movement.test.mjs = collaboration-room\input\world-movement.test.mjs
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
