@@ -145,7 +145,7 @@
   }
   nav.forEach(b=>b.addEventListener("click",()=>show(b.dataset.tfAppTab)));
   document.querySelector('[data-tf-revenue-jump="inventory"]')?.addEventListener("click",()=>show("inventory"));
-  const allowed=["inventory","finance","revenue","business"];
+  const allowed=["inventory","finance","revenue","business","contributions"];
   const requested=new URL(location.href).searchParams.get("tab");
   show(allowed.includes(requested)?requested:"inventory");
   render();setStatus("DEMONSTRATION inventory. Figures are illustrative until you import real business data. This is not a live stock quote service.");
