@@ -54,15 +54,20 @@ async function main(){
   const apply=args[0]==='--apply';
   const [addition,manifest]=await Promise.all([readFile(source,'utf8'),readFile(vault,'utf8')]);
   validateVault(JSON.parse(manifest.replace(/^\uFEFF/,'')));
-  const plan=[];
-  for(const file of rooms){
-    if(!existsSync(file))throw Error('Missing existing room copy: '+file);
-    const old=await readFile(file,'utf8');
-    const next=patchRoom(old,addition);
-    await checkESM(next);
-    plan.push({file,old,next});
-  }
-  if(plan[0].next!==plan[1].next)throw Error('Local and live room copies would diverge, stopping before changes.');
+  if(!existsSync(rooms[0]))throw Error('Missing authoritative live room: '+rooms[0]);
+  const old=await readFile(rooms[0],'utf8');
+  const next=patchRoom(old,addition);
+  await checkESM(next);
+  const plan=[{file:rooms[0],old,next}];
+  if(existsSync(rooms[1])){
+    const workingCopy=await readFile(rooms[1],'utf8');
+    if(workingCopy===old){
+      plan.push({file:rooms[1],old:workingCopy,next});
+      console.log('WORKSPACE ROOM: matched authoritative live room; safely staged.');
+    }else{
+      console.log('WORKSPACE ROOM: divergent; preserved unchanged.');
+    }
+  }else console.log('WORKSPACE ROOM: deleted/missing; safely skipped.');
   console.log('=== AURA HIDDEN WORLD / SKY EMULATOR '+(apply?'APPLY':'DRY RUN')+' ===');
   for(const row of plan)console.log((row.old===row.next?'UNCHANGED ':'CHANGE    ')+row.file+' | SHA256 '+hash(row.next).slice(0,16));
   console.log('FOUR OBJECT FAMILIES: sunset, 8-planet solar system, aurora, colored ceiling text');
