@@ -10,6 +10,7 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const sourceWorld=join(root,"integrations","world","world-state.cjs");
 const sourceClient=join(root,"integrations","world","world-sync-client.js");
 const sourceEmulator=join(root,"integrations","aura","aura-world-emulator.js");
+const sourceMarket=join(root,"integrations","market");
 const live=join(homedir(),"Desktop","Towerflow_Team02_Private_Invite_Room","Towerflow_Collaboration_Room");
 const checkout=join(root,"collaboration-room","live-room");
 const begin="// TF_SHARED_WORLD_CLIENT_V1_BEGIN",end="// TF_SHARED_WORLD_CLIENT_V1_END";
@@ -18,7 +19,7 @@ const sha=s=>createHash("sha256").update(s).digest("hex");
 export function workspaceMatchesLive({liveRoom,liveServer,workspaceRoom,workspaceServer}){
  return liveRoom===workspaceRoom&&liveServer===workspaceServer;
 }
-const backend="// TF_SHARED_WORLD_BACKEND_V1_BEGIN\nconst {createWorldStore,createWorldHandler}=require('./world-state.cjs');\nconst tfWorldStore=createWorldStore({file:path.join(__dirname,'data','towerflow-world-state.json')});\nconst tfWorldHandler=createWorldHandler({store:tfWorldStore,origin:publicOrigin,authorize:async(req)=>{\n  const id=req.session?.user?.login;if(!id||!req.permission)return null;\n  return {userId:String(id).toLowerCase(),role:['admin','maintain'].includes(req.permission)?'maintainer':'contributor'};\n}});\napp.all('/api/world/state',auth,ensureMember,(req,res)=>tfWorldHandler(req,res));\n// TF_SHARED_WORLD_BACKEND_V1_END";
+const backend="// TF_SHARED_WORLD_BACKEND_V1_BEGIN\nconst {createWorldStore,createWorldHandler}=require('./world-state.cjs');\nconst tfWorldStore=createWorldStore({file:path.join(__dirname,'data','towerflow-world-state.json')});\nconst tfWorldHandler=createWorldHandler({store:tfWorldStore,origin:publicOrigin,authorize:async(req)=>{\n  const id=req.session?.user?.login;if(!id||!req.permission)return null;\n  return {userId:String(id).toLowerCase(),role:['admin','maintain'].includes(req.permission)?'maintainer':'contributor'};\n}});\napp.all('/api/world/state',auth,ensureMember,(req,res)=>tfWorldHandler(req,res));\nconst {createMarketHandler}=require('./market-handler.cjs');\nconst tfMarketHandler=createMarketHandler();\napp.get('/api/market/quote',auth,ensureMember,(req,res)=>tfMarketHandler(req,res));\n// TF_SHARED_WORLD_BACKEND_V1_END";
 export function patchServer(text){
  // Support either reviewed AURA server integration generation. The actual
  // source-matched live host uses TF_AURA_V2_SERVER_BEGIN; older installations
@@ -98,11 +99,18 @@ async function run(){
    console.log("WORKSPACE COPY: INCOMPLETE; skipped without creating replacement.");
  }
  for(const target of [live,...(rows.length===4?[checkout]:[])]){
-   const file=join(target,"world-state.cjs");
-   const old=existsSync(file)?await readFile(file,"utf8"):null;
-   if(old&&old!==service&&!old.includes("TOWERFLOW_SHARED_WORLD_V1"))
-     throw Error("Existing unrelated world-state service; refusing overwrite: "+file);
-   rows.push({file,old,next:service});
+   const assets=[
+     {name:"world-state.cjs",source:sourceWorld,marker:"TOWERFLOW_SHARED_WORLD_V1"},
+     {name:"alpha-vantage.cjs",source:join(sourceMarket,"alpha-vantage.cjs"),marker:"Optional authenticated financial market connector"},
+     {name:"market-handler.cjs",source:join(sourceMarket,"market-handler.cjs"),marker:"GET-only authenticated market quote handler"}
+   ];
+   for(const asset of assets){
+     const file=join(target,asset.name),next=await readFile(asset.source,"utf8");
+     const old=existsSync(file)?await readFile(file,"utf8"):null;
+     if(old&&old!==next&&!old.includes(asset.marker))
+       throw Error("Existing unrelated staged service; refusing overwrite: "+file);
+     rows.push({file,old,next});
+   }
  }
  for(const row of rows)await syntax(row.next,row.file.endsWith(".cjs")?".cjs":".mjs");
  console.log("=== APPROVED SHARED WORLD "+(apply?"STAGE":"DRY RUN")+" ===");
