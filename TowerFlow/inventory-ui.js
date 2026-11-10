@@ -36,7 +36,17 @@
       }
       const td=document.createElement("td");
       const button=document.createElement("button");button.className="btn secondary";button.textContent="Analyze";button.addEventListener("click",()=>inspect(p.sku));
-      td.append(button);tr.append(td);$("tfInventoryRows").append(tr);
+      const toggle=document.createElement("button");
+      toggle.type="button";toggle.className="btn secondary";
+      toggle.textContent=p.status==="active"?"Pause listing":"Relist";
+      toggle.addEventListener("click",()=>{
+        const row=products.find(x=>x.sku===p.sku);
+        const newStatus=row.status==="active"?"paused":"active";
+        if(!confirm((newStatus==="paused"?"Pause":"Relist")+" "+row.name+" in your LOCAL catalog? No marketplace action will occur."))return;
+        row.status=newStatus;save();render();
+        setStatus(row.sku+" is "+newStatus+". Adjust price in Analyze before relisting if needed.");
+      });
+      td.append(button,toggle);tr.append(td);$("tfInventoryRows").append(tr);
     }
     $("tfInventoryEmpty").hidden=rows.length!==0;
     const gross=analysis.weeklyRevenue,cogs=gross-analysis.weeklyGrossProfit;
