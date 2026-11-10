@@ -47,15 +47,23 @@ async function main() {
   if(args.length!==1||!['--dry-run','--apply'].includes(args[0]))throw Error('Use one --dry-run or --apply');
   const apply=args[0]==='--apply';
   const addition=await readFile(additionFile,'utf8');
-  const plan=[];
-  for(const file of paths){
-    if(!existsSync(file))throw Error('Missing Towerflow room: '+file);
-    const before=await readFile(file,'utf8');
-    const after=patchRoom(before,addition);
-    await checkSyntax(after);
-    plan.push({file,before,after});
+  const liveFile=paths[0],workspaceFile=paths[1];
+  if(!existsSync(liveFile))throw Error('Authoritative live Towerflow room missing: '+liveFile);
+  const before=await readFile(liveFile,'utf8');
+  const after=patchRoom(before,addition);
+  await checkSyntax(after);
+  const plan=[{file:liveFile,before,after}];
+  if(existsSync(workspaceFile)){
+    const workingCopy=await readFile(workspaceFile,'utf8');
+    if(workingCopy===before){
+      plan.push({file:workspaceFile,before:workingCopy,after});
+      console.log('WORKSPACE ROOM: exact match to live room; staged safely.');
+    }else{
+      console.log('WORKSPACE ROOM: diverged from authoritative live room; preserved unchanged.');
+    }
+  }else{
+    console.log('WORKSPACE ROOM: missing; skipped without creating or replacing it.');
   }
-  if(plan[0].after!==plan[1].after)throw Error('Working-copy divergence. Refusing unreviewed overwrite.');
   console.log('=== FRONTIER PROJECTOR / IN-ROOM IDE: '+(apply?'APPLY':'DRY RUN')+' ===');
   for(const row of plan)console.log((row.before===row.after?'UNCHANGED':'CHANGE')+' '+row.file+' SHA256 '+hash(row.after).slice(0,16));
   console.log('3 SECTIONS: Dashboard / Development / World Studio');
