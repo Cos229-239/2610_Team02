@@ -19,9 +19,9 @@ test("server route is injected once after authenticated member middleware",()=>{
 });
 test("existing V2 source-matched server is supported without loosening authorization",()=>{
  const v2=server.replace("// TF_AURA_GIT_SERVER_V1",
-  "// TF_AURA_V2_SERVER_BEGIN\\napp.use('/api/aura',auth,ensureMember,createAuraRouter({}));".replaceAll("\\\\n","\\n"));
+  ["// TF_AURA_V2_SERVER_BEGIN","app.use('/api/aura',auth,ensureMember,createAuraRouter({}));"].join("\n"));
  const once=patchServer(v2);
- assert.match(once,/app\\.all\\('\\/api\\/world\\/state',auth,ensureMember/);
+ assert.ok(once.includes("app.all('/api/world/state',auth,ensureMember"));
  assert.equal(patchServer(once),once);
  assert.throws(()=>patchServer(v2.replace("req.permission=permission","// no permission assignment")),/req.permission=permission/);
 });
