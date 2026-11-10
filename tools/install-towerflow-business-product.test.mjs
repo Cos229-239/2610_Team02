@@ -21,5 +21,5 @@ test("business product data is labeled demo, and finance remains separate",()=>{
  const ui=readFileSync(join(app,"inventory-ui.js"),"utf8");
  assert.match(ui,/DEMONSTRATION inventory/);
  assert.match(ui,/towerflow-business-inventory-v1/);
- assert.doesNotMatch(ui,/OPENAI_API_KEY|process\.env|/);
+ assert.doesNotMatch(ui,/OPENAI_API_KEY|process\.env/);
 });
