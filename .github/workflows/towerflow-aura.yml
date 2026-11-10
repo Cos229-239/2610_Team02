@@ -5,6 +5,8 @@ on:
       - 'integrations/aura/**'
       - 'integrations/frontier/**'
       - 'integrations/mediator/**'
+      - 'integrations/world/**'
+      - 'tools/install-shared-world-from-git*'
       - 'tools/install-frontier-lobby.mjs'
       - 'tools/install-frontier-lobby.test.mjs'
       - 'tools/install-aura-world-emulation.mjs'
@@ -33,6 +35,9 @@ jobs:
           node-version: '22'
       - run: node --check integrations/aura/aura-world-emulator.js
       - run: node --check tools/install-aura-world-emulation.mjs
+      - run: node --check integrations/world/world-state.cjs
+      - run: node --check integrations/world/world-sync-client.js
+      - run: node --check tools/install-shared-world-from-git.mjs
       - run: node --check integrations/mediator/configuration-mediator.cjs
       - run: node --check integrations/frontier/frontier-lobby.js
       - run: node --check tools/install-frontier-lobby.mjs
@@ -41,4 +46,4 @@ jobs:
       - run: node --check integrations/aura/aura-lighting-actions.js
       - run: node --check tools/install-towerflow-aura-from-git.mjs
       - run: node --check tools/install-aura-room-ui.mjs
-      - run: node --test integrations/mediator/configuration-mediator.test.cjs integrations/aura/aura-service.test.cjs tools/install-aura-room-ui.test.mjs tools/install-towerflow-aura-from-git.test.mjs tools/install-aura-lighting.test.mjs tools/install-frontier-lobby.test.mjs tools/install-aura-world-emulation.test.mjs
+      - run: node --test integrations/world/world-state.test.cjs tools/install-shared-world-from-git.test.mjs integrations/mediator/configuration-mediator.test.cjs integrations/aura/aura-service.test.cjs tools/install-aura-room-ui.test.mjs tools/install-towerflow-aura-from-git.test.mjs tools/install-aura-lighting.test.mjs tools/install-frontier-lobby.test.mjs tools/install-aura-world-emulation.test.mjs
