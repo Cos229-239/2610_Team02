@@ -52,6 +52,8 @@ jobs:
       - run: node --check integrations/market/market-handler.cjs
       - run: node --check integrations/agents/towerflow-agent.cjs
       - run: node --check integrations/agents/agent-handler.cjs
+      - run: node --check tools/verify-towerflow-agent-performance.cjs
+      - run: node tools/verify-towerflow-agent-performance.cjs
       - run: node --check TowerFlow/inventory-ui.js
       - run: node --check tools/serve-portfolio-preview.cjs
       - run: node --check tools/install-towerflow-business-product.mjs
