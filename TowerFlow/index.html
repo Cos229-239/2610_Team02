@@ -135,7 +135,8 @@
       </label>
       <div class="tf-inventory-actions">
         <button type="button" class="btn primary" id="tfFlowAnalyze">Analyze with FLOW</button>
-        <button type="button" class="btn secondary" data-tf-flow-quote>Check live market connector status</button>
+        <label>Market ticker <input id="tfMarketTicker" type="text" maxlength="14" value="AAPL" aria-label="Ticker to look up"></label>
+        <button type="button" class="btn secondary" data-tf-flow-quote>Fetch latest provider quote</button>
       </div>
       <p class="tf-source-badge" id="tfFlowDataLabel"></p>
       <div class="panel" id="tfFlowResult" role="region" aria-live="polite" aria-label="FLOW evidence results">Select the $500 or $100,000 demonstration tier to analyze your recorded inventory.</div>
