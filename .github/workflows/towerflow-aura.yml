@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'integrations/aura/**'
+      - 'integrations/frontier/**'
+      - 'tools/install-frontier-lobby.mjs'
+      - 'tools/install-frontier-lobby.test.mjs'
       - 'tools/install-aura-lighting.mjs'
       - 'tools/install-aura-lighting.test.mjs'
       - 'tools/install-towerflow-aura-from-git.mjs'
@@ -24,9 +27,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: node --check integrations/frontier/frontier-lobby.js
+      - run: node --check tools/install-frontier-lobby.mjs
       - run: node --check integrations/aura/aura-service.cjs
       - run: node --check tools/install-aura-lighting.mjs
       - run: node --check integrations/aura/aura-lighting-actions.js
       - run: node --check tools/install-towerflow-aura-from-git.mjs
       - run: node --check tools/install-aura-room-ui.mjs
-      - run: node --test integrations/aura/aura-service.test.cjs tools/install-aura-room-ui.test.mjs tools/install-towerflow-aura-from-git.test.mjs tools/install-aura-lighting.test.mjs
+      - run: node --test integrations/aura/aura-service.test.cjs tools/install-aura-room-ui.test.mjs tools/install-towerflow-aura-from-git.test.mjs tools/install-aura-lighting.test.mjs tools/install-frontier-lobby.test.mjs
