@@ -33,3 +33,14 @@ test('source editor uses read APIs and explicit save confirmation',()=>{
  assert.match(addon,/server\.content!==originalCode/);
  assert.doesNotMatch(addon,/child_process|execSync|eval\(|new Function\(/);
 });
+
+test('the cinematic Towerflow activation preserves 2-second timing and actual business links',()=>{
+ assert.match(addon,/towerflowRevealStarted-2000/);
+ assert.match(addon,/towerflowReveal===2/);
+ assert.match(addon,/CircleGeometry\(3\.98,64\)/);
+ assert.match(addon,/tabMeshes/);
+ assert.match(addon,/"inventory","revenue","finance","business"/);
+ assert.match(addon,/\/towerflow\/index\.html\?tab=/);
+  const patched=patchRoom(room,addon);
+ assert.match(patched,/let vx=-Math\.sin\(yaw\)/);
+});
