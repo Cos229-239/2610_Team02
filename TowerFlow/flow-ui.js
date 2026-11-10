@@ -15,6 +15,7 @@
  function sync(){
   const t=core.tier(name),result=core.limit(name,inventory.getMetrics().totalSkus);
   tierSelect.value=name;
+  document.querySelector(".tf-flow-experience").dataset.tier=name;
   $("tfFlowTierSummary").textContent="Selected demonstration: "+format(t.price)+" • inventory "+result.count+"/"+t.skuLimit+" SKUs • FLOW "+(t.ai?"enabled (local analysis)":"unavailable")+".";
   $("tfFlowLimits").textContent=result.allowed?"Within simulated catalog capacity.":"Simulated catalog capacity exceeded. Your records remain untouched.";
   $("tfFlowAnalyze").disabled=!t.ai;
@@ -42,6 +43,27 @@
    const p=document.createElement("p");p.textContent=a.text;
    const caveat=document.createElement("small");caveat.textContent=a.evidence.disclaimer;
    output.append(headline,p,caveat);
+   if(name==="corporate"){
+     const heading=document.createElement("h3");heading.textContent="CORPORATE • MULTI-CATEGORY EXPOSURE";
+     const table=document.createElement("table");
+     const thead=document.createElement("thead");
+     const header=document.createElement("tr");
+     for(const label of ["CATEGORY","SKUS","STOCK COST","WEEKLY SALES","GROSS PROFIT","SPACE"]){
+       const th=document.createElement("th");th.textContent=label;header.append(th);
+     }
+     thead.append(header);table.append(thead);
+     const tbody=document.createElement("tbody");
+     for(const c of a.evidence.categories){
+       const tr=document.createElement("tr");
+       for(const cell of [c.category,String(c.skus),format(c.capital),format(c.weeklyRevenue),format(c.weeklyGrossProfit),c.spaceSqFt.toFixed(1)+" sq ft"]){
+         const td=document.createElement("td");td.textContent=cell;tr.append(td);
+       }
+       tbody.append(tr);
+     }
+     table.append(tbody);
+     const box=document.createElement("div");box.className="table-wrap";box.append(table);
+     output.append(heading,box);
+   }
    status.textContent="Calculated from current local inventory • no external request or charge.";
   }catch(e){status.textContent=e.message;}
   sync();
