@@ -16,11 +16,20 @@
   if(!a||!Array.isArray(a.items)||!Number.isFinite(a.inventoryCost))throw Error("Inventory analysis required");
   const stagnant=a.items.filter(i=>["NO SALES","SLOW MOVING"].includes(i.signal)).sort((x,y)=>y.inventoryCost-x.inventoryCost);
   const fastest=[...a.items].filter(i=>i.status==="active").sort((x,y)=>y.weeklySales-x.weeklySales);
+  const categoryMap=new Map();
+  for(const p of a.items){
+    const key=p.category;
+    if(!categoryMap.has(key))categoryMap.set(key,{category:key,skus:0,units:0,capital:0,weeklyRevenue:0,weeklyGrossProfit:0,spaceSqFt:0});
+    const c=categoryMap.get(key);
+    c.skus++;c.units+=p.units;c.capital+=p.inventoryCost;c.weeklyRevenue+=p.weeklyRevenue;
+    c.weeklyGrossProfit+=p.weeklyGrossProfit;c.spaceSqFt+=p.footprintSqFt;
+  }
+  const categories=[...categoryMap.values()].sort((x,y)=>y.capital-x.capital);
   return {
    source:"manual-or-demonstration",totalSkus:a.totalSkus,inventoryCost:a.inventoryCost,
    weeklyRevenue:a.weeklyRevenue,weeklyGrossProfit:a.weeklyGrossProfit,
    grossMarginPct:a.weeklyRevenue>0?100*a.weeklyGrossProfit/a.weeklyRevenue:null,
-   occupiedSqFt:a.occupiedSqFt,stagnantCost:a.stagnantCost,atRiskSkus:a.atRiskSkus,
+   occupiedSqFt:a.occupiedSqFt,stagnantCost:a.stagnantCost,atRiskSkus:a.atRiskSkus,categories,
    candidates:stagnant.slice(0,5).map(p=>({sku:p.sku,name:p.name,capital:p.inventoryCost,signal:p.signal,
     note:p.weeklySales===0?"No recorded sales; check holding costs and actual demand before repricing.":"Review slow stock and warehouse footprint before action."})),
    fastest:fastest.slice(0,5).map(p=>({sku:p.sku,weeklySales:p.weeklySales})),
