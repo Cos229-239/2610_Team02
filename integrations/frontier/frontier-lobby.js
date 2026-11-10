@@ -386,7 +386,7 @@
   function playRockyGreeting(){
     if(!greetingConfig.enabled||!greetingConfig.rightsVerified)return false;
     const location=greetingConfig.assetPath;
-    if(typeof location!=="string"||!/^\\/room-assets\\/approved\\/[a-zA-Z0-9._/-]+\\.(mp3|ogg|wav)$/.test(location)||location.includes(".."))return false;
+    if(typeof location!=="string"||!new RegExp("^/room-assets/approved/[A-Za-z0-9._/-]+[.](mp3|ogg|wav)$").test(location)||location.includes(".."))return false;
     if(localStorage.getItem("tfRockyGreetingMuted")==="1")return false;
     stopRockyGreeting();
     greetingText.textContent=greetingConfig.transcript||"Rocky Balboa • authorized film excerpt";
