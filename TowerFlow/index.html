@@ -20,6 +20,7 @@
   <button type="button" role="tab" data-tf-app-tab="revenue">BUSINESS REVENUE</button>
   <button type="button" role="tab" data-tf-app-tab="finance">STOCK MARKET &amp; FINANCE</button>
   <button type="button" role="tab" data-tf-app-tab="business">BUSINESS &amp; CORP START HERE</button>
+  <button type="button" role="tab" data-tf-app-tab="contributions">TEAM CONTRIBUTIONS</button>
 </nav>
 <section id="tfInventory" data-tf-app-panel="inventory" aria-label="Business inventory intelligence">
   <div class="tf-inventory-hero">
@@ -100,6 +101,36 @@
     <p>Visit <button type="button" class="btn secondary" data-tf-revenue-jump="inventory">Inventory Intelligence</button> to update unit economics and review margin scenarios.</p>
     <p>Cost of goods and sale price alone cannot establish net business profit. A production-ready revenue service needs historical sales, expenses, taxes, returns, dates and an audited source of truth.</p>
   </div>
+</section>
+<section data-tf-app-panel="contributions" aria-label="Contributor-owned review and preview" hidden>
+ <div class="panel tf-contrib-center">
+  <div class="eyebrow">TOWERFLOW / CONTRIBUTION FOUNDRY</div>
+  <h1>Every idea has an owner. Every change has a preview.</h1>
+  <p>Contributions remain in their author's GitHub branches and pull requests. Reviewing, previewing or declining a change must not delete the author's source or close their pull request.</p>
+  <div class="tf-tier-grid">
+   <article class="panel">
+    <h2>01 / Contribute</h2>
+    <p>Work from an isolated branch. Open a pull request into <strong>dev</strong> with your name, summary, tests, and a source link.</p>
+    <a class="btn primary" href="https://github.com/Cos229-239/2610_Team02/compare/dev...dev?expand=1" target="_blank" rel="noopener noreferrer">OPEN CONTRIBUTION REQUEST ↗</a>
+   </article>
+   <article class="panel">
+    <h2>02 / Review and preview</h2>
+    <p>Read the exact PR source diff; then test that PR's pinned code in an isolated portfolio preview, separate from the live collaboration host.</p>
+    <a class="btn secondary" href="https://github.com/Cos229-239/2610_Team02/pulls" target="_blank" rel="noopener noreferrer">VIEW AUTHOR CONTRIBUTIONS ↗</a>
+   </article>
+   <article class="panel">
+    <h2>03 / Integrate only when approved</h2>
+    <p>A maintainers' review decision is separate from merge and production deployment. Keeping a contribution pending preserves its author and history.</p>
+    <a class="btn secondary" href="https://github.com/Cos229-239/2610_Team02/actions" target="_blank" rel="noopener noreferrer">REVIEW TEST EVIDENCE ↗</a>
+   </article>
+  </div>
+  <section class="panel tf-contrib-review">
+   <h2>Author : contribution</h2>
+   <p class="muted">The cards below are pinned to reviewed GitHub PR metadata. A live PR listing requires a member-authenticated GitHub backend; no anonymous token is stored in the browser.</p>
+   <div id="tfContributorCards" aria-live="polite"></div>
+   <p class="muted">Accurate rendering of a contribution requires loading that PR's exact commit in an isolated preview. Click “Review exact change” for the source diff; a separate local preview does not alter this app.</p>
+  </section>
+ </div>
 </section>
 <section data-tf-app-panel="business" aria-label="Business and corporation onboarding" hidden>
   <div class="panel">
@@ -269,5 +300,6 @@
 <script src="inventory-ui.js"></script>
 <script src="flow-core.js"></script>
 <script src="flow-ui.js"></script>
+<script src="contributions.js"></script>
 </body>
 </html>
