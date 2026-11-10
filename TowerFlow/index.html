@@ -110,6 +110,37 @@
       <article class="panel"><div class="eyebrow">FLOW ASSISTED</div><h2>$500</h2><p>Proposed AI reporting and limited trend research; requires a metered verified data integration.</p><span class="tf-source-badge">NOT CONNECTED</span></article>
       <article class="panel"><div class="eyebrow">CORPORATE</div><h2>$100,000</h2><p>Proposed multi-location dashboards, advanced data analysis, audited collaboration and enterprise onboarding.</p><span class="tf-source-badge">NOT CONNECTED</span></article>
     </div>
+    <section class="panel tf-flow-experience" aria-label="FLOW product intelligence prototype">
+      <div class="eyebrow">)=L0\\/\\ • FLOW / BUSINESS SUBJECT-MATTER ASSISTANT</div>
+      <h2>Experience the tiers. Inspect your inventory.</h2>
+      <p>Interact with a working <strong>local deterministic analysis</strong> of your catalog. There is no real checkout, payment, model inference, licensed persona voice or live data provider in this demonstration.</p>
+      <label>Simulated membership tier
+        <select id="tfFlowTier">
+          <option value="starter">$0 — Starter (25 SKUs)</option>
+          <option value="assisted">$500 — FLOW Assisted (250 SKUs)</option>
+          <option value="corporate">$100,000 — Corporate (5,000 SKUs)</option>
+        </select>
+      </label>
+      <p id="tfFlowTierSummary" aria-live="polite"></p>
+      <p id="tfFlowLimits" class="muted"></p>
+      <label>Ask FLOW about your catalog
+        <select id="tfFlowTopic">
+          <option value="overview">Business overview</option>
+          <option value="inventory risk">Slow-moving / stagnant stock</option>
+          <option value="sales velocity">Fastest-selling items</option>
+          <option value="gross margin">Gross margins</option>
+          <option value="warehouse space">Warehouse space</option>
+          <option value="growth">Growth and replenishment</option>
+        </select>
+      </label>
+      <div class="tf-inventory-actions">
+        <button type="button" class="btn primary" id="tfFlowAnalyze">Analyze with FLOW</button>
+        <button type="button" class="btn secondary" data-tf-flow-quote>Check live market connector status</button>
+      </div>
+      <p class="tf-source-badge" id="tfFlowDataLabel"></p>
+      <div class="panel" id="tfFlowResult" role="region" aria-live="polite" aria-label="FLOW evidence results">Select the $500 or $100,000 demonstration tier to analyze your recorded inventory.</div>
+      <p id="tfFlowStatus" role="status">No payment or subscription is active.</p>
+    </section>
     <p>Pricing is a product concept, not an offer or an activated subscription. An authenticated business data backend, legal review and a licensed payments provider would be required before commercialization.</p>
   </div>
 </section>
@@ -181,5 +212,7 @@
 <script src="app.js"></script>
 <script src="inventory-core.js"></script>
 <script src="inventory-ui.js"></script>
+<script src="flow-core.js"></script>
+<script src="flow-ui.js"></script>
 </body>
 </html>
