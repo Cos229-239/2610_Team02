@@ -6,6 +6,7 @@ on:
       - 'integrations/frontier/**'
       - 'integrations/mediator/**'
       - 'integrations/market/**'
+      - 'integrations/agents/**'
       - 'tools/serve-portfolio-preview*'
       - 'tools/install-towerflow-business-product*'
       - 'tools/open-towerflow-ides.ps1'
@@ -47,10 +48,12 @@ jobs:
       - run: node --check TowerFlow/flow-ui.js
       - run: node --check integrations/market/alpha-vantage.cjs
       - run: node --check integrations/market/market-handler.cjs
+      - run: node --check integrations/agents/towerflow-agent.cjs
+      - run: node --check integrations/agents/agent-handler.cjs
       - run: node --check TowerFlow/inventory-ui.js
       - run: node --check tools/serve-portfolio-preview.cjs
       - run: node --check tools/install-towerflow-business-product.mjs
-      - run: node --test TowerFlow/inventory-core.test.cjs TowerFlow/flow-core.test.cjs integrations/market/alpha-vantage.test.cjs integrations/market/market-handler.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs tools/towerflow-pr-synopsis.test.cjs
+      - run: node --test TowerFlow/inventory-core.test.cjs TowerFlow/flow-core.test.cjs integrations/market/alpha-vantage.test.cjs integrations/market/market-handler.test.cjs integrations/agents/towerflow-agent.test.cjs integrations/agents/agent-handler.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs tools/towerflow-pr-synopsis.test.cjs
       - name: Validate PowerShell deployment script syntax
         if: runner.os == 'Windows'
         shell: pwsh
