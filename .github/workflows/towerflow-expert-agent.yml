@@ -1,0 +1,26 @@
+name: Towerflow Expert Agent
+on:
+  pull_request:
+    paths:
+      - 'tools/towerflow-expert-agent.mjs'
+      - 'tools/towerflow-expert-agent.test.mjs'
+      - 'towerflow-knowledge/**'
+      - '.github/workflows/towerflow-expert-agent.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'tools/towerflow-expert-agent.mjs'
+      - 'tools/towerflow-expert-agent.test.mjs'
+      - 'towerflow-knowledge/**'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check tools/towerflow-expert-agent.mjs
+      - run: node --test tools/towerflow-expert-agent.test.mjs
