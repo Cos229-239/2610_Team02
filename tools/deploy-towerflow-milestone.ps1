@@ -25,12 +25,15 @@ try {
     'TowerFlow/index.html','TowerFlow/app.js','TowerFlow/styles.css',
     'TowerFlow/inventory-core.js','TowerFlow/inventory-ui.js','TowerFlow/inventory-core.test.cjs',
     'TowerFlow/flow-core.js','TowerFlow/flow-ui.js','TowerFlow/flow-core.test.cjs',
+    'TowerFlow/flow-agent-ui.js','TowerFlow/contributions.js','TowerFlow/contributions.json',
     'integrations/frontier/frontier-lobby.js',
     'integrations/aura/aura-world-emulator.js',
     'integrations/world/world-state.cjs','integrations/world/world-sync-client.js',
     'integrations/world/world-state.test.cjs',
     'integrations/market/alpha-vantage.cjs','integrations/market/market-handler.cjs',
     'integrations/market/alpha-vantage.test.cjs','integrations/market/market-handler.test.cjs',
+    'integrations/agents/towerflow-agent.cjs','integrations/agents/agent-handler.cjs',
+    'integrations/agents/towerflow-agent.test.cjs','integrations/agents/agent-handler.test.cjs',
     'integrations/mediator/configuration-mediator.cjs',
     'integrations/mediator/configuration-mediator.test.cjs',
     'tools/install-frontier-lobby.mjs','tools/install-frontier-lobby.test.mjs',
@@ -40,7 +43,7 @@ try {
     'tools/install-shared-world-from-git.mjs','tools/install-shared-world-from-git.test.mjs',
     'tools/serve-portfolio-preview.cjs','tools/serve-portfolio-preview.test.cjs',
     'tools/towerflow-pr-synopsis.cjs','tools/towerflow-pr-synopsis.test.cjs',
-    'tools/open-towerflow-ides.ps1',
+    'tools/open-towerflow-ides.ps1','tools/preview-towerflow-contribution.ps1',
     '.devcontainer/devcontainer.json','.devcontainer/full-stack/devcontainer.json','.vsconfig'
   )
   $backup = Join-Path $env:USERPROFILE (
@@ -100,6 +103,8 @@ try {
       'integrations/world/world-state.test.cjs',
       'integrations/market/alpha-vantage.test.cjs',
       'integrations/market/market-handler.test.cjs',
+      'integrations/agents/towerflow-agent.test.cjs',
+      'integrations/agents/agent-handler.test.cjs',
       'tools/install-frontier-lobby.test.mjs',
       'tools/install-aura-world-emulation.test.mjs',
       'tools/install-shared-world-from-git.test.mjs',
