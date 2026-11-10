@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Towerflow Expert Agent v1: private, grounded local CLI using Ollama/Qwen3.
 // No public HTTP listener, shell tools, Git writes, or automatic memories.
 import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
