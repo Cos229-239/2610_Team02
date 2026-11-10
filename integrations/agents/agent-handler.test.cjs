@@ -29,5 +29,5 @@ test("model plans are returned with approval required and no execution",async()=
   planner:{model:"fixture",mode:"PROPOSAL_ONLY_NO_AUTO_EXECUTION",plan:async()=>({proposal:{skill:"inventory.review"},approved:false,executed:false})}});
  const r=response();
  await fn(req({method:"POST",path:"/api/agents/plan",body:{question:"Review my inventory",itemsAvailable:true}}),r);
- assert.equal(r.code,200);assert.equal(r.body.executed,false);assert.equal(executed,0);
+ assert.equal(r.statusCode,200);assert.equal(r.body.executed,false);assert.equal(executed,0);
 });
