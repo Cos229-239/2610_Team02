@@ -105,11 +105,54 @@
   <div class="panel">
     <div class="eyebrow">BUSINESS &amp; CORP START HERE / TIER DEMONSTRATION</div><h1>Choose a business experience.</h1>
     <p>No payment processor is connected. These tiers are illustrative and no charge is collected. Do not enter credit card information.</p>
-    <div class="tf-tier-grid">
-      <article class="panel"><div class="eyebrow">STARTER</div><h2>$0</h2><p>Basic local inventory and product analysis.</p><span class="tf-source-badge">DEMONSTRATION</span></article>
-      <article class="panel"><div class="eyebrow">FLOW ASSISTED</div><h2>$500</h2><p>Proposed AI reporting and limited trend research; requires a metered verified data integration.</p><span class="tf-source-badge">NOT CONNECTED</span></article>
-      <article class="panel"><div class="eyebrow">CORPORATE</div><h2>$100,000</h2><p>Proposed multi-location dashboards, advanced data analysis, audited collaboration and enterprise onboarding.</p><span class="tf-source-badge">NOT CONNECTED</span></article>
+    <div class="tf-business-intro">
+      <div>
+        <div class="eyebrow">TOWERFLOW / YOUR COMPANY OPERATING SYSTEM</div>
+        <h2>Build a business. Command the market.</h2>
+        <p>Three experiences: start small, unlock guided research, or explore a corporate-grade command center. All figures and tiers below are a <strong>simulation</strong>, not a payment offer.</p>
+      </div>
+      <div class="tf-business-orb" aria-label="FLOW business assistant concept">
+        <span class="tf-business-orb-core">)=L0\\/\\</span>
+        <small>FLOW • TOWERFLOW INTELLIGENCE</small>
+      </div>
     </div>
+    <div class="tf-tier-grid tf-tier-showcase" role="group" aria-label="Choose a simulated business tier">
+      <article class="panel tf-tier-card" data-flow-tier-card="starter">
+        <div class="eyebrow">01 / FOUNDATION</div><h2>STARTER</h2><div class="tf-tier-price">$0<span> / SIMULATED</span></div>
+        <p>Bring your first catalog into Towerflow and examine your inventory position.</p>
+        <ul><li>Up to 25 catalog SKUs in the tier demonstration</li><li>Local inventory and gross revenue planning</li><li>Basic stock alerts and scenario repricing</li><li>No FLOW AI interpretation or market-research entitlement</li></ul>
+        <button class="btn secondary" type="button" data-tf-select-tier="starter">Preview Starter</button>
+      </article>
+      <article class="panel tf-tier-card tf-tier-featured" data-flow-tier-card="assisted">
+        <div class="eyebrow">02 / BUILDER</div><h2>FLOW ASSISTED</h2><div class="tf-tier-price">$500<span> / SIMULATED</span></div>
+        <p>Business evidence, an intelligent copilot, and a guided trend-research concept.</p>
+        <ul><li>Up to 250 catalog SKUs in the tier demonstration</li><li>FLOW inventory risk, velocity, margin and growth reports</li><li>Opt-in AURA interpretation of aggregate metrics</li><li>Proposed 3 trends per 3-month window and 5 market searches</li><li>Market connector status and data-source disclosures</li></ul>
+        <button class="btn primary" type="button" data-tf-select-tier="assisted">Preview FLOW Assisted</button>
+      </article>
+      <article class="panel tf-tier-card tf-tier-enterprise" data-flow-tier-card="corporate">
+        <div class="eyebrow">03 / ENTERPRISE</div><h2>CORPORATE COMMAND</h2><div class="tf-tier-price">$100,000<span> / SIMULATED</span></div>
+        <p>Explore the largest-scale Towerflow cockpit with rich category-level evidence.</p>
+        <ul><li>Up to 5,000 catalog SKUs in the tier demonstration</li><li>Category economics across capital, revenue, profit and floor space</li><li>Extensive FLOW analysis with opt-in AURA interpretation</li><li>Proposed multi-location reporting and unlimited research access</li><li>Contribution review and enterprise integration concepts</li></ul>
+        <button class="btn primary" type="button" data-tf-select-tier="corporate">Preview Corporate Command</button>
+      </article>
+    </div>
+    <section class="panel tf-checkout-simulation" aria-label="Simulated Stripe-style checkout">
+      <div class="tf-sim-payment-head">
+        <div><span class="eyebrow">SIMULATED CHECKOUT / NO PAYMENT CONNECTION</span><h3>Membership activation preview</h3></div>
+        <span class="tf-source-badge">SANDBOX DISPLAY ONLY</span>
+      </div>
+      <div class="tf-sim-payment-summary">
+        <div><small>SELECTED EXPERIENCE</small><strong id="tfCheckoutPlan">STARTER</strong></div>
+        <div><small>ILLUSTRATIVE PLAN PRICE</small><strong id="tfCheckoutPrice">$0.00</strong></div>
+        <div><small>ACTUAL CHARGE</small><strong>$0.00</strong></div>
+      </div>
+      <div class="tf-sim-payment-fake" aria-label="Disabled payment-entry illustration">
+        <span>Payment details are intentionally unavailable in the demo.</span>
+        <span aria-hidden="true">•••• •••• •••• ••••</span>
+      </div>
+      <button type="button" class="btn primary" id="tfPreviewCheckout">Preview tier activation • $0 charged</button>
+      <p id="tfCheckoutStatus" role="status">No payment, subscription, bank or card account is connected. Do not enter payment information.</p>
+    </section>
     <section class="panel tf-flow-experience" aria-label="FLOW product intelligence prototype">
       <div class="eyebrow">)=L0\\/\\ • FLOW / BUSINESS SUBJECT-MATTER ASSISTANT</div>
       <h2>Experience the tiers. Inspect your inventory.</h2>
