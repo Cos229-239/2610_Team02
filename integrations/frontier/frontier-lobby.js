@@ -52,6 +52,38 @@
   lens.rotation.x=Math.PI/2;lens.position.set(0,-.05,-.78);projector.add(lens);
   const arm=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,1.45,12),graphite);
   arm.position.y=.92;projector.add(arm);
+  // Layered spacecraft-inspired projector assembly. Geometry is authored
+  // procedurally, NOT represented as a photographic scan or exact spacecraft.
+  projector.scale.setScalar(1.42);
+  const secondaryMetal=new THREE.MeshStandardMaterial({color:0x344e62,metalness:.82,roughness:.22});
+  const graphiteTrim=new THREE.MeshStandardMaterial({color:0x061424,metalness:.63,roughness:.34});
+  const opticGlow=new THREE.MeshStandardMaterial({color:0x5edcfb,metalness:.15,roughness:.08,emissive:0x31afe0,emissiveIntensity:1.4});
+  for(const side of [-1,1]){
+    const wing=new THREE.Mesh(new THREE.BoxGeometry(1.38,.16,1.52),secondaryMetal);
+    wing.position.set(side*1.33,-.02,.11);wing.rotation.z=side*.13;projector.add(wing);
+    const edge=new THREE.Mesh(new THREE.BoxGeometry(.11,.26,1.8),graphiteTrim);
+    edge.position.set(side*2.02,-.03,.14);projector.add(edge);
+    const fanHousing=new THREE.Mesh(new THREE.CylinderGeometry(.32,.36,.16,24),graphiteTrim);
+    fanHousing.position.set(side*1.3,.21,.35);projector.add(fanHousing);
+    const fanCore=new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.2,24),opticGlow);
+    fanCore.position.set(side*1.3,.22,.35);projector.add(fanCore);
+    for(let i=0;i<3;i++){
+      const vent=new THREE.Mesh(new THREE.BoxGeometry(.14,.02,.36),graphiteTrim);
+      vent.position.set(side*(.62+i*.22),.34,.26);projector.add(vent);
+    }
+    const thruster=new THREE.Mesh(new THREE.CylinderGeometry(.22,.32,.42,20),secondaryMetal);
+    thruster.rotation.x=Math.PI/2;thruster.position.set(side*1.5,-.12,1.05);projector.add(thruster);
+    const flame=new THREE.Mesh(new THREE.CircleGeometry(.17,24),opticGlow);
+    flame.position.set(side*1.5,-.12,1.29);projector.add(flame);
+  }
+  const opticRing=new THREE.Mesh(new THREE.TorusGeometry(.53,.065,12,40),secondaryMetal);
+  opticRing.position.set(0,-.06,-.94);projector.add(opticRing);
+  const opticGlass=new THREE.Mesh(new THREE.SphereGeometry(.31,28,20),opticGlow);
+  opticGlass.scale.set(1,1,.43);opticGlass.position.set(0,-.05,-.93);projector.add(opticGlass);
+  const bridge=new THREE.Mesh(new THREE.BoxGeometry(.84,.16,1.36),graphiteTrim);
+  bridge.position.set(0,.41,.1);projector.add(bridge);
+  const navigation=new THREE.PointLight(0x59daff,.55,6);
+  navigation.position.set(0,.48,-.3);projector.add(navigation);
   const beam=new THREE.SpotLight(0x81d8ff,0,35,Math.PI/6,.7,1);
   beam.position.set(0,10,-1.5);
   beam.target.position.set(0,5.1,-15.2);
