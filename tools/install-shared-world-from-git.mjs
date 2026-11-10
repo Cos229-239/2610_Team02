@@ -17,9 +17,17 @@ const backendStart="// TF_SHARED_WORLD_BACKEND_V1_BEGIN",backendEnd="// TF_SHARE
 const sha=s=>createHash("sha256").update(s).digest("hex");
 const backend="// TF_SHARED_WORLD_BACKEND_V1_BEGIN\nconst {createWorldStore,createWorldHandler}=require('./world-state.cjs');\nconst tfWorldStore=createWorldStore({file:path.join(__dirname,'data','towerflow-world-state.json')});\nconst tfWorldHandler=createWorldHandler({store:tfWorldStore,origin:publicOrigin,authorize:async(req)=>{\n  const id=req.session?.user?.login;if(!id||!req.permission)return null;\n  return {userId:String(id).toLowerCase(),role:['admin','maintain'].includes(req.permission)?'maintainer':'contributor'};\n}});\napp.all('/api/world/state',auth,ensureMember,(req,res)=>tfWorldHandler(req,res));\n// TF_SHARED_WORLD_BACKEND_V1_END";
 export function patchServer(text){
- for(const marker of ["// TF_AURA_GIT_SERVER_V1","async function ensureMember","const publicOrigin","app.get('/api/health'"]){
-  if(!text.includes(marker))throw Error("Unreviewed Express server: "+marker+" absent");
+ // Support either reviewed AURA server integration generation. The actual
+ // source-matched live host uses TF_AURA_V2_SERVER_BEGIN; older installations
+ // may use TF_AURA_GIT_SERVER_V1. Never waive the authentication anchors.
+ const auraMarkers=["// TF_AURA_GIT_SERVER_V1","// TF_AURA_V2_SERVER_BEGIN"];
+ if(!auraMarkers.some(marker=>text.includes(marker)))
+   throw Error("Unreviewed Express server: supported AURA integration marker absent");
+ for(const marker of ["async function ensureMember","const publicOrigin","app.get('/api/health'","function auth(req,res,next)","req.permission=permission"]){
+   if(!text.includes(marker))throw Error("Unreviewed Express server: "+marker+" absent");
  }
+ if(!text.includes("app.use('/api/aura',auth,ensureMember") && !text.includes("app.use('/api/aura', auth, ensureMember") && !text.includes("// TF_AURA_GIT_SERVER_V1"))
+   throw Error("Unreviewed Express server: authenticated AURA route absent");
  const first=text.indexOf(backendStart),last=text.indexOf(backendEnd);
  if((first>=0)!==(last>=0))throw Error("Damaged world-backend markers");
  if(first>=0){
