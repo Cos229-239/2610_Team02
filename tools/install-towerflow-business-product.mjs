@@ -36,8 +36,21 @@ async function run(){
   execFileSync(process.execPath,["--check",join(sourceDir,name)],{timeout:12000,stdio:"pipe"});
  }
  const plan=[];
+ const authoritativeRoom=join(targets[0],"room.js");
+ if(!existsSync(authoritativeRoom))throw Error("Authoritative live room missing: "+authoritativeRoom);
+ const authoritativeRoomText=await readFile(authoritativeRoom,"utf8");
  for(const publicRoot of targets){
-  if(!existsSync(join(publicRoot,"room.js")))throw Error("Unrecognized live room: "+publicRoot);
+  const room=join(publicRoot,"room.js");
+  if(publicRoot!==targets[0]){
+   if(!existsSync(room)){
+     console.log("WORKSPACE PRODUCT: missing room; safely skipped.");
+     continue;
+   }
+   if(await readFile(room,"utf8")!==authoritativeRoomText){
+     console.log("WORKSPACE PRODUCT: divergent room; leaving workspace assets untouched.");
+     continue;
+   }
+  }
   for(const name of names){
    const dest=join(publicRoot,"towerflow",name);
    const previous=existsSync(dest)?await readFile(dest):null;
