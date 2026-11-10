@@ -14,10 +14,10 @@ const targets=[
   join(homedir(),"Desktop","Towerflow_Team02_Private_Invite_Room","Towerflow_Collaboration_Room","public"),
   join(root,"collaboration-room","live-room","public")
 ];
-const names=["index.html","app.js","styles.css","inventory-core.js","inventory-ui.js"];
+const names=["index.html","app.js","styles.css","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js"];
 const digest=x=>createHash("sha256").update(x).digest("hex");
 function verifyIndex(html){
- for(const marker of ['id="portfolioValue"','id="holdingsBody"','id="themeSelect"','id="marketClock"','data-tf-app-panel="inventory"','data-tf-app-panel="finance"','data-tf-app-panel="revenue"','data-tf-app-panel="business"','src="inventory-core.js"','src="inventory-ui.js"'])
+ for(const marker of ['id="portfolioValue"','id="holdingsBody"','id="themeSelect"','id="marketClock"','data-tf-app-panel="inventory"','data-tf-app-panel="finance"','data-tf-app-panel="revenue"','data-tf-app-panel="business"','src="inventory-core.js"','src="inventory-ui.js"','src="flow-core.js"','src="flow-ui.js"','id="tfFlowAnalyze"'])
    if(!html.includes(marker))throw Error("Business preservation failure: "+marker);
  return true;
 }
@@ -32,7 +32,7 @@ async function run(){
   const bytes=await readFile(path);source.set(name,bytes);
  }
  verifyIndex(source.get("index.html").toString("utf8"));
- for(const name of ["app.js","inventory-core.js","inventory-ui.js"]){
+ for(const name of ["app.js","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js"]){
   execFileSync(process.execPath,["--check",join(sourceDir,name)],{timeout:12000,stdio:"pipe"});
  }
  const plan=[];
@@ -50,7 +50,9 @@ async function run(){
       "app.js":["towerflow-state-v1","const palette"],
       "styles.css":["--surface","--accent"],
       "inventory-core.js":["TowerflowInventory","normalizeProduct"],
-      "inventory-ui.js":["towerflow-business-inventory-v1","tfInventory"]
+      "inventory-ui.js":["towerflow-business-inventory-v1","tfInventory"],
+      "flow-core.js":["TowerflowFlow","TIERS"],
+      "flow-ui.js":["tfFlowTier","tfFlowAnalyze"]
     };
     if(!known[name].every(s=>old.includes(s)))
       throw Error("Existing unrecognized product asset; refusing overwrite: "+dest);
