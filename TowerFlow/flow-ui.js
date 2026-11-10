@@ -19,10 +19,37 @@
   log.prepend(item);while(log.children.length>15)log.lastElementChild.remove();
  }
  
+ function showCheckout(){
+  const t=core.tier(name);
+  const labels={starter:"STARTER",assisted:"FLOW ASSISTED",corporate:"CORPORATE COMMAND"};
+  $("tfCheckoutPlan").textContent=labels[name];
+  $("tfCheckoutPrice").textContent=format(t.price);
+  for(const card of document.querySelectorAll("[data-flow-tier-card]")){
+    const selected=card.dataset.flowTierCard===name;
+    card.classList.toggle("tf-tier-current",selected);
+    card.querySelector("button")?.setAttribute("aria-pressed",String(selected));
+  }
+ }
+ for(const btn of document.querySelectorAll("[data-tf-select-tier]")){
+  btn.addEventListener("click",()=>{
+    const choice=btn.dataset.tfSelectTier;
+    if(!valid.includes(choice))return;
+    tierSelect.value=choice;
+    tierSelect.dispatchEvent(new Event("change",{bubbles:true}));
+    $("tfCheckoutStatus").textContent="Preview selected: "+choice+". No card details requested; nothing has been charged.";
+    document.querySelector(".tf-checkout-simulation")?.scrollIntoView({block:"nearest",behavior:"smooth"});
+  });
+ }
+ $("tfPreviewCheckout").addEventListener("click",()=>{
+  $("tfCheckoutStatus").textContent="SIMULATION COMPLETE: "+name.toUpperCase()+
+    " preview selected. Your actual charge is $0.00, and no membership entitlement or payment was created.";
+  evidence("DEMONSTRATION","Payment interface preview only; no billing API, charge or actual entitlement.");
+ });
  function sync(){
   const t=core.tier(name),result=core.limit(name,inventory.getMetrics().totalSkus);
   tierSelect.value=name;
   document.querySelector(".tf-flow-experience").dataset.tier=name;
+  showCheckout();
   $("tfFlowTierSummary").textContent="Selected demonstration: "+format(t.price)+" • inventory "+result.count+"/"+t.skuLimit+" SKUs • FLOW "+(t.ai?"enabled (local analysis)":"unavailable")+".";
   $("tfFlowLimits").textContent=result.allowed?"Within simulated catalog capacity.":"Simulated catalog capacity exceeded. Your records remain untouched.";
   $("tfFlowAnalyze").disabled=!t.ai;
