@@ -66,19 +66,41 @@ async function run(){
  if(args.length!==1||!["--dry-run","--apply"].includes(args[0]))throw Error("Use --dry-run or --apply");
  const apply=args[0]==="--apply";
  const [service,client,emulator]=await Promise.all([readFile(sourceWorld,"utf8"),readFile(sourceClient,"utf8"),readFile(sourceEmulator,"utf8")]);
- const rows=[];
- for(const target of [live,checkout]){
-  if(!existsSync(join(target,"public","room.js"))||!existsSync(join(target,"server.js")))throw Error("Missing verified room/server in "+target);
-  const existingRoom=await readFile(join(target,"public","room.js"),"utf8");
-  const existingServer=await readFile(join(target,"server.js"),"utf8");
-  rows.push({file:join(target,"public","room.js"),old:existingRoom,next:patchRoom(existingRoom,client,emulator)});
-  rows.push({file:join(target,"server.js"),old:existingServer,next:patchServer(existingServer)});
-  const file=join(target,"world-state.cjs");
-  const old=existsSync(file)?await readFile(file,"utf8"):null;
-  if(old&&old!==service&&!old.includes("TOWERFLOW_SHARED_WORLD_V1"))throw Error("Existing unrelated world-state service; refusing overwrite");
-  rows.push({file,old,next:service});
+ // The LIVE host is authoritative. A separately imported checkout may be
+ // stale or lack AURA integration. Never overwrite its original with live
+ // code, nor let a stale checkout prevent a reviewed live-room deployment.
+ const liveRoomFile=join(live,"public","room.js");
+ const liveServerFile=join(live,"server.js");
+ if(!existsSync(liveRoomFile)||!existsSync(liveServerFile))
+   throw Error("Missing authoritative live room/server");
+ const existingRoom=await readFile(liveRoomFile,"utf8");
+ const existingServer=await readFile(liveServerFile,"utf8");
+ const rows=[
+   {file:liveRoomFile,old:existingRoom,next:patchRoom(existingRoom,client,emulator)},
+   {file:liveServerFile,old:existingServer,next:patchServer(existingServer)}
+ ];
+ const workspaceRoom=join(checkout,"public","room.js");
+ const workspaceServer=join(checkout,"server.js");
+ if(existsSync(workspaceRoom)&&existsSync(workspaceServer)){
+   const [wr,ws]=await Promise.all([readFile(workspaceRoom,"utf8"),readFile(workspaceServer,"utf8")]);
+   if(wr===existingRoom&&ws===existingServer){
+     rows.push({file:workspaceRoom,old:wr,next:rows[0].next});
+     rows.push({file:workspaceServer,old:ws,next:rows[1].next});
+     console.log("WORKSPACE COPY: MATCHED authoritative live source; safe to stage in both");
+   }else{
+     console.log("WORKSPACE COPY: DIVERGED; left unchanged. Review/import separately; never overwrite local work.");
+     console.log("WORKSPACE SERVER SHA256 "+sha(ws).slice(0,16)+"; LIVE SERVER SHA256 "+sha(existingServer).slice(0,16));
+   }
+ }else{
+   console.log("WORKSPACE COPY: INCOMPLETE; skipped without creating replacement.");
  }
- if(rows[0].next!==rows[3].next||rows[1].next!==rows[4].next)throw Error("Reviewed live and checkout sources differ");
+ for(const target of [live,...(rows.length===4?[checkout]:[])]){
+   const file=join(target,"world-state.cjs");
+   const old=existsSync(file)?await readFile(file,"utf8"):null;
+   if(old&&old!==service&&!old.includes("TOWERFLOW_SHARED_WORLD_V1"))
+     throw Error("Existing unrelated world-state service; refusing overwrite: "+file);
+   rows.push({file,old,next:service});
+ }
  for(const row of rows)await syntax(row.next,row.file.endsWith(".cjs")?".cjs":".mjs");
  console.log("=== APPROVED SHARED WORLD "+(apply?"STAGE":"DRY RUN")+" ===");
  for(const row of rows)console.log((row.old===row.next?"UNCHANGED":"CHANGE")+" "+row.file+" SHA256 "+sha(row.next).slice(0,16));
