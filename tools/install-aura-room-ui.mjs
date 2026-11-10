@@ -21,13 +21,14 @@ export function install(source,client) {
  if(!source.includes('let vx=-Math.sin(yaw)*fw+Math.cos(yaw)*side')) throw Error('Confirmed Option A controller missing');
  if(!source.includes('function helpPanel()')) throw Error('AURA help panel not recognized');
  if(!client.includes(begin)||!client.includes(end)) throw Error('Client markers missing');
+ const normalized=client.trim();
  const start=source.indexOf(begin),stop=source.indexOf(end);
  if((start<0)!=(stop<0)) throw Error('Partial previous client patch');
  if(start>=0) {
    if(stop<=start || source.indexOf(begin,start+1)>=0) throw Error('Duplicate/broken client patch');
-   return source.slice(0,start)+client+source.slice(stop+end.length);
+   return source.slice(0,start)+normalized+source.slice(stop+end.length);
  }
- return source.replace(/\s*$/,'\n\n')+client+'\n';
+ return source.replace(/\s*$/,'\n\n')+normalized+'\n';
 }
 async function check(content) {
  const temp=join(tmpdir(),'towerflow-aura-'+randomUUID()+'.mjs');
