@@ -29,4 +29,6 @@ test("legacy product can be paused without losing the record",()=>{
  const p=c.metrics({...c.demo[0],status:"paused"});
  assert.equal(p.signal,"PAUSED");
  assert.equal(p.units,96);
+ assert.equal(p.weeklyRevenue,0);
+ assert.equal(p.inventoryCost,96*390);
 });
