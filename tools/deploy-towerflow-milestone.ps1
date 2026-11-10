@@ -49,9 +49,27 @@ try {
   foreach ($file in $files) {
     $destination = Join-Path $Repo $file
     $spec = "$sha`:$file"
-    $lines = @(& git -C $Repo show $spec)
-    if ($LASTEXITCODE -ne 0) { throw "Git retrieval failed: $file" }
-    $newText = ($lines -join "`n") + "`n"
+    # git show is a byte stream. Converting it through PowerShell's native
+    # command text pipeline corrupts UTF-8 BOMs on some Windows hosts.
+    $psi = [System.Diagnostics.ProcessStartInfo]::new()
+    $psi.FileName = 'git'
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $false
+    foreach ($arg in @('-C', $Repo, 'show', $spec)) {
+      [void]$psi.ArgumentList.Add($arg)
+    }
+    $process = [System.Diagnostics.Process]::Start($psi)
+    $buffer = [System.IO.MemoryStream]::new()
+    try {
+      $process.StandardOutput.BaseStream.CopyTo($buffer)
+      $process.WaitForExit()
+      if ($process.ExitCode -ne 0) { throw "Git retrieval failed: $file" }
+      $newBytes = $buffer.ToArray()
+    } finally {
+      $buffer.Dispose()
+      $process.Dispose()
+    }
     $oldSha = $null
     if (Test-Path -LiteralPath $destination) {
       $oldSha = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash
@@ -60,7 +78,7 @@ try {
       Copy-Item -LiteralPath $destination -Destination $copy -Force
     }
     New-Item -ItemType Directory -Path (Split-Path $destination -Parent) -Force | Out-Null
-    [System.IO.File]::WriteAllText($destination,$newText,$utf8)
+    [System.IO.File]::WriteAllBytes($destination,$newBytes)
     $newSha = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash
     $manifest.Add([pscustomobject]@{file=$file;before=$oldSha;after=$newSha})
     $report.Add('FETCHED: ' + $file)
