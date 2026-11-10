@@ -61,6 +61,7 @@ function createAuraHandler(options={}) {
   const rate=new Map();
   let inflight=0;
   return async function auraHandler(req,res) {
+    try {
     const pathname=new URL(req.url,"http://localhost").pathname;
     if(!allowedRoute.has(pathname)) return false;
     // The existing host app must derive userId from a trusted session + repo authorization.
@@ -137,6 +138,13 @@ function createAuraHandler(options={}) {
     } catch {
       return send(res,503,{error:"AURA temporarily unavailable"}),true;
     } finally {inflight--;}
+    } catch (error) {
+      if (!res.headersSent) {
+        const status = [400,413,415].includes(error.status) ? error.status : 500;
+        send(res,status,{error:status===500?"AURA request failed":error.message});
+      }
+      return true;
+    }
   };
 }
 module.exports={createAuraHandler,validMemory};
