@@ -83,6 +83,32 @@
     holo.position.y=.95;pad.add(holo);scene.add(pad);platforms.push(pad);
   }
   let towerflowReveal=0,towerflowRevealStarted=0;
+  // Four walk-up 3D tabs are hidden until the ceiling projector lands.
+  // Their panels open the ACTUAL TowerFlow app, never a counterfeit dashboard.
+  const towerflowTabs=[
+    ["inventory","INVENTORY",-6.15],
+    ["revenue","REVENUE",-2.05],
+    ["finance","STOCK MARKET",2.05],
+    ["business","START HERE",6.15]
+  ];
+  const tabMeshes=[];
+  for(const [tab,label,x] of towerflowTabs){
+    const canvas=document.createElement("canvas");canvas.width=512;canvas.height=256;
+    const c=canvas.getContext("2d");
+    c.fillStyle="#071a2d";c.fillRect(0,0,512,256);
+    c.strokeStyle="#46dcff";c.lineWidth=17;c.strokeRect(8,8,496,240);
+    c.fillStyle="#e5fcff";c.font="bold 42px Segoe UI,Arial";c.textAlign="center";
+    c.fillText(label,256,122);
+    c.font="24px Segoe UI,Arial";c.fillText("WALK UP / CLICK TO ENTER",256,184);
+    const mesh=new THREE.Mesh(new THREE.BoxGeometry(3.48,3.4,.27),
+      new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(canvas),emissive:0x085b78,emissiveIntensity:.6,metalness:.45,roughness:.28}));
+    mesh.position.set(x,3.9,-12.45);mesh.visible=false;scene.add(mesh);
+    tfRegister(mesh,"frontier-towerflow-"+tab);
+    stations.push({id:"frontier-towerflow-"+tab,label:label+" / TOWERFLOW",x,z:-10.7});
+    tabMeshes.push({mesh,tab,x});
+  }
+  let towerflowDesiredTab="inventory",lastTabEnter=0;
+
   function revealTowerflow(){
     if(towerflowReveal!==0)return;
     towerflowReveal=1;towerflowRevealStarted=performance.now();
@@ -215,7 +241,9 @@
     root.append(app);
     updateMetrics();
   }
-  function openBusinessPanel(){
+  function openBusinessPanel(tab="inventory"){
+    if(typeof tab!=="string"||!["inventory","revenue","finance","business"].includes(tab))tab="inventory";
+    towerflowDesiredTab=tab;
     if(towerflowReveal===0){revealTowerflow();return;}
     if(towerflowReveal===1||towerflowReveal===2)return;
     isPanel=true;
@@ -229,12 +257,12 @@
     controls.style.cssText="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px";
     const back=makeEl("button","FRONTIER CONTROL CENTER");back.type="button";back.onclick=openDashboard;
     const popup=makeEl("a","OPEN BUSINESS APP IN A FULL TAB ↗");
-    popup.href="/towerflow/index.html?tab=inventory";popup.target="_blank";popup.rel="noopener noreferrer";
+    popup.href="/towerflow/index.html?tab="+encodeURIComponent(tab);popup.target="_blank";popup.rel="noopener noreferrer";
     const info=makeEl("p","A real, interactive TowerFlow application. Inventory figures are illustrative until imported; finance and theme settings remain available. Local browser data is not shared with teammates.");
     controls.append(back,popup);root.append(controls,info);
     const frame=document.createElement("iframe");
     frame.title="TowerFlow Business Inventory and Financial Portfolio";
-    frame.src="/towerflow/index.html?tab=inventory";
+    frame.src="/towerflow/index.html?tab="+encodeURIComponent(tab);
     frame.referrerPolicy="same-origin";
     frame.style.cssText="display:block;width:100%;height:min(76vh,950px);min-height:480px;border:2px solid #29c9e6;border-radius:10px;background:#071523";
     root.append(frame);
@@ -353,6 +381,10 @@
       }
       return;
     }
+    if(typeof id==="string"&&id.startsWith("frontier-towerflow-")){
+      openBusinessPanel(id.slice("frontier-towerflow-".length));
+      return;
+    }
     return originalActivate(id);
   };
   // Capture clicks on the new wall panels before the original station raycaster.
@@ -362,10 +394,13 @@
     const bounds=renderer.domElement.getBoundingClientRect();
     const pointer=new THREE.Vector2((e.clientX-bounds.left)/bounds.width*2-1,-(e.clientY-bounds.top)/bounds.height*2+1);
     raycaster.setFromCamera(pointer,camera);
-    const hits=raycaster.intersectObjects([screen,left,right],false);
+    const hits=raycaster.intersectObjects([screen,left,right,...tabMeshes.map(p=>p.mesh).filter(m=>m.visible)],false);
     if(!hits.length || hits[0].distance>35)return;
     e.stopImmediatePropagation();
-    if(hits[0].object===screen)openBusinessPanel();
+    if(tabMeshes.some(p=>p.mesh===hits[0].object)){
+      const entry=tabMeshes.find(p=>p.mesh===hits[0].object);
+      openBusinessPanel(entry.tab);
+    }else if(hits[0].object===screen)openBusinessPanel();
     else if(hits[0].object===left)openPanel("help");
     else openFrontierIDE();
   },true);
@@ -513,7 +548,7 @@
       const elapsed=Math.max(0,now-towerflowRevealStarted-2000);
       descent=Math.min(1,elapsed/3300);
       opening=Math.min(1,elapsed/1750);
-      if(descent>=1){towerflowReveal=3;openBusinessPanel();}
+      if(descent>=1){towerflowReveal=3;openBusinessPanel(towerflowDesiredTab);}
     }
     if(towerflowReveal===3){descent=1;opening=1;}
     for(let i=0;i<irisParts.length;i++){
@@ -523,6 +558,15 @@
       irisParts[i].rotation.z=opening*(i%2===0?.7:-.7);
     }
     for(const pad of platforms)pad.position.y=.1-opening*2.8;
+    for(const p of tabMeshes)p.mesh.visible=towerflowReveal===3;
+    // Walk physically toward a published tab, without modifying core WASD.
+    if(towerflowReveal===3&&running&&!tfDevRoom&&
+       document.getElementById("panel")?.hidden&&document.getElementById("menu")?.hidden){
+      if(position.z< -10.0&&position.z> -13.6&&now-lastTabEnter>2600){
+        const near=tabMeshes.find(p=>Math.abs(position.x-p.x)<1.55);
+        if(near){lastTabEnter=now;openBusinessPanel(near.tab);}
+      }
+    }
     const goal=projectionOn?1:0;
     projection+=(goal-projection)*.045;
     projector.position.y=12.1-projection*1.9-descent*6.65;
