@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'integrations/aura/**'
+      - 'tools/install-aura-room-ui.mjs'
+      - 'tools/install-aura-room-ui.test.mjs'
       - '.github/workflows/towerflow-aura.yml'
   push:
     branches: [dev]
@@ -19,4 +21,5 @@ jobs:
         with:
           node-version: '22'
       - run: node --check integrations/aura/aura-service.cjs
-      - run: node --test integrations/aura/aura-service.test.cjs
+      - run: node --check tools/install-aura-room-ui.mjs
+      - run: node --test integrations/aura/aura-service.test.cjs tools/install-aura-room-ui.test.mjs
