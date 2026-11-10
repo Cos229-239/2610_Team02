@@ -113,15 +113,74 @@
     wedge.rotation.x=-Math.PI/2;
     iris.add(wedge);irisParts.push(wedge);
   }
+  // TF_FRONTIER_DISPLAY_LIFT_V2: the visible platforms, their pedestals and
+  // holographic displays form ONE movable assembly. Previous code only lowered
+  // decorative pads: other front-of-board objects looked stationary.
   const platforms=[];
-  for(const x of [-5.7,-1.9,1.9,5.7]){
-    const pad=new THREE.Group();pad.position.set(x,.1,-3.3);
-    const base=new THREE.Mesh(new THREE.CylinderGeometry(1.35,1.45,.24,24),
-       new THREE.MeshStandardMaterial({color:0x183047,metalness:.8,roughness:.3,emissive:0x0c5269,emissiveIntensity:.3}));
-    pad.add(base);
-    const holo=new THREE.Mesh(new THREE.OctahedronGeometry(.46),
-       new THREE.MeshStandardMaterial({color:0x4adfff,wireframe:true,emissive:0x23a8ef,emissiveIntensity:1}));
-    holo.position.y=.95;pad.add(holo);scene.add(pad);platforms.push(pad);
+  const displayMaterial=new THREE.MeshStandardMaterial({
+    color:0x49cfff,metalness:.18,roughness:.12,transparent:true,opacity:.86,
+    emissive:0x168dcf,emissiveIntensity:1.7,depthWrite:false
+  });
+  const orbTextureCanvas=document.createElement("canvas");
+  orbTextureCanvas.width=512;orbTextureCanvas.height=256;
+  const orbContext=orbTextureCanvas.getContext("2d");
+  const orbTexture=new THREE.CanvasTexture(orbTextureCanvas);
+  function labelOrb(text){
+    orbContext.clearRect(0,0,512,256);
+    orbContext.fillStyle="#e7faff";
+    orbContext.font="bold 96px Segoe UI,Arial";
+    orbContext.textAlign="center";
+    orbContext.shadowColor="#42d9ff";orbContext.shadowBlur=24;
+    orbContext.fillText(text,256,153);
+    orbTexture.needsUpdate=true;
+  }
+  labelOrb("AURA");
+  const orb=new THREE.Group();
+  const orbBody=new THREE.Mesh(new THREE.SphereGeometry(.95,48,32),displayMaterial);
+  orb.add(orbBody);
+  const orbGlow=new THREE.PointLight(0x36cfff,1.25,6);
+  orb.add(orbGlow);
+  const orbHalo=new THREE.Mesh(new THREE.TorusGeometry(1.18,.045,12,70),
+    new THREE.MeshBasicMaterial({color:0x50ddff,transparent:true,opacity:.9,depthWrite:false}));
+  orb.add(orbHalo);
+  const orbText=new THREE.Mesh(new THREE.PlaneGeometry(1.9,.95),
+    new THREE.MeshBasicMaterial({map:orbTexture,transparent:true,depthWrite:false,side:THREE.DoubleSide}));
+  orbText.position.z=.97;orb.add(orbText);
+  let orbAgent="AURA";
+  // The orb is part of the LEFT platform so its entire assembly descends.
+  // All four platform assemblies are renderer-owned, not original scene assets.
+  for(const [i,x] of [-5.7,-1.9,1.9,5.7].entries()){
+    const pad=new THREE.Group();
+    pad.position.set(x,0,-3.3);
+    const platform=new THREE.Mesh(new THREE.CylinderGeometry(1.6,1.65,.24,48),
+      new THREE.MeshStandardMaterial({color:0x102a42,metalness:.84,roughness:.26,
+        emissive:0x0b5875,emissiveIntensity:.5}));
+    platform.position.y=.11;pad.add(platform);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(1.5,.07,10,56),
+      new THREE.MeshBasicMaterial({color:0x43d9ff}));
+    rim.rotation.x=Math.PI/2;rim.position.y=.25;pad.add(rim);
+    const pedestal=new THREE.Mesh(new THREE.CylinderGeometry(.22,.5,.85,24),
+      new THREE.MeshStandardMaterial({color:0x152d42,metalness:.75,roughness:.24}));
+    pedestal.position.y=.5;pad.add(pedestal);
+    const holo=new THREE.Group();holo.position.y=1.6;
+    if(i===0){
+      holo.add(orb);
+    }else{
+      const shape=i===1?new THREE.IcosahedronGeometry(.64,1):
+        i===2?new THREE.TorusKnotGeometry(.45,.14,70,10):
+          new THREE.OctahedronGeometry(.68,1);
+      const crystal=new THREE.Mesh(shape,new THREE.MeshStandardMaterial({
+        color:0x6adfff,wireframe:i===3,metalness:.4,roughness:.2,transparent:true,
+        opacity:.78,emissive:0x189bdd,emissiveIntensity:1.1
+      }));
+      holo.add(crystal);
+    }
+    pad.add(holo);scene.add(pad);
+    platforms.push({group:pad,holo,baseY:0,homeX:x});
+  }
+  function setOrbAgent(agent){
+    if(agent!=="AURA"&&agent!=="FLOW")return false;
+    orbAgent=agent;labelOrb(agent);return true;
   }
   let towerflowReveal=0,towerflowRevealStarted=0;
   // Four walk-up 3D tabs are hidden until the ceiling projector lands.
@@ -155,7 +214,7 @@
     towerflowReveal=1;towerflowRevealStarted=performance.now();
     // Progressive-enhancement: viewers requesting reduced motion go straight in.
     if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
-      towerflowReveal=3;openBusinessPanel();return;
+      towerflowReveal=3;setOrbAgent("FLOW");openBusinessPanel(towerflowDesiredTab);return;
     }
     showToast("TOWERFLOW • PROJECTOR ACTIVATION");
   }
@@ -582,7 +641,7 @@
     const now=performance.now();
     let descent=0,opening=0;
     if(towerflowReveal===1&&now-towerflowRevealStarted>=2000){
-      towerflowReveal=2;projectionOn=true;
+      towerflowReveal=2;projectionOn=true;setOrbAgent("FLOW");
       showToast("TOWERFLOW • CEILING OPENING / PROJECTOR DESCENDING");
     }
     if(towerflowReveal===2){
@@ -600,7 +659,14 @@
       irisParts[i].position.z=Math.sin(angle)*opening*3.8;
       irisParts[i].rotation.z=opening*(i%2===0?.7:-.7);
     }
-    for(const pad of platforms)pad.position.y=.1-opening*2.8;
+    // Move EVERY component of the display assemblies below floor level.
+    // Fully hide at the end to prevent glints or holograms above the surface.
+    for(const pad of platforms){
+      pad.group.position.y=pad.baseY-opening*4.6;
+      pad.group.visible=opening<.999;
+      pad.holo.rotation.y=now*.00035;
+    }
+    orbHalo.rotation.y=now*.0006;
     for(const p of tabMeshes)p.mesh.visible=towerflowReveal===3;
     // Walk physically toward a published tab, without modifying core WASD.
     if(towerflowReveal===3&&running&&!tfDevRoom&&
@@ -619,6 +685,6 @@
     cone.visible=projection>.02;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics});
+  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,get orbAgent(){return orbAgent;}});
 }());
 // TF_FRONTIER_LOBBY_V1_END
