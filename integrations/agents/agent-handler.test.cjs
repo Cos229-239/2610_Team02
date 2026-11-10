@@ -31,3 +31,14 @@ test("model plans are returned with approval required and no execution",async()=
  await fn(req({method:"POST",path:"/api/agents/plan",body:{question:"Review my inventory",itemsAvailable:true}}),r);
  assert.equal(r.statusCode,200);assert.equal(r.body.executed,false);assert.equal(executed,0);
 });
+
+test("agent handler throttles repeated planning and tool actions per authenticated user",async()=>{
+ const fn=createAgentHandler({origin,agent:{status:()=>({}),run:async()=>({ok:true})},
+  planner:{model:"fixture",mode:"PROPOSAL_ONLY_NO_AUTO_EXECUTION",plan:async()=>({executed:false})}});
+ for(let i=0;i<5;i++){
+   const r=response();await fn(req({method:"POST",path:"/api/agents/plan",body:{question:"check my inventory"}}),r);
+   assert.equal(r.statusCode,200);
+ }
+ const last=response();await fn(req({method:"POST",path:"/api/agents/plan",body:{question:"check my inventory"}}),last);
+ assert.equal(last.statusCode,429);
+});
