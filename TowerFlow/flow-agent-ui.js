@@ -7,7 +7,9 @@
        trace=document.getElementById("tfAgentTrace");
  if(!inspect||!runInventory||!runMarket||!status||!trace)return;
  const $=id=>document.getElementById(id);
- const buttons=[inspect,runInventory,runMarket];
+ const planButton=$("tfAgentPlan"),approveButton=$("tfAgentApprovePlan"),question=$("tfAgentQuestion");
+ let proposed=null;
+ const buttons=[inspect,runInventory,runMarket,planButton];
  const print=data=>{trace.textContent=JSON.stringify(data,null,2).slice(0,18000);};
  const busy=b=>buttons.forEach(btn=>btn.disabled=b);
  async function request(url,body){
@@ -30,6 +32,37 @@
   finally{busy(false);}
  }
  function taskKey(){return "task_"+Date.now()+"_"+Math.random().toString(36).slice(2,11);}
+ planButton.addEventListener("click",async()=>{
+  proposed=null;approveButton.disabled=true;
+  const text=question.value.trim();
+  if(text.length<4){status.textContent="Describe a specific inventory or market research task.";return;}
+  busy(true);status.textContent="Requesting one model-proposed reviewed tool skill…";
+  try{
+   const result=await request("/api/agents/plan",{question:text,itemsAvailable:true});
+   if(result.executed!==false||result.approved!==false||
+      !["inventory.review","market.research"].includes(result.proposal?.skill))
+     throw Error("Unapproved or unsupported model tool proposal");
+   proposed=result.proposal;
+   approveButton.disabled=false;
+   print({proposal:proposed,model:result.model,executed:false,
+     next:"Review the selected skill, then explicitly confirm execution."});
+   status.textContent="Model proposed "+proposed.skill+". NO tool has executed. Review before approving.";
+  }catch(e){status.textContent="PLANNER UNAVAILABLE: "+e.message;print({status:"NOT CONNECTED",reason:e.message});}
+  finally{busy(false);}
+ });
+ approveButton.addEventListener("click",()=>{
+  const p=proposed;proposed=null;approveButton.disabled=true;
+  if(!p)return;
+  if(p.skill==="market.research"){
+    if(!confirm("Approve FLOW market.quote for "+p.symbol+"? This performs one authenticated provider lookup, not a trade."))return;
+    execute({skill:"market.research",symbol:p.symbol,idempotencyKey:taskKey()});
+  }else if(p.skill==="inventory.review"){
+    const items=window.TowerflowBusiness?.getMetrics()?.items;
+    if(!Array.isArray(items)||items.length>250){status.textContent="Inventory skill is capped at 250 catalog items.";return;}
+    if(!confirm("Approve FLOW inventory.analyze on "+items.length+" normalized product records? Names, costs and sales are sent to the protected server."))return;
+    execute({skill:"inventory.review",items,idempotencyKey:taskKey()});
+  }
+ });
  inspect.addEventListener("click",async()=>{
   busy(true);status.textContent="Inspecting server agent capabilities…";
   try{
