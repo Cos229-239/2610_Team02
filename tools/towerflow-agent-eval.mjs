@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Towerflow AURA local prompt tuning/evaluation.
  * Requires a separately running local Ollama instance. No fine-tuning of model
