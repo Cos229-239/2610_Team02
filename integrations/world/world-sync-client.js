@@ -25,7 +25,13 @@
    const data=await get();
    if(data.version!==1||!Number.isSafeInteger(data.revision)||data.revision<0)throw Error("Invalid shared scene state");
    connected=true;
-   if(!paused&&data.revision!==lastRevision){
+   const current=engine.getActive();
+   const desired=data.scene;
+   const diverged=desired
+     ? current.mode!==desired.mode || (desired.mode==="ceiling-text" &&
+       (current.text!==desired.text || current.color!==desired.color))
+     : current.mode!==null;
+   if(!paused&&(data.revision!==lastRevision||diverged)){
      engine.applyAuthoritative(data.scene,data.updatedAt);
      lastRevision=data.revision;
      say(data.scene?"Shared scene "+data.scene.mode+" • revision "+data.revision:"Original shared room • revision "+data.revision);
