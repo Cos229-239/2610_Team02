@@ -348,8 +348,62 @@
     document.getElementById("areaName").textContent="FRONTIER • CONTROL CENTER";
     projectionOn=true;
     showToast("Welcome to Frontier. Walk toward the projected dashboard and press E.");
+    // The Rocky proposal is silent unless an authorized original film audio asset
+    // is explicitly configured. Never synthesize, clone, or swap a stand-in voice.
+    window.tfRockyGreeting?.onEnter();
     updateMetrics();
   };
+  // TF_ROCKY_GREETING_PROPOSAL_V1_BEGIN
+  // Proposal only: playable solely with a rights-cleared ORIGINAL recording.
+  // Configurable in memory by a future trusted application loader, not by guests.
+  const rockyState={approved:false,source:null,playing:false,asset:null,controller:null};
+  const greetingStatus=document.createElement("div");
+  greetingStatus.id="tfRockyGreetingStatus";
+  greetingStatus.setAttribute("role","status");
+  greetingStatus.style.cssText="position:fixed;left:12px;bottom:12px;z-index:200;padding:8px 12px;background:#08131de8;color:#f3f6fa;border:1px solid #6689a4;max-width:min(92vw,420px);font:13px system-ui";
+  greetingStatus.hidden=true;
+  const dismissGreeting=document.createElement("button");
+  dismissGreeting.type="button";dismissGreeting.textContent="Skip greeting";
+  dismissGreeting.style.marginLeft="12px";
+  const greetingText=document.createElement("span");
+  const greetingAudio=document.createElement("audio");
+  greetingAudio.preload="none";
+  greetingAudio.volume=.65;
+  greetingStatus.append(greetingText,dismissGreeting,greetingAudio);
+  document.body.append(greetingStatus);
+  function stopRockyGreeting(){
+    greetingAudio.pause();greetingAudio.removeAttribute("src");greetingAudio.load();
+    greetingStatus.hidden=true;rockyState.playing=false;
+  }
+  dismissGreeting.addEventListener("click",stopRockyGreeting);
+  greetingAudio.addEventListener("ended",stopRockyGreeting);
+  greetingAudio.addEventListener("error",stopRockyGreeting);
+  const greetingConfig=Object.freeze({
+    // Future approved deployment may replace these values only after legal review.
+    enabled:false,rightsVerified:false,assetPath:null,assetSha256:null,
+    transcript:null,attribution:null
+  });
+  function playRockyGreeting(){
+    if(!greetingConfig.enabled||!greetingConfig.rightsVerified)return false;
+    const location=greetingConfig.assetPath;
+    if(typeof location!=="string"||!/^\\/room-assets\\/approved\\/[a-zA-Z0-9._/-]+\\.(mp3|ogg|wav)$/.test(location)||location.includes(".."))return false;
+    if(localStorage.getItem("tfRockyGreetingMuted")==="1")return false;
+    stopRockyGreeting();
+    greetingText.textContent=greetingConfig.transcript||"Rocky Balboa • authorized film excerpt";
+    greetingAudio.src=location;
+    greetingStatus.hidden=false;
+    // This callback runs from the user-initiated Enter action. Autoplay is
+    // still browser controlled; rejection never blocks entry or voice chat.
+    greetingAudio.play().then(()=>{rockyState.playing=true;}).catch(()=>stopRockyGreeting());
+    return true;
+  }
+  window.tfRockyGreeting=Object.freeze({
+    onEnter:playRockyGreeting,
+    stop:stopRockyGreeting,
+    disable:()=>{localStorage.setItem("tfRockyGreetingMuted","1");stopRockyGreeting();},
+    get enabled(){return greetingConfig.enabled&&greetingConfig.rightsVerified;}
+  });
+  // TF_ROCKY_GREETING_PROPOSAL_V1_END
   // Lightweight animation: projector descends and powers up, no new render loop.
   function animateProjector(){
     requestAnimationFrame(animateProjector);
