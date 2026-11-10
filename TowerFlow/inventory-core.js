@@ -35,8 +35,9 @@
     const inventoryCost=p.units*p.unitCost;
     const potentialRevenue=p.units*p.unitPrice;
     const potentialGrossProfit=potentialRevenue-inventoryCost;
-    const weeklyRevenue=p.weeklySales*p.unitPrice;
-    const weeklyGrossProfit=p.weeklySales*(p.unitPrice-p.unitCost);
+    // Only actively listed inventory contributes to the current weekly run-rate.
+    const weeklyRevenue=p.status==="active"?p.weeklySales*p.unitPrice:0;
+    const weeklyGrossProfit=p.status==="active"?p.weeklySales*(p.unitPrice-p.unitCost):0;
     const weeksOfCover=p.weeklySales===0?null:p.units/p.weeklySales;
     const grossMarginPct=p.unitPrice>0?100*(p.unitPrice-p.unitCost)/p.unitPrice:0;
     const sellThroughRisk=p.units>0&&(p.weeklySales===0||weeksOfCover>12||p.daysOnShelf>90);
