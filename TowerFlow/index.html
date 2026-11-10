@@ -219,6 +219,13 @@
         <div class="eyebrow">FLOW AGENT / ACTUAL TOOL EXECUTION</div>
         <h3>Inspect capabilities. Run a reviewed skill.</h3>
         <p>The bounded server-side runner can execute source-tracked inventory analysis and provider-backed stock lookups. It does not execute code, submit trades, charge accounts or edit contributions.</p>
+        <label class="tf-agent-query">Describe a task for FLOW (local Ollama proposes a skill; it never executes automatically)
+          <input id="tfAgentQuestion" maxlength="700" type="text" placeholder="Review my slow-moving inventory or check AAPL's last provider quote">
+        </label>
+        <div class="tf-inventory-actions">
+          <button type="button" class="btn secondary" id="tfAgentPlan">Propose tool plan</button>
+          <button type="button" class="btn primary" id="tfAgentApprovePlan" disabled>Review and execute proposed skill</button>
+        </div>
         <div class="tf-inventory-actions">
           <button type="button" class="btn secondary" id="tfAgentInspect">Inspect connected agent skills</button>
           <button type="button" class="btn primary" id="tfAgentInventory">Run inventory.review</button>
