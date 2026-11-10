@@ -13,6 +13,8 @@
 | `AURA chat` | Ollama generation, reviewed knowledge, opted-in memory | Natural-language interpretation with model name and limitations | Active AURA endpoint and reachable local Ollama | No automatic code writes, tool execution or verified external sources |
 | `FLOW → AURA` | User-approved aggregate financial report → AURA chat | AI interpretation of deterministic metrics | Authenticated AURA endpoint | Model output is NOT verified; no private inventory records sent by the aggregate route |
 
+**Optional model planning:** `/api/agents/plan` sends a bounded question to the same **loopback-only Ollama** family used by AURA. The response is parsed as strict JSON and can propose only `inventory.review` or `market.research`. The browser shows the proposed skill **without executing it**. Execution requires a separate explicit user click and confirmation; the later `/api/agents/run` supplies actual evidence. The planner does not have arbitrary tool access, multi-step autonomous loops, code execution, contribution control, payments, or permission to purchase stock. Planner responses may be unsupported or unavailable, and no host inference reliability has yet been measured.
+
 Each task result reports `taskId`, `skill`, `summary`, `trace`, `sources`, `evidence`, `elapsedMs`, and disclaimer. `modelAutonomy:false` distinguishes audited tool execution from a fully agentic planner. Product UI must never label an unchecked model statement as externally verified.
 
 ## Skill-to-tool boundary
