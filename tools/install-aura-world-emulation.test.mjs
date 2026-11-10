@@ -38,5 +38,5 @@ test('refuses incomplete or unfamiliar Towerflow world',()=>{
 });
 test('no shell, eval or server writes exposed by sky emitter',()=>{
  assert.ok(!["child_process","execSync","eval(","new Function(","fetch(","WebSocket("].some(x=>addon.includes(x)));
- assert.match(addon,/original ceiling restored/i);
+ assert.match(addon,/Original Towerflow ceiling restored/i);
 });
