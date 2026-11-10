@@ -299,7 +299,27 @@
     if(id==="frontier-dashboard"){openBusinessPanel();return;}
     if(id==="frontier-ide"){openFrontierIDE();return;}
     if(id==="frontier-world"){openPanel("help");return;}
-    // Preserve native Development Room station behavior and their original labels.
+    if(id.startsWith("dev-ide-")){
+      // Let the original workstation open first, then attach an isolated runnable
+      // environment link. Native desktop IDE processes cannot be started on remote guests.
+      originalActivate(id);
+      const content=document.getElementById("panelContent");
+      if(content){
+        const tools=makeEl("section");
+        tools.setAttribute("aria-label","Real development environment access");
+        const h=makeEl("h3","REAL CODE / BUILD / TEST / DEBUG");
+        const expl=makeEl("p","Use a Codespace for an isolated terminal, debugger and browser preview, or open the repository in your OWN installed desktop IDE. The room never runs guest commands on the production host.");
+        const cloud=makeEl("a","OPEN ISOLATED GITHUB CODESPACES ↗");
+        cloud.href="https://codespaces.new/Cos229-239/2610_Team02";
+        cloud.target="_blank";cloud.rel="noopener noreferrer";
+        const review=makeEl("a","VIEW CONTRIBUTION PULL REQUESTS ↗");
+        review.href="https://github.com/Cos229-239/2610_Team02/pulls";
+        review.target="_blank";review.rel="noopener noreferrer";
+        tools.append(h,expl,cloud,makeEl("br"),review);
+        content.append(tools);
+      }
+      return;
+    }
     return originalActivate(id);
   };
   // Capture clicks on the new wall panels before the original station raycaster.
