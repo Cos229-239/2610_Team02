@@ -6,18 +6,19 @@
  const $=id=>document.getElementById(id);
  const tierSelect=$("tfFlowTier"),status=$("tfFlowStatus"),topic=$("tfFlowTopic"),output=$("tfFlowResult");
  if(!tierSelect||!status||!topic||!output)return;
- const key="towerflow-tier-demo-v1",countKey="towerflow-flow-usage-v1";
+ const key="towerflow-tier-demo-v1";
+ let currentEvidence=null;
  const valid=Object.keys(core.TIERS);
  let name="starter";try{const saved=localStorage.getItem(key);if(valid.includes(saved))name=saved;}catch{}
  const format=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
- function usage(){try{const value=JSON.parse(localStorage.getItem(countKey));return value&&typeof value==="object"?value:{};}catch{return {};}}
- function saveUsage(v){try{localStorage.setItem(countKey,JSON.stringify(v));}catch{}}
+ 
  function sync(){
   const t=core.tier(name),result=core.limit(name,inventory.getMetrics().totalSkus);
   tierSelect.value=name;
   $("tfFlowTierSummary").textContent="Selected demonstration: "+format(t.price)+" • inventory "+result.count+"/"+t.skuLimit+" SKUs • FLOW "+(t.ai?"enabled (local analysis)":"unavailable")+".";
   $("tfFlowLimits").textContent=result.allowed?"Within simulated catalog capacity.":"Simulated catalog capacity exceeded. Your records remain untouched.";
   $("tfFlowAnalyze").disabled=!t.ai;
+  $("tfFlowAura").disabled=!t.ai||!currentEvidence;
   topic.disabled=!t.ai;
   $("tfFlowDataLabel").textContent="SOURCE: LOCAL MANUAL / ILLUSTRATIVE DATA · NO LIVE MODEL OR MARKET API";
  }
@@ -25,6 +26,7 @@
   if(!valid.includes(tierSelect.value))return;
   name=tierSelect.value;
   try{localStorage.setItem(key,name);}catch{}
+  currentEvidence=null;
   output.textContent="Tier demonstration switched. No payment or service activation occurred.";
   status.textContent="Demo only; $0 charged.";sync();
  });
@@ -34,6 +36,7 @@
    if(!t.ai)throw Error("Select the $500 or $100,000 demonstration tier.");
    if(!core.TOPICS.includes(topic.value))throw Error("Unsupported analysis topic");
    const a=core.answer(topic.value,inventory.getMetrics(),name);
+   currentEvidence=a;
    output.replaceChildren();
    const headline=document.createElement("strong");headline.textContent=")=L0\\/\\/ (FLOW) • "+a.topic.toUpperCase();
    const p=document.createElement("p");p.textContent=a.text;
@@ -42,6 +45,34 @@
    status.textContent="Calculated from current local inventory • no external request or charge.";
   }catch(e){status.textContent=e.message;}
   sync();
+ });
+ $("tfFlowAura").addEventListener("click",async()=>{
+  if(!currentEvidence||!core.tier(name).ai)return;
+  const evidence=currentEvidence.evidence;
+  const message="You are interpreting a LOCAL MANUAL/DEMONSTRATION inventory report; do not claim external verification, investment advice, or real-time stock prices. "+
+    "Give actionable but conditional analysis with explicit limitations. Metrics: "+
+    JSON.stringify({totalSkus:evidence.totalSkus,inventoryCost:evidence.inventoryCost,
+      weeklyRevenue:evidence.weeklyRevenue,weeklyGrossProfit:evidence.weeklyGrossProfit,
+      stagnantCost:evidence.stagnantCost,atRiskSkus:evidence.atRiskSkus,
+      occupiedSqFt:evidence.occupiedSqFt,topic:currentEvidence.topic});
+  if(!confirm("Send only these aggregate inventory metrics to the authenticated Towerflow AURA server for AI interpretation? No product names, portfolio transactions or credentials will be included."))return;
+  const button=$("tfFlowAura");button.disabled=true;
+  status.textContent="Requesting opt-in AURA model interpretation…";
+  try{
+    const res=await fetch("/api/aura/chat",{
+      method:"POST",credentials:"same-origin",cache:"no-store",
+      headers:{"Content-Type":"application/json"},body:JSON.stringify({question:message})
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||typeof data.answer!=="string")throw Error(data.error||"AURA not connected.");
+    const block=document.createElement("section");
+    block.className="panel";
+    const heading=document.createElement("strong");heading.textContent="AURA MODEL INTERPRETATION • NOT INDEPENDENTLY VERIFIED";
+    const p=document.createElement("p");p.textContent=data.answer;
+    block.append(heading,p);output.append(block);
+    status.textContent="AURA responded from the protected server; this is model-generated guidance, not externally verified business data.";
+  }catch(e){status.textContent="AURA UNAVAILABLE: "+e.message+" Original FLOW report is preserved.";}
+  finally{sync();}
  });
  // Preserve privacy: no automatic network call, no card/POS/market credentials.
  for(const btn of document.querySelectorAll("[data-tf-flow-quote]")){
