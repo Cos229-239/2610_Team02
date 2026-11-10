@@ -45,6 +45,7 @@ try {
     'tools/serve-portfolio-preview.cjs','tools/serve-portfolio-preview.test.cjs',
     'tools/towerflow-pr-synopsis.cjs','tools/towerflow-pr-synopsis.test.cjs',
     'tools/open-towerflow-ides.ps1','tools/preview-towerflow-contribution.ps1',
+    'tools/verify-towerflow-agent-performance.cjs',
     '.devcontainer/devcontainer.json','.devcontainer/full-stack/devcontainer.json','.vsconfig'
   )
   $backup = Join-Path $env:USERPROFILE (
@@ -114,6 +115,8 @@ try {
     )
     & node --test @checks
     if ($LASTEXITCODE -ne 0) { throw 'Integration tests failed. Deployment not performed.' }
+    & node 'tools/verify-towerflow-agent-performance.cjs'
+    if ($LASTEXITCODE -ne 0) { throw 'Agent skill acceptance failed. Deployment not performed.' }
     $report.Add('AUTOMATED TESTS: PASSED')
     $installers = @(
       'tools/install-frontier-lobby.mjs',
