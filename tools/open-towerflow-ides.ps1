@@ -2,7 +2,7 @@
 # No installs, restarts, git checkout, commit, push, or credential reads.
 [CmdletBinding()]
 param(
-  [string]$Repo = 'C:\Users\dulsk\Desktop\Team2',
+  [string]$Repo = (Join-Path $PSScriptRoot '..'),
   [switch]$DetectOnly
 )
 $ErrorActionPreference = 'Stop'
