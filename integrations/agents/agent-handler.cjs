@@ -5,6 +5,7 @@ const {createAgent}=require("./towerflow-agent.cjs");
 const {createFlowPlanner}=require("./flow-planner.cjs");
 function createAgentHandler({agent=createAgent(),planner=createFlowPlanner(),origin}={}){
  if(typeof origin!=="string"||!/^https:\/\//.test(origin))throw Error("Reviewed public origin required");
+ const quotas=new Map();
  return async function handler(req,res){
   res.set("Cache-Control","no-store");
   res.set("X-Content-Type-Options","nosniff");
@@ -20,6 +21,13 @@ function createAgentHandler({agent=createAgent(),planner=createFlowPlanner(),ori
   if(req.headers?.origin!==origin)return res.status(403).json({error:"Origin rejected"});
   if(!(req.headers?.["content-type"]||"").startsWith("application/json"))
     return res.status(415).json({error:"JSON required"});
+  const key=String(id).toLowerCase();
+  const now=Date.now(),windowMs=60_000;
+  const q=quotas.get(key)||{since:now,count:0};
+  if(now-q.since>=windowMs){q.since=now;q.count=0;}
+  if(q.count>=5)return res.status(429).json({error:"Agent task rate limit: five requests per minute"});
+  q.count++;quotas.set(key,q);
+  if(quotas.size>2000)quotas.delete(quotas.keys().next().value);
   const body=req.body;
   if(!body||typeof body!=="object"||Buffer.byteLength(JSON.stringify(body),"utf8")>65536)
     return res.status(413).json({error:"Invalid or oversized task"});
