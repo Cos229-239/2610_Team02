@@ -113,8 +113,10 @@
     nav.forEach(b=>{const active=b.dataset.tfAppTab===tab;b.setAttribute("aria-selected",String(active));b.tabIndex=active?0:-1;});
     for(const panel of document.querySelectorAll("[data-tf-app-panel]"))panel.hidden=panel.dataset.tfAppPanel!==tab;
     const url=new URL(window.location.href);url.searchParams.set("tab",tab);history.replaceState(null,"",url);
+    if(tab==="finance")requestAnimationFrame(()=>window.dispatchEvent(new Event("resize")));
   }
   nav.forEach(b=>b.addEventListener("click",()=>show(b.dataset.tfAppTab)));
+  document.querySelector('[data-tf-revenue-jump="inventory"]')?.addEventListener("click",()=>show("inventory"));
   const allowed=["inventory","finance","revenue","business"];
   const requested=new URL(location.href).searchParams.get("tab");
   show(allowed.includes(requested)?requested:"inventory");
