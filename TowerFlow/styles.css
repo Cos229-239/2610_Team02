@@ -30,3 +30,11 @@
 @media(max-width:1000px){.tf-product-form{grid-template-columns:repeat(3,minmax(0,1fr))}.tf-business-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.tf-product-form{grid-template-columns:repeat(2,minmax(0,1fr))}.tf-tier-grid{grid-template-columns:1fr}.tf-business-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.tf-product-tabs button{width:100%;text-align:left}}
 @media(prefers-reduced-motion:reduce){.tf-product-tabs *,#tfInventory *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Inventory-based revenue comparison; accessible text labels alongside each bar. */
+.tf-revenue-bars{display:flex;flex-direction:column;gap:15px;margin-top:18px}
+.tf-revenue-row{display:grid;grid-template-columns:minmax(180px,1fr) auto;gap:5px 15px;align-items:center}
+.tf-revenue-row strong{font-size:13px;overflow-wrap:anywhere}.tf-revenue-row span{color:var(--muted);font-variant-numeric:tabular-nums}
+.tf-revenue-track{grid-column:1/-1;height:13px;background:var(--surface2);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.tf-revenue-fill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .24s ease}
+@media(prefers-reduced-motion:reduce){.tf-revenue-fill{transition:none}}
