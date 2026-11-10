@@ -351,6 +351,7 @@
     // The Rocky proposal is silent unless an authorized original film audio asset
     // is explicitly configured. Never synthesize, clone, or swap a stand-in voice.
     window.tfRockyGreeting?.onEnter();
+    window.tfRockyOfficial?.showEntranceControl();
     updateMetrics();
   };
   // TF_ROCKY_OFFICIAL_VIDEO_V1_BEGIN
@@ -390,7 +391,15 @@
     container.append(panel);document.body.append(container);close.focus();
   }
   // Expose a user-initiated link; do not autoplay or interrupt multiplayer voice.
-  window.tfRockyOfficial=Object.freeze({open:showOfficialRockyVideo,url:rockyOfficialUrl});
+  const officialRockyButton=document.createElement("button");
+  officialRockyButton.type="button";
+  officialRockyButton.textContent="🥊 Watch Rocky • Official film scenes";
+  officialRockyButton.style.cssText="position:fixed;bottom:16px;right:16px;z-index:300;padding:10px 14px;border:1px solid #80a1c1;border-radius:8px;background:#102536;color:#f2f5f8;cursor:pointer";
+  officialRockyButton.hidden=true;
+  officialRockyButton.addEventListener("click",showOfficialRockyVideo);
+  document.body.append(officialRockyButton);
+  function showEntranceControl(){officialRockyButton.hidden=false;}
+  window.tfRockyOfficial=Object.freeze({open:showOfficialRockyVideo,showEntranceControl,url:rockyOfficialUrl});
   // TF_ROCKY_OFFICIAL_VIDEO_V1_END
   // TF_ROCKY_GREETING_PROPOSAL_V1_BEGIN
   // Authentic Rocky excerpt: NO audio or manifest shipped. Only a local
