@@ -98,6 +98,15 @@
   // Kept separate from gameplay, so Dev Room portals and controls are unchanged.
   const iris=new THREE.Group();iris.position.set(0,11.85,-1.5);scene.add(iris);
   const irisParts=[];
+  const aperture=new THREE.Mesh(new THREE.CircleGeometry(3.98,64),
+    new THREE.MeshBasicMaterial({color:0x010710,side:THREE.DoubleSide,depthWrite:false}));
+  aperture.rotation.x=Math.PI/2;aperture.position.y=-.035;aperture.scale.setScalar(.001);
+  iris.add(aperture);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(4,.085,12,64),
+    new THREE.MeshStandardMaterial({color:0x66c9ff,emissive:0x2f95de,emissiveIntensity:1.2,metalness:.75,roughness:.18}));
+  rim.rotation.x=Math.PI/2;rim.position.y=-.055;rim.scale.setScalar(.001);
+  iris.add(rim);
+
   const irisMaterial=new THREE.MeshStandardMaterial({color:0x17354a,metalness:.82,roughness:.26,side:THREE.DoubleSide});
   for(let i=0;i<8;i++){
     const wedge=new THREE.Mesh(new THREE.RingGeometry(.28,4.1,10,1,i*Math.PI/4,Math.PI/4-.025),irisMaterial);
@@ -583,6 +592,8 @@
       if(descent>=1){towerflowReveal=3;openBusinessPanel(towerflowDesiredTab);}
     }
     if(towerflowReveal===3){descent=1;opening=1;projectionOn=true;}
+    aperture.scale.setScalar(Math.max(.001,opening));
+    rim.scale.setScalar(Math.max(.001,opening));
     for(let i=0;i<irisParts.length;i++){
       const angle=i*Math.PI/4;
       irisParts[i].position.x=Math.cos(angle)*opening*3.8;
