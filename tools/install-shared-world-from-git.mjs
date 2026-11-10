@@ -111,10 +111,20 @@ async function run(){
      {name:"alpha-vantage.cjs",source:join(sourceMarket,"alpha-vantage.cjs"),marker:"Optional authenticated financial market connector"},
      {name:"market-handler.cjs",source:join(sourceMarket,"market-handler.cjs"),marker:"GET-only authenticated market quote handler"},
      {name:"towerflow-agent.cjs",source:join(root,"integrations","agents","towerflow-agent.cjs"),marker:"Bounded TowerFlow agent runner"},
-     {name:"agent-handler.cjs",source:join(root,"integrations","agents","agent-handler.cjs"),marker:"Stand-alone authenticated REST handler"}
+     {name:"agent-handler.cjs",source:join(root,"integrations","agents","agent-handler.cjs"),marker:"Stand-alone authenticated REST handler"},
+     {name:"flow-core.cjs",source:join(root,"TowerFlow","flow-core.js"),marker:"TowerFlow FLOW deterministic intelligence"},
+     {name:"inventory-core.cjs",source:join(root,"TowerFlow","inventory-core.js"),marker:"TowerFlow Business Inventory v1"}
    ];
    for(const asset of assets){
-     const file=join(target,asset.name),next=await readFile(asset.source,"utf8");
+     const file=join(target,asset.name);
+     let next=await readFile(asset.source,"utf8");
+     if(asset.name==="towerflow-agent.cjs"){
+       next=next.replaceAll('require("../market/alpha-vantage.cjs")','require("./alpha-vantage.cjs")')
+         .replaceAll('require("../../TowerFlow/flow-core.js")','require("./flow-core.cjs")')
+         .replaceAll('require("../../TowerFlow/inventory-core.js")','require("./inventory-core.cjs")');
+       if(next.includes('require("../../TowerFlow')||next.includes('require("../market'))
+         throw Error("Agent dependency rewrite incomplete");
+     }
      const old=existsSync(file)?await readFile(file,"utf8"):null;
      if(old&&old!==next&&!old.includes(asset.marker))
        throw Error("Existing unrelated staged service; refusing overwrite: "+file);
