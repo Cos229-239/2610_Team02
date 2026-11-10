@@ -48,7 +48,7 @@ function selectContext(query, corpus, max=4) {
 function redactMemory(text) {
   const s=text.trim();
   if (!s || s.length>350) throw new Error('Memory must contain 1–350 characters.');
-  if (/\b(sk-[a-z0-9_-]{8,}|gh[pousr]_[a-z0-9_]{10,}|github_pat_|Bearer\s+\S+|password|secret|api.?key|token|private.?key)\b/i.test(s)) {
+  if (/\b(sk-[a-z0-9_-]{8,}|gh[pousr]_[a-z0-9_]{10,}|github_pat_[a-z0-9_]{8,}|Bearer\s+\S+|password|secret|api.?key|token|private.?key)\b/i.test(s)) {
     throw new Error('Do not save secrets or credentials as memory.');
   }
   return s;
