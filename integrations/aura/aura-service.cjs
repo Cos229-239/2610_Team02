@@ -22,6 +22,15 @@ function send(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 async function bodyJSON(req, limit=4096) {
+  // Express may have parsed the body before the authenticated route runs.
+  // Do not re-read a consumed IncomingMessage stream.
+  if (req.body !== undefined) {
+    const value = JSON.stringify(req.body);
+    if (Buffer.byteLength(value,'utf8') > limit) {
+      const e=new Error("Request too large");e.status=413;throw e;
+    }
+    return req.body;
+  }
   const chunks=[]; let bytes=0;
   for await(const chunk of req) {
     bytes+=chunk.length;
