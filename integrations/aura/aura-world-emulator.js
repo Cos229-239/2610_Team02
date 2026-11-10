@@ -341,6 +341,7 @@
           draft.color=colorSelect.value;
         }
         renderMode(draft);
+        document.dispatchEvent(new Event("tfWorldPreviewStart"));
         apply.disabled=false;
         inform("PREVIEW: "+labels[draft.mode]+". Look at the central ceiling in either room. Keep this design or discard it.");
       }
@@ -353,10 +354,11 @@
       apply.addEventListener("click",()=>{
         if(!draft.mode)return;
         saved=cleanState(draft);storeState(saved);apply.disabled=true;
+        document.dispatchEvent(new Event("tfWorldPreviewEnd"));
         inform("PRESERVED: "+labels[saved.mode]+" in this browser. Teammates' scenes are unchanged.");
       });
-      revert.addEventListener("click",()=>{renderMode(saved);apply.disabled=true;inform("Reverted to the last saved scene.");});
-      reset.addEventListener("click",()=>{saved={...savedDefault};renderMode(saved);deleteState();apply.disabled=true;inform("Original Towerflow ceiling restored.");});
+      revert.addEventListener("click",()=>{renderMode(saved);document.dispatchEvent(new Event("tfWorldPreviewEnd"));apply.disabled=true;inform("Reverted to the last saved scene.");});
+      reset.addEventListener("click",()=>{saved={...savedDefault};renderMode(saved);deleteState();document.dispatchEvent(new Event("tfWorldPreviewEnd"));apply.disabled=true;inform("Original Towerflow ceiling restored.");});
       panel.append(heading,description,controls,textInput,colorSelect,preview,apply,revert,reset,status);
       root.append(panel);
       inform(saved.mode?"Saved scene: "+labels[saved.mode]+".":"Original ceiling remains active until a preview is selected.");
@@ -381,6 +383,8 @@
     version:1,
     supportedModes:Object.freeze([...THEMES]),
     getActive:()=>Object.freeze({...active}),
+    applyAuthoritative:(scene)=>{if(!scene){saved={...savedDefault};renderMode(saved);return;}
+      saved=cleanState(scene);renderMode(saved);},
     requestPreview:request=>{const intent=interpret(request);if(!intent)return false;renderMode({...active,...intent});return true;},
     reset:()=>{saved={...savedDefault};renderMode(saved);deleteState();}
   });
