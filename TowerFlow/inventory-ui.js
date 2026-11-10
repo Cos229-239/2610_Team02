@@ -39,6 +39,24 @@
       td.append(button);tr.append(td);$("tfInventoryRows").append(tr);
     }
     $("tfInventoryEmpty").hidden=rows.length!==0;
+    const gross=analysis.weeklyRevenue,cogs=gross-analysis.weeklyGrossProfit;
+    $("tfRevenueGross").textContent=money(gross);
+    $("tfRevenueCogs").textContent=money(cogs);
+    $("tfRevenueProfit").textContent=money(analysis.weeklyGrossProfit);
+    $("tfRevenueMargin").textContent=(gross>0?100*analysis.weeklyGrossProfit/gross:0).toFixed(1)+"%";
+    $("tfRevenueStagnant").textContent=money(analysis.stagnantCost);
+    $("tfRevenueCount").textContent=String(analysis.totalSkus);
+    const bars=$("tfRevenueBars");bars.replaceChildren();
+    const max=Math.max(1,...analysis.items.map(p=>p.weeklyRevenue));
+    for(const p of [...analysis.items].sort((a,b)=>b.weeklyRevenue-a.weeklyRevenue)){
+      const row=document.createElement("div");row.className="tf-revenue-row";row.setAttribute("role","listitem");
+      const name=document.createElement("strong");name.textContent=p.name+" • "+p.sku;
+      const value=document.createElement("span");value.textContent=money(p.weeklyRevenue)+"/week";
+      const track=document.createElement("div");track.className="tf-revenue-track";
+      const bar=document.createElement("div");bar.className="tf-revenue-fill";
+      bar.style.width=Math.max(0,100*p.weeklyRevenue/max).toFixed(2)+"%";
+      track.append(bar);row.append(name,value,track);bars.append(row);
+    }
   }
   function inspect(sku){
     selected=sku;
