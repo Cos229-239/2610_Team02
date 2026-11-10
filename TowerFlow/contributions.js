@@ -16,7 +16,7 @@
   const article=el("article");article.className="panel tf-contribution-card";
   const head=el("h3",row.author+" : "+row.contribution);
   const p=el("p",row.title);
-  const status=el("small","SOURCE: "+row.source+" • "+row.reviewStatus+" • NO LIVE PREVIEW ASSERTED");
+  const status=el("small","SOURCE: "+row.source+" • "+row.reviewStatus+" • NO LIVE PREVIEW ASSERTED"+(row.sha?" • REVISION "+row.sha.slice(0,12):""));
   const links=el("div");links.className="tf-contribution-links";
   links.append(button("Review exact source change ↗",expected+"/files"),
     button("Review contribution and comments ↗",expected),
@@ -25,10 +25,25 @@
   article.append(head,p,status,links,note);root.append(article);
  }
  try{
-  const res=await fetch("contributions.json",{cache:"no-store",credentials:"same-origin"});
-  if(!res.ok)throw Error("Manifest unavailable");
-  const data=await res.json();
-  if(data.schemaVersion!==1||!Array.isArray(data.records))throw Error("Invalid manifest");
+  let data;
+  let connected=false;
+  try{
+    const response=await fetch("/api/contributions",{cache:"no-store",credentials:"same-origin"});
+    if(response.ok){
+      const result=await response.json();
+      if(result.status==="CONNECTED"&&Array.isArray(result.records)){data=result;connected=true;}
+    }
+  }catch{}
+  if(!data){
+    const res=await fetch("contributions.json",{cache:"no-store",credentials:"same-origin"});
+    if(!res.ok)throw Error("Manifest unavailable");
+    data=await res.json();
+    if(data.schemaVersion!==1||!Array.isArray(data.records))throw Error("Invalid manifest");
+  }
+  const banner=el("p",connected?
+    "SOURCE: LIVE MEMBER-AUTHENTICATED GITHUB PR READ API • READ ONLY • NO DELETE OPERATIONS.":
+    "SOURCE: STATIC VERIFIED PR SNAPSHOT • CURRENT REVIEW STATE MUST BE CHECKED ON GITHUB.");
+  root.append(banner);
   data.records.forEach(card);
   if(!root.children.length)throw Error("No reviewed contributions");
  }catch{
