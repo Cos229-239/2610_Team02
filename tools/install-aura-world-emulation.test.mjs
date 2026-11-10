@@ -37,6 +37,6 @@ test('refuses incomplete or unfamiliar Towerflow world',()=>{
  assert.throws(()=>patchRoom(fixture+'\\n// TF_WORLD_EMULATION_V1_BEGIN',addon),/Partial previous/);
 });
 test('no shell, eval or server writes exposed by sky emitter',()=>{
- assert.doesNotMatch(addon,/child_process|execSync|eval\\(|new Function\\(|fetch\\(|WebSocket\\(/);
+ assert.ok(!["child_process","execSync","eval(","new Function(","fetch(","WebSocket("].some(x=>addon.includes(x)));
  assert.match(addon,/original ceiling restored/i);
 });
