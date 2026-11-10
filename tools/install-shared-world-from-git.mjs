@@ -19,7 +19,7 @@ const sha=s=>createHash("sha256").update(s).digest("hex");
 export function workspaceMatchesLive({liveRoom,liveServer,workspaceRoom,workspaceServer}){
  return liveRoom===workspaceRoom&&liveServer===workspaceServer;
 }
-const backend="// TF_SHARED_WORLD_BACKEND_V1_BEGIN\nconst {createWorldStore,createWorldHandler}=require('./world-state.cjs');\nconst tfWorldStore=createWorldStore({file:path.join(__dirname,'data','towerflow-world-state.json')});\nconst tfWorldHandler=createWorldHandler({store:tfWorldStore,origin:publicOrigin,authorize:async(req)=>{\n  const id=req.session?.user?.login;if(!id||!req.permission)return null;\n  return {userId:String(id).toLowerCase(),role:['admin','maintain'].includes(req.permission)?'maintainer':'contributor'};\n}});\napp.all('/api/world/state',auth,ensureMember,(req,res)=>tfWorldHandler(req,res));\nconst {createMarketHandler}=require('./market-handler.cjs');\nconst tfMarketHandler=createMarketHandler();\napp.get('/api/market/quote',auth,ensureMember,(req,res)=>tfMarketHandler(req,res));\n// TF_SHARED_WORLD_BACKEND_V1_END";
+const backend="// TF_SHARED_WORLD_BACKEND_V1_BEGIN\nconst {createWorldStore,createWorldHandler}=require('./world-state.cjs');\nconst tfWorldStore=createWorldStore({file:path.join(__dirname,'data','towerflow-world-state.json')});\nconst tfWorldHandler=createWorldHandler({store:tfWorldStore,origin:publicOrigin,authorize:async(req)=>{\n  const id=req.session?.user?.login;if(!id||!req.permission)return null;\n  return {userId:String(id).toLowerCase(),role:['admin','maintain'].includes(req.permission)?'maintainer':'contributor'};\n}});\napp.all('/api/world/state',auth,ensureMember,(req,res)=>tfWorldHandler(req,res));\nconst {createMarketHandler}=require('./market-handler.cjs');\nconst tfMarketHandler=createMarketHandler();\napp.get('/api/market/quote',auth,ensureMember,(req,res)=>tfMarketHandler(req,res));\nconst {createAgentHandler}=require('./agent-handler.cjs');\nconst tfAgentHandler=createAgentHandler({origin:publicOrigin});\napp.all('/api/agents/status',auth,ensureMember,(req,res)=>tfAgentHandler(req,res));\napp.all('/api/agents/run',auth,ensureMember,(req,res)=>tfAgentHandler(req,res));\n// TF_SHARED_WORLD_BACKEND_V1_END";
 export function patchServer(text){
  // Support either reviewed AURA server integration generation. The actual
  // source-matched live host uses TF_AURA_V2_SERVER_BEGIN; older installations
@@ -109,7 +109,9 @@ async function run(){
    const assets=[
      {name:"world-state.cjs",source:sourceWorld,marker:"TOWERFLOW_SHARED_WORLD_V1"},
      {name:"alpha-vantage.cjs",source:join(sourceMarket,"alpha-vantage.cjs"),marker:"Optional authenticated financial market connector"},
-     {name:"market-handler.cjs",source:join(sourceMarket,"market-handler.cjs"),marker:"GET-only authenticated market quote handler"}
+     {name:"market-handler.cjs",source:join(sourceMarket,"market-handler.cjs"),marker:"GET-only authenticated market quote handler"},
+     {name:"towerflow-agent.cjs",source:join(root,"integrations","agents","towerflow-agent.cjs"),marker:"Bounded TowerFlow agent runner"},
+     {name:"agent-handler.cjs",source:join(root,"integrations","agents","agent-handler.cjs"),marker:"Stand-alone authenticated REST handler"}
    ];
    for(const asset of assets){
      const file=join(target,asset.name),next=await readFile(asset.source,"utf8");
