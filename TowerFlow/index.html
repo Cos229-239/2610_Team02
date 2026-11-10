@@ -83,6 +83,20 @@
   <div class="panel">
     <div class="eyebrow">TOWERFLOW / BUSINESS REVENUE</div><h1>Revenue &amp; profitability.</h1>
     <p>This release derives estimated weekly revenue and gross profit from your entered catalog and unit sales. It is not connected to POS, bank accounts, warehouse operations or competitor data.</p>
+    <div class="tf-business-metrics">
+      <article class="metric"><div class="metric-label">WEEKLY GROSS SALES</div><strong class="metric-value" id="tfRevenueGross">—</strong></article>
+      <article class="metric"><div class="metric-label">WEEKLY COST OF GOODS</div><strong class="metric-value" id="tfRevenueCogs">—</strong></article>
+      <article class="metric"><div class="metric-label">WEEKLY GROSS PROFIT</div><strong class="metric-value" id="tfRevenueProfit">—</strong></article>
+      <article class="metric"><div class="metric-label">GROSS MARGIN</div><strong class="metric-value" id="tfRevenueMargin">—</strong></article>
+      <article class="metric"><div class="metric-label">STAGNANT INVENTORY COST</div><strong class="metric-value" id="tfRevenueStagnant">—</strong></article>
+      <article class="metric"><div class="metric-label">PRODUCT COUNT</div><strong class="metric-value" id="tfRevenueCount">—</strong></article>
+    </div>
+    <section class="panel" aria-label="Product revenue comparison">
+      <div class="eyebrow">RECORDED WEEKLY PRODUCT SALES</div>
+      <h2>Revenue by product</h2>
+      <div id="tfRevenueBars" class="tf-revenue-bars" role="list" aria-live="polite"></div>
+      <p class="muted">Each bar shows weekly revenue from catalog unit price multiplied by manually supplied weekly sales. Not actual POS data.</p>
+    </section>
     <p>Visit <button type="button" class="btn secondary" data-tf-revenue-jump="inventory">Inventory Intelligence</button> to update unit economics and review margin scenarios.</p>
     <p>Cost of goods and sale price alone cannot establish net business profit. A production-ready revenue service needs historical sales, expenses, taxes, returns, dates and an audited source of truth.</p>
   </div>
