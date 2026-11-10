@@ -24,6 +24,6 @@ test("preview serves actual portfolio HTML and inventory modules",async()=>{
  } finally{await new Promise(resolve=>server.close(resolve));}
 });
 test("path resolver is scoped to TowerFlow app",()=>{
- assert.equal(resolveAsset("/%2e%2e/%2e%2e/secret"),null);
+ assert.equal(resolveAsset("/..%2F..%2Fsecret"),null);
  assert.equal(resolveAsset("/%5cWindows%5csecret"),null);
 });
