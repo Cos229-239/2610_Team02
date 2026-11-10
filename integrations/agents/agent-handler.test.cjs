@@ -22,3 +22,12 @@ test("authenticated reviewed task executes and returns audit evidence",async()=>
  assert.equal(r.statusCode,200);assert.equal(r.body.actor.userId,"github_authorizeduser");
  assert.equal(r.body.trace[0].tool,"test");
 });
+
+test("model plans are returned with approval required and no execution",async()=>{
+ let executed=0;
+ const fn=createAgentHandler({origin,agent:{status:()=>({}),run:async()=>{executed++;return {}}},
+  planner:{model:"fixture",mode:"PROPOSAL_ONLY_NO_AUTO_EXECUTION",plan:async()=>({proposal:{skill:"inventory.review"},approved:false,executed:false})}});
+ const r=response();
+ await fn(req({method:"POST",path:"/api/agents/plan",body:{question:"Review my inventory",itemsAvailable:true}}),r);
+ assert.equal(r.code,200);assert.equal(r.body.executed,false);assert.equal(executed,0);
+});
