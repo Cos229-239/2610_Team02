@@ -15,6 +15,9 @@ const checkout=join(root,"collaboration-room","live-room");
 const begin="// TF_SHARED_WORLD_CLIENT_V1_BEGIN",end="// TF_SHARED_WORLD_CLIENT_V1_END";
 const backendStart="// TF_SHARED_WORLD_BACKEND_V1_BEGIN",backendEnd="// TF_SHARED_WORLD_BACKEND_V1_END";
 const sha=s=>createHash("sha256").update(s).digest("hex");
+export function workspaceMatchesLive({liveRoom,liveServer,workspaceRoom,workspaceServer}){
+ return liveRoom===workspaceRoom&&liveServer===workspaceServer;
+}
 const backend="// TF_SHARED_WORLD_BACKEND_V1_BEGIN\nconst {createWorldStore,createWorldHandler}=require('./world-state.cjs');\nconst tfWorldStore=createWorldStore({file:path.join(__dirname,'data','towerflow-world-state.json')});\nconst tfWorldHandler=createWorldHandler({store:tfWorldStore,origin:publicOrigin,authorize:async(req)=>{\n  const id=req.session?.user?.login;if(!id||!req.permission)return null;\n  return {userId:String(id).toLowerCase(),role:['admin','maintain'].includes(req.permission)?'maintainer':'contributor'};\n}});\napp.all('/api/world/state',auth,ensureMember,(req,res)=>tfWorldHandler(req,res));\n// TF_SHARED_WORLD_BACKEND_V1_END";
 export function patchServer(text){
  // Support either reviewed AURA server integration generation. The actual
@@ -83,7 +86,7 @@ async function run(){
  const workspaceServer=join(checkout,"server.js");
  if(existsSync(workspaceRoom)&&existsSync(workspaceServer)){
    const [wr,ws]=await Promise.all([readFile(workspaceRoom,"utf8"),readFile(workspaceServer,"utf8")]);
-   if(wr===existingRoom&&ws===existingServer){
+   if(workspaceMatchesLive({liveRoom:existingRoom,liveServer:existingServer,workspaceRoom:wr,workspaceServer:ws})){
      rows.push({file:workspaceRoom,old:wr,next:rows[0].next});
      rows.push({file:workspaceServer,old:ws,next:rows[1].next});
      console.log("WORKSPACE COPY: MATCHED authoritative live source; safe to stage in both");
