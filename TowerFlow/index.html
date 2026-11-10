@@ -215,6 +215,19 @@
       </div>
       <p class="tf-source-badge" id="tfFlowDataLabel"></p>
       <div class="panel" id="tfFlowResult" role="region" aria-live="polite" aria-label="FLOW evidence results">Select the $500 or $100,000 demonstration tier to analyze your recorded inventory.</div>
+      <section class="panel tf-agent-console" aria-label="FLOW agentic skill control">
+        <div class="eyebrow">FLOW AGENT / ACTUAL TOOL EXECUTION</div>
+        <h3>Inspect capabilities. Run a reviewed skill.</h3>
+        <p>The bounded server-side runner can execute source-tracked inventory analysis and provider-backed stock lookups. It does not execute code, submit trades, charge accounts or edit contributions.</p>
+        <div class="tf-inventory-actions">
+          <button type="button" class="btn secondary" id="tfAgentInspect">Inspect connected agent skills</button>
+          <button type="button" class="btn primary" id="tfAgentInventory">Run inventory.review</button>
+          <button type="button" class="btn secondary" id="tfAgentMarket">Run market.research</button>
+        </div>
+        <p>Each task requires an explicit click and remains subject to GitHub authentication. Sending an inventory task transmits up to 250 normalized product records; do not submit confidential catalog data without authorization.</p>
+        <p role="status" id="tfAgentStatus">Agent status not yet checked.</p>
+        <pre class="tf-agent-trace" id="tfAgentTrace" aria-live="polite">No tool calls executed.</pre>
+      </section>
       <p id="tfFlowStatus" role="status">No payment or subscription is active.</p>
       <section class="panel" aria-label="Evidence and results">
         <div class="eyebrow">EVIDENCE &amp; RESULTS / ACTUAL CONNECTION STATUS</div>
@@ -301,5 +314,6 @@
 <script src="flow-core.js"></script>
 <script src="flow-ui.js"></script>
 <script src="contributions.js"></script>
+<script src="flow-agent-ui.js"></script>
 </body>
 </html>
