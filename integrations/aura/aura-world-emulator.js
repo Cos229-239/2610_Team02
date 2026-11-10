@@ -383,8 +383,14 @@
     version:1,
     supportedModes:Object.freeze([...THEMES]),
     getActive:()=>Object.freeze({...active}),
-    applyAuthoritative:(scene)=>{if(!scene){saved={...savedDefault};renderMode(saved);return;}
-      saved=cleanState(scene);renderMode(saved);},
+    applyAuthoritative:(scene,approvedAt)=>{
+      if(typeof approvedAt==="string"){
+        const stamp=Date.parse(approvedAt);
+        if(Number.isFinite(stamp))clock=Math.max(0,(Date.now()-stamp)/1000)%3600;
+      }
+      if(!scene){saved={...savedDefault};renderMode(saved);return;}
+      saved=cleanState(scene);renderMode(saved);
+    },
     requestPreview:request=>{const intent=interpret(request);if(!intent)return false;renderMode({...active,...intent});return true;},
     reset:()=>{saved={...savedDefault};renderMode(saved);deleteState();}
   });
