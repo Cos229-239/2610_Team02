@@ -43,9 +43,17 @@ async function run(){
    const previous=existsSync(dest)?await readFile(dest):null;
    const bytes=source.get(name);
    if(previous&&previous.equals(bytes))continue;
-   if(previous&&!previous.toString("utf8").includes("TOWERFLOW_PRODUCT_INSTALL_V1")&&!name.includes("inventory")){
-    // Existing unrelated product assets must not be silently replaced.
-    throw Error("Existing unrecognized product asset; refusing overwrite: "+dest);
+   if(previous){
+    const old=previous.toString("utf8");
+    const known={
+      "index.html":['id="portfolioValue"','data-tf-app-panel="inventory"'],
+      "app.js":["towerflow-state-v1","const palette"],
+      "styles.css":["--surface","--accent"],
+      "inventory-core.js":["TowerflowInventory","normalizeProduct"],
+      "inventory-ui.js":["towerflow-business-inventory-v1","tfInventory"]
+    };
+    if(!known[name].every(s=>old.includes(s)))
+      throw Error("Existing unrecognized product asset; refusing overwrite: "+dest);
    }
    plan.push({dest,previous,bytes,name});
   }
