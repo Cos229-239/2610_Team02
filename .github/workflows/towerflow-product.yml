@@ -1,0 +1,44 @@
+name: TowerFlow Product and Development Gate
+on:
+  pull_request:
+    paths:
+      - 'TowerFlow/**'
+      - 'integrations/frontier/**'
+      - 'integrations/mediator/**'
+      - 'tools/serve-portfolio-preview*'
+      - 'tools/install-towerflow-business-product*'
+      - 'tools/open-towerflow-ides.ps1'
+      - '.devcontainer/**'
+      - '.vsconfig'
+      - '.github/workflows/towerflow-product.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'TowerFlow/**'
+      - 'integrations/frontier/**'
+      - 'integrations/mediator/**'
+      - 'tools/serve-portfolio-preview*'
+      - 'tools/install-towerflow-business-product*'
+      - '.github/workflows/towerflow-product.yml'
+permissions:
+  contents: read
+jobs:
+  inventory-and-preview:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check TowerFlow/inventory-core.js
+      - run: node --check TowerFlow/inventory-ui.js
+      - run: node --check tools/serve-portfolio-preview.cjs
+      - run: node --check tools/install-towerflow-business-product.mjs
+      - run: node --test TowerFlow/inventory-core.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs
