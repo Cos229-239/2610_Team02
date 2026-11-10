@@ -7,9 +7,9 @@
 - Older Foundry movement tests are in `collaboration-room/input/`. Do not mistake that standalone module for the currently deployed room controller.
 
 ## Movement behavior
-- WASD moves in world coordinates regardless of camera yaw: W = negative Z, S = positive Z, A = negative X, D = positive X.
+- **Live Towerflow uses Option A (camera-relative first-person movement)**: W moves forward in the viewing direction; S backward; A/D strafe. Preserve the verified sign-corrected formula: `vx=-Math.sin(yaw)*fw+Math.cos(yaw)*side`, `vz=-Math.cos(yaw)*fw-Math.sin(yaw)*side`. The standalone Foundry test module may use different world-fixed requirements.
 - Shift increases movement speed.
-- IJKL adjusts the camera independently.
+- IJKL adjusts the camera; movement follows camera yaw.
 - Normalize diagonal movement to prevent speed boosts, respect position boundaries, and preserve multiplayer move broadcasts.
 - Add or run deterministic tests; inspect the live room's actual `public/room.js` before claiming the bug is fixed.
 
