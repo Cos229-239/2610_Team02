@@ -15,6 +15,92 @@
   <div class="top-actions"><button id="exportBtn" class="btn secondary">Export data</button><button id="importBtn" class="btn primary">Import data</button><input id="fileInput" type="file" accept=".json,.csv,.xml,.pdf" hidden></div>
 </header>
 <main class="shell">
+<nav class="tf-product-tabs" aria-label="TowerFlow workspaces" role="tablist">
+  <button type="button" role="tab" data-tf-app-tab="inventory">INVENTORY INTELLIGENCE</button>
+  <button type="button" role="tab" data-tf-app-tab="revenue">BUSINESS REVENUE</button>
+  <button type="button" role="tab" data-tf-app-tab="finance">STOCK MARKET &amp; FINANCE</button>
+  <button type="button" role="tab" data-tf-app-tab="business">BUSINESS &amp; CORP START HERE</button>
+</nav>
+<section id="tfInventory" data-tf-app-panel="inventory" aria-label="Business inventory intelligence">
+  <div class="tf-inventory-hero">
+    <div><div class="eyebrow">TOWERFLOW / BUSINESS INTELLIGENCE</div>
+      <h1>Know what sells. <span>Know what stays.</span></h1>
+      <p>Investigate sales velocity, space utilization and tied-up inventory capital. No live product or price feeds are connected yet.</p>
+    </div>
+    <div class="tf-source-badge">DEMONSTRATION DATA · LOCAL BROWSER</div>
+  </div>
+  <div class="tf-business-metrics" aria-live="polite">
+    <article class="metric"><div class="metric-label">UNITS ON HAND</div><strong id="tfBizUnits" class="metric-value">—</strong></article>
+    <article class="metric"><div class="metric-label">CAPITAL TIED IN STOCK</div><strong id="tfBizCarrying" class="metric-value">—</strong></article>
+    <article class="metric"><div class="metric-label">EST. WEEKLY REVENUE</div><strong id="tfBizSales" class="metric-value">—</strong></article>
+    <article class="metric"><div class="metric-label">SLOW / NON-SELLING STOCK</div><strong id="tfBizRisk" class="metric-value">—</strong></article>
+    <article class="metric"><div class="metric-label">EST. WEEKLY GROSS PROFIT</div><strong id="tfBizProfit" class="metric-value">—</strong></article>
+    <article class="metric"><div class="metric-label">RECORDED FLOOR SPACE</div><strong id="tfBizSqFt" class="metric-value">—</strong></article>
+  </div>
+  <section class="panel tf-inventory-table">
+    <div class="panel-head"><div><div class="eyebrow">CATALOG ANALYTICS</div><h2>Inventory performance</h2></div>
+      <div class="tf-inventory-actions">
+        <button class="btn secondary" id="tfImportInventory" type="button">Import inventory</button>
+        <button class="btn secondary" id="tfExportInventory" type="button">Export inventory</button>
+        <button class="btn secondary" id="tfResetInventory" type="button">Restore sample</button>
+        <input type="file" id="tfInventoryFile" accept=".json,application/json" hidden>
+      </div>
+    </div>
+    <div class="tf-filterrow">
+      <label>Search products<input id="tfInventorySearch" type="search" placeholder="SKU, product, category or signal"></label>
+      <label class="tf-check"><input id="tfInventoryRiskOnly" type="checkbox"> Show slow / non-selling only</label>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>SKU</th><th>PRODUCT</th><th>CATEGORY</th><th>STOCK</th><th>UNITS/WEEK</th><th>PRICE</th><th>CAPITAL</th><th>WEEKS COVER</th><th>SIGNAL</th><th>ACTION</th></tr></thead><tbody id="tfInventoryRows"></tbody></table></div>
+    <p id="tfInventoryEmpty" class="muted" hidden>No products match. Change search or filters.</p>
+    <p class="muted">Signals use manually recorded values. Low velocity does not prove a product should be discontinued. Taxes, overhead, shrinkage and demand elasticity are not modeled.</p>
+  </section>
+  <section class="panel" id="tfProductEditor" hidden>
+    <div class="panel-head"><div><div class="eyebrow">PRICE SCENARIO</div><h2 id="tfProductTitle">Product</h2></div><button type="button" class="btn secondary" id="tfCloseEditor">Close</button></div>
+    <p id="tfProductSummary"></p>
+    <label>Proposed sale price ($)<input type="number" min="0" max="100000000" step=".01" id="tfReprice"></label>
+    <p id="tfScenario" class="muted" aria-live="polite"></p>
+    <button type="button" class="btn primary" id="tfApplyPrice">Save local catalog price</button>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div><div class="eyebrow">NEW OR UPDATED PRODUCT</div><h2>Catalog entry</h2></div></div>
+    <form id="tfProductForm" class="tf-product-form">
+      <label>SKU<input name="sku" required maxlength="32" placeholder="PHONE-NEXT"></label>
+      <label>Product name<input name="name" required maxlength="90" placeholder="Next-generation phone"></label>
+      <label>Category<input name="category" maxlength="50" value="Electronics" required></label>
+      <label>Units on hand<input name="units" type="number" min="0" max="10000000" required value="10"></label>
+      <label>Units sold/week<input name="weeklySales" type="number" min="0" required value="1"></label>
+      <label>Unit cost ($)<input name="unitCost" type="number" step=".01" min="0" required value="100"></label>
+      <label>Current sale price ($)<input name="unitPrice" type="number" step=".01" min="0" required value="150"></label>
+      <label>Days on shelf<input name="daysOnShelf" type="number" min="0" required value="0"></label>
+      <label>Area occupied (sq ft)<input name="footprintSqFt" type="number" min="0" step=".1" required value="1"></label>
+      <label>Status<select name="status"><option value="active">Active</option><option value="paused">Paused</option><option value="retired">Retired</option></select></label>
+      <button class="btn primary" type="button" id="tfSaveProduct">Save product locally</button>
+    </form>
+    <p id="tfInventoryStatus" role="status" class="muted"></p>
+  </section>
+</section>
+<section data-tf-app-panel="revenue" aria-label="Business revenue planning" hidden>
+  <div class="panel">
+    <div class="eyebrow">TOWERFLOW / BUSINESS REVENUE</div><h1>Revenue &amp; profitability.</h1>
+    <p>This release derives estimated weekly revenue and gross profit from your entered catalog and unit sales. It is not connected to POS, bank accounts, warehouse operations or competitor data.</p>
+    <p>Visit <button type="button" class="btn secondary" data-tf-revenue-jump="inventory">Inventory Intelligence</button> to update unit economics and review margin scenarios.</p>
+    <p>Cost of goods and sale price alone cannot establish net business profit. A production-ready revenue service needs historical sales, expenses, taxes, returns, dates and an audited source of truth.</p>
+  </div>
+</section>
+<section data-tf-app-panel="business" aria-label="Business and corporation onboarding" hidden>
+  <div class="panel">
+    <div class="eyebrow">BUSINESS &amp; CORP START HERE / TIER DEMONSTRATION</div><h1>Choose a business experience.</h1>
+    <p>No payment processor is connected. These tiers are illustrative and no charge is collected. Do not enter credit card information.</p>
+    <div class="tf-tier-grid">
+      <article class="panel"><div class="eyebrow">STARTER</div><h2>$0</h2><p>Basic local inventory and product analysis.</p><span class="tf-source-badge">DEMONSTRATION</span></article>
+      <article class="panel"><div class="eyebrow">FLOW ASSISTED</div><h2>$500</h2><p>Proposed AI reporting and limited trend research; requires a metered verified data integration.</p><span class="tf-source-badge">NOT CONNECTED</span></article>
+      <article class="panel"><div class="eyebrow">CORPORATE</div><h2>$100,000</h2><p>Proposed multi-location dashboards, advanced data analysis, audited collaboration and enterprise onboarding.</p><span class="tf-source-badge">NOT CONNECTED</span></article>
+    </div>
+    <p>Pricing is a product concept, not an offer or an activated subscription. An authenticated business data backend, legal review and a licensed payments provider would be required before commercialization.</p>
+  </div>
+</section>
+<div data-tf-app-panel="finance" hidden>
+
   <section class="welcome">
     <div><div class="eyebrow">INVESTMENT WORKSPACE / OVERVIEW</div><h1>Your money. <span>In motion.</span></h1><p>Track holdings, review activity, and model your next move.</p></div>
     <div class="clock-card"><span class="muted">NEW YORK MARKET TIME</span><strong id="marketClock">--:--:--</strong><span id="marketCountdown" class="muted">Calculating market schedule…</span></div>
@@ -75,8 +161,11 @@
     <button id="resetDemo" class="btn secondary">Reset demo workspace</button>
   </section>
   <footer><span>TOWERFLOW LOCAL • PERSONAL WORKSPACE</span><span>Stored in this browser · No account connection</span></footer>
+</div>
 </main>
 <div id="modal" class="modal" hidden><div class="modal-card"><div class="panel-head"><h2 id="modalTitle">Add asset</h2><button id="closeModal" class="btn secondary" type="button">Close</button></div><form id="assetForm"><label>Symbol<input id="assetSymbol" maxlength="12" required placeholder="MSFT"></label><label>Asset name<input id="assetName" maxlength="60" placeholder="Microsoft"></label><div class="form-row"><label>Shares owned<input id="assetShares" type="number" min="0.000001" step="any" required></label><label>Cost basis per share ($)<input id="assetCost" type="number" min="0.000001" step="any" required></label></div><label>Current price ($)<input id="assetPrice" type="number" min="0.000001" step="any" required></label><div class="modal-actions"><button class="btn primary" type="submit">Save asset</button></div></form></div></div>
 <script src="app.js"></script>
+<script src="inventory-core.js"></script>
+<script src="inventory-ui.js"></script>
 </body>
 </html>
