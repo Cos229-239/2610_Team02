@@ -93,7 +93,7 @@
   cone.position.set(0,6.2,-8);
   cone.rotation.x=Math.PI/2;
   scene.add(cone);
-  let projection=0,projectionOn=true,currentTab="OVERVIEW",isPanel=false;
+  let projection=0,projectionOn=false,currentTab="OVERVIEW",isPanel=false;
   // Cinematic projector aperture and descending display platforms, visual only.
   // Kept separate from gameplay, so Dev Room portals and controls are unchanged.
   const iris=new THREE.Group();iris.position.set(0,11.85,-1.5);scene.add(iris);
@@ -446,7 +446,7 @@
     position.set(0,1.7,12);
     yaw=0;pitch=0;send({type:"move",x:0,z:12});
     document.getElementById("areaName").textContent="FRONTIER • CONTROL CENTER";
-    projectionOn=true;
+    projectionOn=towerflowReveal>=2;
     showToast("Welcome to Frontier. Walk toward the projected dashboard and press E.");
     // The Rocky proposal is silent unless an authorized original film audio asset
     // is explicitly configured. Never synthesize, clone, or swap a stand-in voice.
@@ -573,7 +573,7 @@
     const now=performance.now();
     let descent=0,opening=0;
     if(towerflowReveal===1&&now-towerflowRevealStarted>=2000){
-      towerflowReveal=2;
+      towerflowReveal=2;projectionOn=true;
       showToast("TOWERFLOW • CEILING OPENING / PROJECTOR DESCENDING");
     }
     if(towerflowReveal===2){
@@ -582,7 +582,7 @@
       opening=Math.min(1,elapsed/1750);
       if(descent>=1){towerflowReveal=3;openBusinessPanel(towerflowDesiredTab);}
     }
-    if(towerflowReveal===3){descent=1;opening=1;}
+    if(towerflowReveal===3){descent=1;opening=1;projectionOn=true;}
     for(let i=0;i<irisParts.length;i++){
       const angle=i*Math.PI/4;
       irisParts[i].position.x=Math.cos(angle)*opening*3.8;
@@ -603,8 +603,8 @@
     projection+=(goal-projection)*.045;
     projector.position.y=12.1-projection*1.9-descent*6.65;
     beam.position.y=10-descent*6.65;
-    beam.intensity=projection*23;
-    cone.material.opacity=.024*projection;
+    beam.intensity=projection*23*(towerflowReveal===2?Math.max(0,descent-.28)/.72:towerflowReveal===1?0:1);
+    cone.material.opacity=.024*projection*(towerflowReveal===2?Math.max(0,descent-.28)/.72:towerflowReveal===1?0:1);
     cone.visible=projection>.02;
   }
   animateProjector();
