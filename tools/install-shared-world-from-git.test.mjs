@@ -1,7 +1,7 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {patchRoom,patchServer} from "./install-shared-world-from-git.mjs";
+import {patchRoom,patchServer,workspaceMatchesLive} from "./install-shared-world-from-git.mjs";
 const feature=readFileSync(new URL("../integrations/world/world-sync-client.js",import.meta.url),"utf8");
 const emulator=readFileSync(new URL("../integrations/aura/aura-world-emulator.js",import.meta.url),"utf8");
 const server=[
@@ -46,4 +46,11 @@ test("restores shared scene client and upgrades existing sky emulator idempotent
 });
 test("rejects partial room sync install",()=>{
  assert.throws(()=>patchRoom(fixture+"\n// TF_SHARED_WORLD_CLIENT_V1_BEGIN",feature,emulator),/Partial/);
+});
+
+test("a stale workspace cannot silently substitute for the live host",()=>{
+ const liveRoom="LIVE-R",liveServer="LIVE-S";
+ assert.equal(workspaceMatchesLive({liveRoom,liveServer,workspaceRoom:"LIVE-R",workspaceServer:"LIVE-S"}),true);
+ assert.equal(workspaceMatchesLive({liveRoom,liveServer,workspaceRoom:"LIVE-R",workspaceServer:"OLD-S"}),false);
+ assert.equal(workspaceMatchesLive({liveRoom,liveServer,workspaceRoom:"OLD-R",workspaceServer:"LIVE-S"}),false);
 });
