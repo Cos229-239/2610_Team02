@@ -353,6 +353,45 @@
     window.tfRockyGreeting?.onEnter();
     updateMetrics();
   };
+  // TF_ROCKY_OFFICIAL_VIDEO_V1_BEGIN
+  // Genuine Rocky footage through the platform's own player; no clip extraction.
+  // The visitor chooses to watch. This is not the automatic in-world voice asset.
+  const rockyOfficialUrl="https://www.youtube.com/watch?v=cfdtzSfS718";
+  function showOfficialRockyVideo(){
+    const existing=document.getElementById("tfOfficialRockyVideo");
+    if(existing){existing.hidden=false;return;}
+    const container=document.createElement("div");
+    container.id="tfOfficialRockyVideo";
+    container.setAttribute("role","dialog");
+    container.setAttribute("aria-label","Rocky Balboa motivational video");
+    container.style.cssText="position:fixed;inset:0;z-index:10000;background:#03080be9;display:grid;place-items:center;padding:16px";
+    const panel=document.createElement("div");
+    panel.style.cssText="width:min(92vw,780px);background:#101b26;border:1px solid #80a1c1;padding:14px;color:white;border-radius:10px";
+    const title=document.createElement("h2");title.textContent="Rocky Balboa • Official motivational scenes";
+    const explanation=document.createElement("p");
+    explanation.textContent="Official Rocky Balboa video, played through YouTube. The video is not copied or modified by Towerflow.";
+    const frame=document.createElement("iframe");
+    frame.src="https://www.youtube-nocookie.com/embed/cfdtzSfS718?playsinline=1";
+    frame.title="Official Rocky Balboa motivational speeches";
+    frame.loading="lazy";
+    frame.allow="encrypted-media; fullscreen; picture-in-picture";
+    frame.allowFullscreen=true;
+    frame.referrerPolicy="strict-origin-when-cross-origin";
+    frame.style.cssText="width:100%;aspect-ratio:16/9;border:0;background:black";
+    const close=document.createElement("button");
+    close.type="button";close.textContent="Close official video";
+    close.style.cssText="display:block;margin-top:12px;padding:10px 16px";
+    close.addEventListener("click",()=>{frame.src="about:blank";container.remove();});
+    const link=document.createElement("a");
+    link.href=rockyOfficialUrl;link.target="_blank";link.rel="noopener noreferrer";
+    link.textContent="Watch on the official Rocky Balboa YouTube channel ↗";
+    link.style.cssText="color:#9bd7ff;display:inline-block;margin-top:10px";
+    panel.append(title,explanation,frame,close,link);
+    container.append(panel);document.body.append(container);close.focus();
+  }
+  // Expose a user-initiated link; do not autoplay or interrupt multiplayer voice.
+  window.tfRockyOfficial=Object.freeze({open:showOfficialRockyVideo,url:rockyOfficialUrl});
+  // TF_ROCKY_OFFICIAL_VIDEO_V1_END
   // TF_ROCKY_GREETING_PROPOSAL_V1_BEGIN
   // Authentic Rocky excerpt: NO audio or manifest shipped. Only a local
   // rights-verified, host-installed asset may be played. No voice synthesis.
