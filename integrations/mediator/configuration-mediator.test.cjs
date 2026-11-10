@@ -38,7 +38,7 @@ test("declared config does not accept shell or arbitrary root paths",()=>{
  assert.throws(()=>validateOperation("environment.propose",{profile:"cpp",baseRevision:hash,configuration:{language:"cpp"},rootPath:"C:\\"}));
  assert.throws(()=>validateOperation("environment.test",{proposalId:"p",suite:"test",baseRevision:"latest"}));
 });
-test("distinct code and room contributions require pinned revision",()=>{
+test("distinct code and room contributions require pinned revision",async()=>{
  const m=createMediator({...base,contribute:async({payload})=>({target:payload.target,merge:false})});
  for(const target of ["towerflow","room"]){
   const out=await m.dispatch({operation:"contribution.submit",payload:{branch:"feature/a",baseRevision:hash,synopsis:"Test addition",target},actor,method:"POST",requestOrigin:base.origin,idempotencyKey:"submit-"+target+"-2026"});
