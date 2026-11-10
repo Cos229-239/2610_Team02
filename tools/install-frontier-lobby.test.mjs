@@ -44,3 +44,13 @@ test('the cinematic Towerflow activation preserves 2-second timing and actual bu
   const patched=patchRoom(room,addon);
  assert.match(patched,/let vx=-Math\.sin\(yaw\)/);
 });
+
+test('foreground display lifts entirely below floor and orb changes from AURA to FLOW',()=>{
+ assert.match(addon,/TF_FRONTIER_DISPLAY_LIFT_V2/);
+ assert.match(addon,/pad\.group\.position\.y=pad\.baseY-opening\*4\.6/);
+ assert.match(addon,/pad\.group\.visible=opening<\.999/);
+ assert.match(addon,/labelOrb\("AURA"\)/);
+ assert.match(addon,/setOrbAgent\("FLOW"\)/);
+ assert.match(addon,/new THREE\.SphereGeometry\(\.95,48,32\)/);
+ assert.doesNotMatch(addon,/OctahedronGeometry\(\.46\)/);
+});
