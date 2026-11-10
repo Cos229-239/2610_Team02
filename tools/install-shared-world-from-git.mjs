@@ -87,18 +87,25 @@ async function run(){
  const workspaceServer=join(checkout,"server.js");
  if(existsSync(workspaceRoom)&&existsSync(workspaceServer)){
    const [wr,ws]=await Promise.all([readFile(workspaceRoom,"utf8"),readFile(workspaceServer,"utf8")]);
-   if(workspaceMatchesLive({liveRoom:existingRoom,liveServer:existingServer,workspaceRoom:wr,workspaceServer:ws})){
+   // Source-match each file independently. The room.js may be identical
+   // even when the repository's server.js is the old unauthenticated copy.
+   if(wr===existingRoom){
      rows.push({file:workspaceRoom,old:wr,next:rows[0].next});
-     rows.push({file:workspaceServer,old:ws,next:rows[1].next});
-     console.log("WORKSPACE COPY: MATCHED authoritative live source; safe to stage in both");
+     console.log("WORKSPACE ROOM: matched; browser sync patch staged in both rooms.");
    }else{
-     console.log("WORKSPACE COPY: DIVERGED; left unchanged. Review/import separately; never overwrite local work.");
+     console.log("WORKSPACE ROOM: diverged; left unchanged, never force replaced.");
+   }
+   if(ws===existingServer){
+     rows.push({file:workspaceServer,old:ws,next:rows[1].next});
+     console.log("WORKSPACE SERVER: matched; backend staged in both.");
+   }else{
+     console.log("WORKSPACE SERVER: diverged; left unchanged, never force replaced.");
      console.log("WORKSPACE SERVER SHA256 "+sha(ws).slice(0,16)+"; LIVE SERVER SHA256 "+sha(existingServer).slice(0,16));
    }
  }else{
    console.log("WORKSPACE COPY: INCOMPLETE; skipped without creating replacement.");
  }
- for(const target of [live,...(rows.length===4?[checkout]:[])]){
+ for(const target of [live,...(rows.some(r=>r.file===workspaceServer)?[checkout]:[])]){
    const assets=[
      {name:"world-state.cjs",source:sourceWorld,marker:"TOWERFLOW_SHARED_WORLD_V1"},
      {name:"alpha-vantage.cjs",source:join(sourceMarket,"alpha-vantage.cjs"),marker:"Optional authenticated financial market connector"},
