@@ -54,3 +54,9 @@ test('foreground display lifts entirely below floor and orb changes from AURA to
  assert.match(addon,/new THREE\.SphereGeometry\(\.95,48,32\)/);
  assert.doesNotMatch(addon,/OctahedronGeometry\(\.46\)/);
 });
+
+test('Rocky greeting is audio only: no official video player, floating video control, or embed',()=>{
+ assert.match(addon,/tfRockyGreeting/);
+ assert.match(addon,/document\.createElement\("audio"\)/);
+ assert.doesNotMatch(addon,/TF_ROCKY_OFFICIAL_VIDEO_V1|tfRockyOfficial|tfOfficialRockyVideo|youtube-nocookie|showOfficialRockyVideo/);
+});
