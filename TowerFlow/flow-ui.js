@@ -45,8 +45,26 @@
  });
  // Preserve privacy: no automatic network call, no card/POS/market credentials.
  for(const btn of document.querySelectorAll("[data-tf-flow-quote]")){
-  btn.addEventListener("click",()=>{
-   status.textContent="Live quotes are NOT CONNECTED. This action cannot place trades or make a financial prediction.";
+  btn.addEventListener("click",async()=>{
+   const ticker=$("tfMarketTicker").value.trim().toUpperCase();
+   if(!/^[A-Z][A-Z0-9.-]{0,13}$/.test(ticker)){
+    status.textContent="Invalid ticker. Enter a symbol such as AAPL.";return;
+   }
+   btn.disabled=true;status.textContent="Checking authenticated provider connection (no trades).";
+   try{
+    const res=await fetch("/api/market/quote?symbol="+encodeURIComponent(ticker),{
+     credentials:"same-origin",cache:"no-store",headers:{"Accept":"application/json"}
+    });
+    const data=await res.json().catch(()=>null);
+    if(!res.ok||data?.status!=="PROVIDER_DATA"||!data.quote)
+     throw Error(data?.message||"NOT CONNECTED: market provider endpoint unavailable.");
+    const q=data.quote;
+    if(q.symbol!==ticker||!Number.isFinite(q.price)||q.price<=0)
+     throw Error("Market provider returned invalid data.");
+    status.textContent=q.symbol+" • "+format(q.price)+" • "+q.asOf+" • "+q.source+
+      ". "+q.freshness+". No buy/sell recommendation or portfolio price modification.";
+   }catch(err){status.textContent="NOT CONNECTED / FAILED: "+err.message;}
+   finally{btn.disabled=false;}
   });
  }
  sync();
