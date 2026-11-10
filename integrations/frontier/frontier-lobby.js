@@ -149,7 +149,7 @@
       content.append(towerLink,makeEl("br"));
       content.append(makeEl("h3","THREE WORLD SECTIONS"));
       const zones=[
-        ["Dashboard","Frontier live operations and room information.",()=>{currentTab="REPOSITORY";draw();renderDashboard();}],
+        ["Towerflow Business","Inventory, revenue, market portfolio and tier experience.",openBusinessPanel],
         ["Development","Enter the preserved four-station Development Room.",()=>{tfTeleport(true);}],
         ["World Studio","AURA, world knowledge and visual design.",()=>{openPanel("help");}]
       ];
@@ -183,6 +183,28 @@
     }
     root.append(app);
     updateMetrics();
+  }
+  function openBusinessPanel(){
+    isPanel=true;
+    openPanel("towerflow-business");
+    const panel=document.getElementById("panel");
+    panel.style.width="min(98vw,1650px)";panel.style.maxWidth="98vw";
+    document.getElementById("panelTag").textContent="TOWERFLOW / IMMERSIVE BUSINESS PRODUCT";
+    document.getElementById("panelTitle").textContent="INVENTORY • REVENUE • MARKETS • BUSINESS";
+    const root=document.getElementById("panelContent");root.replaceChildren();
+    const controls=makeEl("div");
+    controls.style.cssText="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px";
+    const back=makeEl("button","FRONTIER CONTROL CENTER");back.type="button";back.onclick=openDashboard;
+    const popup=makeEl("a","OPEN BUSINESS APP IN A FULL TAB ↗");
+    popup.href="/towerflow/index.html?tab=inventory";popup.target="_blank";popup.rel="noopener noreferrer";
+    const info=makeEl("p","A real, interactive TowerFlow application. Inventory figures are illustrative until imported; finance and theme settings remain available. Local browser data is not shared with teammates.");
+    controls.append(back,popup);root.append(controls,info);
+    const frame=document.createElement("iframe");
+    frame.title="TowerFlow Business Inventory and Financial Portfolio";
+    frame.src="/towerflow/index.html?tab=inventory";
+    frame.referrerPolicy="same-origin";
+    frame.style.cssText="display:block;width:100%;height:min(76vh,950px);min-height:480px;border:2px solid #29c9e6;border-radius:10px;background:#071523";
+    root.append(frame);
   }
   function openDashboard(){
     isPanel=true;openPanel("frontier");
@@ -274,7 +296,7 @@
   }
   const originalActivate=activateTFStation;
   activateTFStation=function frontierStation(id){
-    if(id==="frontier-dashboard"){openDashboard();return;}
+    if(id==="frontier-dashboard"){openBusinessPanel();return;}
     if(id==="frontier-ide"){openFrontierIDE();return;}
     if(id==="frontier-world"){openPanel("help");return;}
     // Preserve native Development Room station behavior and their original labels.
@@ -290,7 +312,7 @@
     const hits=raycaster.intersectObjects([screen,left,right],false);
     if(!hits.length || hits[0].distance>35)return;
     e.stopImmediatePropagation();
-    if(hits[0].object===screen)openDashboard();
+    if(hits[0].object===screen)openBusinessPanel();
     else if(hits[0].object===left)openPanel("help");
     else openFrontierIDE();
   },true);
@@ -319,6 +341,6 @@
     cone.visible=projection>.02;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openIDE:openFrontierIDE,refresh:updateMetrics});
+  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics});
 }());
 // TF_FRONTIER_LOBBY_V1_END
