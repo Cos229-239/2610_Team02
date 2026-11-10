@@ -24,6 +24,7 @@ try {
   $files = @(
     'TowerFlow/index.html','TowerFlow/app.js','TowerFlow/styles.css',
     'TowerFlow/inventory-core.js','TowerFlow/inventory-ui.js','TowerFlow/inventory-core.test.cjs',
+    'TowerFlow/flow-core.js','TowerFlow/flow-ui.js','TowerFlow/flow-core.test.cjs',
     'integrations/frontier/frontier-lobby.js',
     'integrations/aura/aura-world-emulator.js',
     'integrations/world/world-state.cjs','integrations/world/world-sync-client.js',
@@ -89,9 +90,11 @@ try {
   try {
     $checks = @(
       'TowerFlow/inventory-core.test.cjs',
+      'TowerFlow/flow-core.test.cjs',
       'tools/serve-portfolio-preview.test.cjs',
       'tools/install-towerflow-business-product.test.mjs',
       'integrations/mediator/configuration-mediator.test.cjs',
+      'integrations/mediator/environment-profiles.test.cjs',
       'integrations/world/world-state.test.cjs',
       'tools/install-frontier-lobby.test.mjs',
       'tools/install-aura-world-emulation.test.mjs',
