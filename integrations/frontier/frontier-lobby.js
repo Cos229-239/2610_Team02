@@ -166,7 +166,7 @@
       webide.target="_blank";webide.rel="noopener noreferrer";
       content.append(webide,makeEl("br"));
       const codespace=makeEl("a","CREATE ISOLATED CODSPACE / RUN + DEBUG ↗");
-      codespace.href="https://github.com/codespaces/new?hide_repo_select=true&repo=Cos229-239%2F2610_Team02";
+      codespace.href="https://codespaces.new/Cos229-239/2610_Team02";
       codespace.target="_blank";codespace.rel="noopener noreferrer";
       content.append(codespace,makeEl("br"));
       const open=makeEl("button","OPEN IN-ROOM SOURCE EDITOR");open.onclick=openFrontierIDE;content.append(open);
