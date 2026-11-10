@@ -62,6 +62,37 @@
   cone.rotation.x=Math.PI/2;
   scene.add(cone);
   let projection=0,projectionOn=true,currentTab="OVERVIEW",isPanel=false;
+  // Cinematic projector aperture and descending display platforms, visual only.
+  // Kept separate from gameplay, so Dev Room portals and controls are unchanged.
+  const iris=new THREE.Group();iris.position.set(0,11.85,-1.5);scene.add(iris);
+  const irisParts=[];
+  const irisMaterial=new THREE.MeshStandardMaterial({color:0x17354a,metalness:.82,roughness:.26,side:THREE.DoubleSide});
+  for(let i=0;i<8;i++){
+    const wedge=new THREE.Mesh(new THREE.RingGeometry(.28,4.1,10,1,i*Math.PI/4,Math.PI/4-.025),irisMaterial);
+    wedge.rotation.x=-Math.PI/2;
+    iris.add(wedge);irisParts.push(wedge);
+  }
+  const platforms=[];
+  for(const x of [-5.7,-1.9,1.9,5.7]){
+    const pad=new THREE.Group();pad.position.set(x,.1,-3.3);
+    const base=new THREE.Mesh(new THREE.CylinderGeometry(1.35,1.45,.24,24),
+       new THREE.MeshStandardMaterial({color:0x183047,metalness:.8,roughness:.3,emissive:0x0c5269,emissiveIntensity:.3}));
+    pad.add(base);
+    const holo=new THREE.Mesh(new THREE.OctahedronGeometry(.46),
+       new THREE.MeshStandardMaterial({color:0x4adfff,wireframe:true,emissive:0x23a8ef,emissiveIntensity:1}));
+    holo.position.y=.95;pad.add(holo);scene.add(pad);platforms.push(pad);
+  }
+  let towerflowReveal=0,towerflowRevealStarted=0;
+  function revealTowerflow(){
+    if(towerflowReveal!==0)return;
+    towerflowReveal=1;towerflowRevealStarted=performance.now();
+    // Progressive-enhancement: viewers requesting reduced motion go straight in.
+    if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
+      towerflowReveal=3;openBusinessPanel();return;
+    }
+    showToast("TOWERFLOW • PROJECTOR ACTIVATION");
+  }
+
   const titles=["OVERVIEW","REPOSITORY","TEAM","TASKS","AURA"];
   const metrics={branch:"dev",files:"—",members:"—",state:"READY"};
   function fit(text,max=52){return String(text||"").slice(0,max);}
@@ -185,6 +216,8 @@
     updateMetrics();
   }
   function openBusinessPanel(){
+    if(towerflowReveal===0){revealTowerflow();return;}
+    if(towerflowReveal===1||towerflowReveal===2)return;
     isPanel=true;
     openPanel("towerflow-business");
     const panel=document.getElementById("panel");
@@ -470,9 +503,30 @@
   // Lightweight animation: projector descends and powers up, no new render loop.
   function animateProjector(){
     requestAnimationFrame(animateProjector);
+    const now=performance.now();
+    let descent=0,opening=0;
+    if(towerflowReveal===1&&now-towerflowRevealStarted>=2000){
+      towerflowReveal=2;
+      showToast("TOWERFLOW • CEILING OPENING / PROJECTOR DESCENDING");
+    }
+    if(towerflowReveal===2){
+      const elapsed=Math.max(0,now-towerflowRevealStarted-2000);
+      descent=Math.min(1,elapsed/3300);
+      opening=Math.min(1,elapsed/1750);
+      if(descent>=1){towerflowReveal=3;openBusinessPanel();}
+    }
+    if(towerflowReveal===3){descent=1;opening=1;}
+    for(let i=0;i<irisParts.length;i++){
+      const angle=i*Math.PI/4;
+      irisParts[i].position.x=Math.cos(angle)*opening*3.8;
+      irisParts[i].position.z=Math.sin(angle)*opening*3.8;
+      irisParts[i].rotation.z=opening*(i%2===0?.7:-.7);
+    }
+    for(const pad of platforms)pad.position.y=.1-opening*2.8;
     const goal=projectionOn?1:0;
     projection+=(goal-projection)*.045;
-    projector.position.y=12.1-projection*1.9;
+    projector.position.y=12.1-projection*1.9-descent*6.65;
+    beam.position.y=10-descent*6.65;
     beam.intensity=projection*23;
     cone.material.opacity=.024*projection;
     cone.visible=projection>.02;
