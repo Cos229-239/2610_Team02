@@ -11,6 +11,8 @@ on:
       - '.devcontainer/**'
       - '.vsconfig'
       - '.github/workflows/towerflow-product.yml'
+      - '.github/pull_request_template.md'
+      - 'tools/towerflow-pr-synopsis*'
   push:
     branches: [dev]
     paths:
@@ -34,6 +36,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -41,4 +44,7 @@ jobs:
       - run: node --check TowerFlow/inventory-ui.js
       - run: node --check tools/serve-portfolio-preview.cjs
       - run: node --check tools/install-towerflow-business-product.mjs
-      - run: node --test TowerFlow/inventory-core.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs
+      - run: node --test TowerFlow/inventory-core.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs tools/towerflow-pr-synopsis.test.cjs
+      - name: PR file-by-file scope and meaningful commit synopsis
+        if: github.event_name == 'pull_request'
+        run: node tools/towerflow-pr-synopsis.cjs
