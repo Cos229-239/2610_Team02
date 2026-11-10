@@ -11,6 +11,13 @@
  const valid=Object.keys(core.TIERS);
  let name="starter";try{const saved=localStorage.getItem(key);if(valid.includes(saved))name=saved;}catch{}
  const format=n=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(n);
+ const log=$("tfEvidenceLog");
+ function evidence(label,message){
+  if(!log||!["IMPLEMENTED","DEMONSTRATION","MODEL OUTPUT","PROVIDER DATA","NOT CONNECTED"].includes(label))return;
+  if(log.children.length===1&&log.firstElementChild?.textContent==="No operations performed in this view.")log.replaceChildren();
+  const item=document.createElement("li");item.textContent=new Date().toLocaleTimeString()+" • "+label+" • "+String(message).slice(0,240);
+  log.prepend(item);while(log.children.length>15)log.lastElementChild.remove();
+ }
  
  function sync(){
   const t=core.tier(name),result=core.limit(name,inventory.getMetrics().totalSkus);
@@ -29,7 +36,7 @@
   try{localStorage.setItem(key,name);}catch{}
   currentEvidence=null;
   output.textContent="Tier demonstration switched. No payment or service activation occurred.";
-  status.textContent="Demo only; $0 charged.";sync();
+  status.textContent="Demo only; $0 charged.";evidence("DEMONSTRATION","Switched to "+name+" tier; no payment or account entitlement changed.");sync();
  });
  $("tfFlowAnalyze").addEventListener("click",()=>{
   try{
@@ -65,6 +72,7 @@
      output.append(heading,box);
    }
    status.textContent="Calculated from current local inventory • no external request or charge.";
+   evidence("IMPLEMENTED","FLOW calculated "+a.topic+" from locally available catalog entries.");
   }catch(e){status.textContent=e.message;}
   sync();
  });
@@ -93,7 +101,8 @@
     const p=document.createElement("p");p.textContent=data.answer;
     block.append(heading,p);output.append(block);
     status.textContent="AURA responded from the protected server; this is model-generated guidance, not externally verified business data.";
-  }catch(e){status.textContent="AURA UNAVAILABLE: "+e.message+" Original FLOW report is preserved.";}
+    evidence("MODEL OUTPUT","AURA interpreted user-approved aggregate data; not independently verified.");
+  }catch(e){status.textContent="AURA UNAVAILABLE: "+e.message+" Original FLOW report is preserved.";evidence("NOT CONNECTED","AURA request was unsuccessful.");}
   finally{sync();}
  });
  // Preserve privacy: no automatic network call, no card/POS/market credentials.
@@ -114,9 +123,10 @@
     const q=data.quote;
     if(q.symbol!==ticker||!Number.isFinite(q.price)||q.price<=0)
      throw Error("Market provider returned invalid data.");
+    evidence("PROVIDER DATA",q.symbol+" "+format(q.price)+" as of "+q.asOf+" from "+q.source);
     status.textContent=q.symbol+" • "+format(q.price)+" • "+q.asOf+" • "+q.source+
       ". "+q.freshness+". No buy/sell recommendation or portfolio price modification.";
-   }catch(err){status.textContent="NOT CONNECTED / FAILED: "+err.message;}
+   }catch(err){status.textContent="NOT CONNECTED / FAILED: "+err.message;evidence("NOT CONNECTED","Authenticated market quote was unavailable.");}
    finally{btn.disabled=false;}
   });
  }
