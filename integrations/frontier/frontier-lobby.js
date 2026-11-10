@@ -354,54 +354,69 @@
     updateMetrics();
   };
   // TF_ROCKY_GREETING_PROPOSAL_V1_BEGIN
-  // Proposal only: playable solely with a rights-cleared ORIGINAL recording.
-  // Configurable in memory by a future trusted application loader, not by guests.
-  const rockyState={approved:false,source:null,playing:false,asset:null,controller:null};
+  // Authentic Rocky excerpt: NO audio or manifest shipped. Only a local
+  // rights-verified, host-installed asset may be played. No voice synthesis.
   const greetingStatus=document.createElement("div");
   greetingStatus.id="tfRockyGreetingStatus";
   greetingStatus.setAttribute("role","status");
   greetingStatus.style.cssText="position:fixed;left:12px;bottom:12px;z-index:200;padding:8px 12px;background:#08131de8;color:#f3f6fa;border:1px solid #6689a4;max-width:min(92vw,420px);font:13px system-ui";
   greetingStatus.hidden=true;
-  const dismissGreeting=document.createElement("button");
-  dismissGreeting.type="button";dismissGreeting.textContent="Skip greeting";
-  dismissGreeting.style.marginLeft="12px";
   const greetingText=document.createElement("span");
+  const skipGreeting=document.createElement("button");
+  skipGreeting.type="button";
+  skipGreeting.textContent="Skip greeting";
+  skipGreeting.style.marginLeft="12px";
   const greetingAudio=document.createElement("audio");
   greetingAudio.preload="none";
   greetingAudio.volume=.65;
-  greetingStatus.append(greetingText,dismissGreeting,greetingAudio);
+  greetingStatus.append(greetingText,skipGreeting,greetingAudio);
   document.body.append(greetingStatus);
+  let active=false,attempt=0;
   function stopRockyGreeting(){
-    greetingAudio.pause();greetingAudio.removeAttribute("src");greetingAudio.load();
-    greetingStatus.hidden=true;rockyState.playing=false;
+    ++attempt;active=false;greetingAudio.pause();greetingAudio.removeAttribute("src");
+    greetingStatus.hidden=true;
   }
-  dismissGreeting.addEventListener("click",stopRockyGreeting);
+  skipGreeting.addEventListener("click",stopRockyGreeting);
   greetingAudio.addEventListener("ended",stopRockyGreeting);
   greetingAudio.addEventListener("error",stopRockyGreeting);
-  const greetingConfig=Object.freeze({
-    // Future approved deployment may replace these values only after legal review.
-    enabled:false,rightsVerified:false,assetPath:null,assetSha256:null,
-    transcript:null,attribution:null
-  });
-  function playRockyGreeting(){
-    if(!greetingConfig.enabled||!greetingConfig.rightsVerified)return false;
-    const location=greetingConfig.assetPath;
-    if(typeof location!=="string"||!new RegExp("^/room-assets/approved/[A-Za-z0-9._/-]+[.](mp3|ogg|wav)$").test(location)||location.includes(".."))return false;
+  async function playRockyGreeting(){
     if(localStorage.getItem("tfRockyGreetingMuted")==="1")return false;
-    stopRockyGreeting();
-    greetingText.textContent=greetingConfig.transcript||"Rocky Balboa • authorized film excerpt";
-    greetingAudio.src=location;
+    const current=++attempt;
+    // The manifest is supplied ONLY by a separate, explicit host-side
+    // licensed-media installer. 404/malformed/expired means silence.
+    let config;
+    try{
+      const response=await fetch("/room-assets/approved/rocky-greeting.json",{
+        credentials:"same-origin",cache:"no-store",mode:"same-origin"
+      });
+      if(!response.ok)return false;
+      config=await response.json();
+    }catch{return false;}
+    if(current!==attempt||!config||config.version!==1||config.enabled!==true||
+       config.rightsVerified!==true||typeof config.licenseExpires!=="string"||
+       !Number.isFinite(Date.parse(config.licenseExpires))||
+       Date.now()>=Date.parse(config.licenseExpires))return false;
+    const url=config.assetPath;
+    if(typeof url!=="string"||
+       !/^\/room-assets\/approved\/rocky-[a-f0-9]{64}\.(mp3|ogg|wav)$/.test(url))return false;
+    if(localStorage.getItem("tfRockyGreetingMuted")==="1")return false;
+    greetingText.textContent="Rocky Balboa • licensed film excerpt";
+    greetingAudio.src=url;
     greetingStatus.hidden=false;
-    // This callback runs from the user-initiated Enter action. Autoplay is
-    // still browser controlled; rejection never blocks entry or voice chat.
-    greetingAudio.play().then(()=>{rockyState.playing=true;}).catch(()=>stopRockyGreeting());
-    return true;
+    // Invoked by click, but manifest fetch introduces an async boundary:
+    // browsers may reject autoplay. Never block the room or voice chat.
+    try{
+      await greetingAudio.play();
+      if(current!==attempt){greetingAudio.pause();return false;}
+      active=true;return true;
+    }catch{if(current===attempt)stopRockyGreeting();return false;}
   }
   window.tfRockyGreeting=Object.freeze({
     onEnter:playRockyGreeting,
     stop:stopRockyGreeting,
     disable:()=>{localStorage.setItem("tfRockyGreetingMuted","1");stopRockyGreeting();},
-    get enabled(){return greetingConfig.enabled&&greetingConfig.rightsVerified;}
+    enable:()=>localStorage.removeItem("tfRockyGreetingMuted"),
+    get playing(){return active;}
   });
   // TF_ROCKY_GREETING_PROPOSAL_V1_END
   // Lightweight animation: projector descends and powers up, no new render loop.
