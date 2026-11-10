@@ -2,7 +2,7 @@
 # Never checks out or modifies the active Team2 branch or the live Node process.
 param(
   [Parameter(Mandatory=$true)][ValidateRange(1,999999)] [int]$PullRequest,
-  [string]$Repository="C:\Users\dulsk\Desktop\Team2",
+  [string]$Repository=(Join-Path $PSScriptRoot ".."),
   [ValidateRange(1024,65535)][int]$Port=5188
 )
 $ErrorActionPreference="Stop"
