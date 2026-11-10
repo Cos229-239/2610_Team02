@@ -26,6 +26,7 @@ try {
     'TowerFlow/inventory-core.js','TowerFlow/inventory-ui.js','TowerFlow/inventory-core.test.cjs',
     'TowerFlow/flow-core.js','TowerFlow/flow-ui.js','TowerFlow/flow-core.test.cjs',
     'TowerFlow/flow-agent-ui.js','TowerFlow/contributions.js','TowerFlow/contributions.json',
+    'TowerFlow/flow-integration.test.cjs',
     'integrations/frontier/frontier-lobby.js',
     'integrations/aura/aura-world-emulator.js',
     'integrations/world/world-state.cjs','integrations/world/world-sync-client.js',
@@ -96,6 +97,7 @@ try {
     $checks = @(
       'TowerFlow/inventory-core.test.cjs',
       'TowerFlow/flow-core.test.cjs',
+      'TowerFlow/flow-integration.test.cjs',
       'tools/serve-portfolio-preview.test.cjs',
       'tools/install-towerflow-business-product.test.mjs',
       'integrations/mediator/configuration-mediator.test.cjs',
