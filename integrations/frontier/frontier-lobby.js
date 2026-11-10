@@ -25,11 +25,12 @@
   bezel.position.set(0,5.15,-15.31);
   scene.add(bezel);
   tfRegister(screen,"frontier-dashboard");
+  // The original Development Room entrance remains a separate clickable object.
   stations.push({id:"frontier-dashboard",label:"FRONTIER DASHBOARD",x:0,z:-12.8});
   // Move the existing entry logo out of the projection rectangle.
   if(typeof tfEntrance!=="undefined" && tfEntrance){
-    tfEntrance.position.y=10.2;
-    tfEntrance.scale.set(1.48,.48,1);
+    tfEntrance.position.y=8.95;
+    tfEntrance.scale.set(1.48,.65,1);
     // The sign remains clickable for the development chamber.
   }
   // Luminous wall entry signs flank the main front-wall dashboard.
@@ -143,10 +144,13 @@
     const content=makeEl("div");
     app.append(content);
     if(currentTab==="OVERVIEW"){
+      const towerLink=makeEl("a","OPEN ACTUAL TOWERFLOW BUSINESS DASHBOARD ↗");
+      towerLink.href="/towerflow/index.html?tab=inventory";towerLink.target="_blank";towerLink.rel="noopener noreferrer";
+      content.append(towerLink,makeEl("br"));
       content.append(makeEl("h3","THREE WORLD SECTIONS"));
       const zones=[
         ["Dashboard","Frontier live operations and room information.",()=>{currentTab="REPOSITORY";draw();renderDashboard();}],
-        ["Development","Four IDE stations and repository source editor.",()=>{openFrontierIDE();}],
+        ["Development","Enter the preserved four-station Development Room.",()=>{tfTeleport(true);}],
         ["World Studio","AURA, world knowledge and visual design.",()=>{openPanel("help");}]
       ];
       for(const [title,description,action] of zones){
@@ -161,6 +165,10 @@
       webide.href="https://github.dev/Cos229-239/2610_Team02";
       webide.target="_blank";webide.rel="noopener noreferrer";
       content.append(webide,makeEl("br"));
+      const codespace=makeEl("a","CREATE ISOLATED CODSPACE / RUN + DEBUG ↗");
+      codespace.href="https://github.com/codespaces/new?hide_repo_select=true&repo=Cos229-239%2F2610_Team02";
+      codespace.target="_blank";codespace.rel="noopener noreferrer";
+      content.append(codespace,makeEl("br"));
       const open=makeEl("button","OPEN IN-ROOM SOURCE EDITOR");open.onclick=openFrontierIDE;content.append(open);
     }else if(currentTab==="TEAM"){
       content.append(makeEl("p","GitHub collaborators can enter with approved access. Members with write permission can edit tracked source files; all changes require review before production."));
@@ -269,7 +277,7 @@
     if(id==="frontier-dashboard"){openDashboard();return;}
     if(id==="frontier-ide"){openFrontierIDE();return;}
     if(id==="frontier-world"){openPanel("help");return;}
-    if(id.startsWith("dev-ide-")){openFrontierIDE();return;}
+    // Preserve native Development Room station behavior and their original labels.
     return originalActivate(id);
   };
   // Capture clicks on the new wall panels before the original station raycaster.
@@ -286,6 +294,7 @@
     else if(hits[0].object===left)openPanel("help");
     else openFrontierIDE();
   },true);
+  // Preserve original Enter handler; do not intercept any Development Room return portal.
   // Ensure all first entries land in the Frontier dashboard atrium.
   const previousEnter=document.getElementById("enterBtn").onclick;
   document.getElementById("enterBtn").onclick=function(e){
