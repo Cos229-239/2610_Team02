@@ -7,7 +7,7 @@ const emulator=readFileSync(new URL("../integrations/aura/aura-world-emulator.js
 const server=[
   "const publicOrigin = 'https://towerflow.example';",
   "function auth(req,res,next) {}",
-  "async function ensureMember(req,res,next) {}",
+  "async function ensureMember(req,res,next) { req.permission=permission; }",
   "// TF_AURA_GIT_SERVER_V1",
   "app.get('/api/health',(req,res)=>res.json({ok:true}));"
 ].join("\n");
@@ -16,6 +16,14 @@ test("server route is injected once after authenticated member middleware",()=>{
  assert.match(once,/app\.all\('\/api\/world\/state',auth,ensureMember/);
  assert.match(once,/world-state\.cjs/);
  assert.equal(patchServer(once),once);
+});
+test("existing V2 source-matched server is supported without loosening authorization",()=>{
+ const v2=server.replace("// TF_AURA_GIT_SERVER_V1",
+  "// TF_AURA_V2_SERVER_BEGIN\\napp.use('/api/aura',auth,ensureMember,createAuraRouter({}));".replaceAll("\\\\n","\\n"));
+ const once=patchServer(v2);
+ assert.match(once,/app\\.all\\('\\/api\\/world\\/state',auth,ensureMember/);
+ assert.equal(patchServer(once),once);
+ assert.throws(()=>patchServer(v2.replace("req.permission=permission","// no permission assignment")),/req.permission=permission/);
 });
 test("refuses unknown server or partial backend marker",()=>{
  assert.throws(()=>patchServer("app.get('/api/health',()=>{})"),/Unreviewed/);
