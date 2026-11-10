@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Towerflow hidden world-design reference vault, not rendered until a user requests an object. Photograph references inform artistic/procedural modeling. No photography is copied, embedded, or claimed to be a literal texture.",
+  "referencePolicy": "Use documented official reference photography for color, shape, texture and known phenomena; do not claim illustrative models are photogrammetric scans or astronomically to scale. Record evidence sources and dates. Review before adding assets to public deployment.",
+  "objects": [
+    {
+      "id": "sunset",
+      "label": "Sunset sky",
+      "kind": "sky-phenomenon",
+      "observedFeatures": [
+        "Low orange-red sun at horizon",
+        "Gold-to-violet twilight gradient",
+        "Soft warm-lit cloud layers",
+        "Sun visibly descends relative to dark silhouette"
+      ],
+      "renderModel": "Animated procedural sky panorama and moving glowing sun disc under a recessed ceiling portal",
+      "sources": [
+        {
+          "title": "NASA Earth Observatory image collection",
+          "url": "https://earthobservatory.nasa.gov/images",
+          "purpose": "Photographic sky and horizon lighting references"
+        },
+        {
+          "title": "Sunset reference photo",
+          "url": "https://sunsetscore.com/static/score-samples/6.jpg",
+          "purpose": "Orange horizon and layered cloud silhouettes; visual reference only"
+        }
+      ]
+    },
+    {
+      "id": "solar-system",
+      "label": "Solar system",
+      "kind": "astronomical exhibit",
+      "observedFeatures": [
+        "Sun and eight planets in Mercury-to-Neptune order",
+        "Earth blue/white with clouds",
+        "Jupiter cream-brown bands",
+        "Saturn ring geometry",
+        "Uranus pale cyan, Neptune deep blue",
+        "Distant star background"
+      ],
+      "renderModel": "Illustrative 3D Sun, eight rotating shaded planet spheres, Saturn rings and stars in a ceiling observatory; not to scale",
+      "sources": [
+        {
+          "title": "NASA Our Solar System photographic composite",
+          "url": "https://science.nasa.gov/resource/our-solar-system-2/",
+          "purpose": "Planet photographs, hue, bands and cloud cover"
+        },
+        {
+          "title": "NASA JPL sizes and distance explainer",
+          "url": "https://www.jpl.nasa.gov/edu/resources/video/solar-system-size-and-distance/",
+          "purpose": "True scales differ enormously; ceiling display is not to scale"
+        },
+        {
+          "title": "NASA planet sizes",
+          "url": "https://science.nasa.gov/resource/solar-system-sizes/",
+          "purpose": "Relative radius reference"
+        }
+      ]
+    },
+    {
+      "id": "aurora",
+      "label": "Aurora borealis",
+      "kind": "atmospheric-phenomenon",
+      "observedFeatures": [
+        "Translucent green curtains and vertical rays",
+        "Pink-violet wisps and blue accents",
+        "Night sky dotted with stars",
+        "Slow rippling waves"
+      ],
+      "renderModel": "Animated layered translucent canvas curtains, generated star field, blue-green glow, positioned in a ceiling sky portal",
+      "sources": [
+        {
+          "title": "NASA Auroras explanation and real photography",
+          "url": "https://science.nasa.gov/sun/auroras/",
+          "purpose": "Oxygen green/red, nitrogen blue and pink; aurora physics and imagery"
+        },
+        {
+          "title": "NASA 2025 aurora photograph",
+          "url": "https://science.nasa.gov/multimedia/january-2025/",
+          "purpose": "Green and purple curtain morphology"
+        }
+      ]
+    },
+    {
+      "id": "ceiling-text",
+      "label": "Colored ceiling message",
+      "kind": "typographic-installation",
+      "observedFeatures": [
+        "Readable centered ceiling lettering",
+        "User-specified colors or rainbow fill",
+        "High contrast with darker backing"
+      ],
+      "renderModel": "Canvas texture on glowing horizontal display at the center of the ceiling; user text is drawn with canvas fillText, not inserted as markup",
+      "sources": []
+    }
+  ]
+}
