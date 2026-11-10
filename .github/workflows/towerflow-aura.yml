@@ -1,0 +1,22 @@
+name: Towerflow In-World AURA
+on:
+  pull_request:
+    paths:
+      - 'integrations/aura/**'
+      - '.github/workflows/towerflow-aura.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'integrations/aura/**'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check integrations/aura/aura-service.cjs
+      - run: node --test integrations/aura/aura-service.test.cjs
