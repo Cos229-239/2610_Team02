@@ -26,7 +26,7 @@
    if(data.version!==1||!Number.isSafeInteger(data.revision)||data.revision<0)throw Error("Invalid shared scene state");
    connected=true;
    if(!paused&&data.revision!==lastRevision){
-     engine.applyAuthoritative(data.scene);
+     engine.applyAuthoritative(data.scene,data.updatedAt);
      lastRevision=data.revision;
      say(data.scene?"Shared scene "+data.scene.mode+" • revision "+data.revision:"Original shared room • revision "+data.revision);
    }
