@@ -147,15 +147,24 @@ export function patchRoom(source, config) {
   return changed;
 }
 function sha(content) { return createHash('sha256').update(content).digest('hex'); }
-function checkSyntax(content) {
-  const tmp = join(tmpdir(), 'towerflow-config-agent-' + randomUUID() + '.js');
+async function checkSyntax(content) {
+  // The room uses ES modules (import * as THREE ...). A .js file piped to
+  // node --check is treated as CommonJS on some Node versions and fails
+  // even when the actual browser module is valid. Use a temporary .mjs.
+  const tmp = join(tmpdir(), 'towerflow-config-agent-' + randomUUID() + '.mjs');
   try {
-    requireNotUsed();
-    // We check source via node --check stdin to avoid writing into the project.
-    execFileSync(process.execPath, ['--check', '-'], { input: content, stdio: ['pipe','pipe','pipe'], timeout: 10000 });
-  } catch (err) { throw new Error('JavaScript syntax check failed: ' + String(err.stderr || err.message).slice(0, 300)); }
+    await writeFile(tmp, content, 'utf8');
+    execFileSync(process.execPath, ['--check', tmp], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 10000
+    });
+  } catch (err) {
+    throw new Error('JavaScript syntax check failed: ' +
+      String(err.stderr || err.message).slice(0, 400));
+  } finally {
+    if (existsSync(tmp)) await unlink(tmp);
+  }
 }
-function requireNotUsed() {} // explicit ESM-only utility, no dynamic packages.
 async function run() {
   const args = process.argv.slice(2);
   const apply = args.includes('--apply'), dry = args.includes('--dry-run');
@@ -169,7 +178,7 @@ async function run() {
     if (!existsSync(file)) throw new Error('Missing room file: ' + file);
     const before = await readFile(file, 'utf8');
     const after = patchRoom(before, config);
-    checkSyntax(after);
+    await checkSyntax(after);
     prepared.push({ file, before, after, changed: before !== after });
   }
   console.log('TOWERFLOW CONFIGURATION AGENT v1 — ' + (apply ? 'APPLY' : 'DRY RUN'));
