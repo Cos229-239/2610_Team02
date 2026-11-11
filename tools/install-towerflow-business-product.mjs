@@ -14,10 +14,10 @@ const targets=[
   join(homedir(),"Desktop","Towerflow_Team02_Private_Invite_Room","Towerflow_Collaboration_Room","public"),
   join(root,"collaboration-room","live-room","public")
 ];
-const names=["index.html","app.js","styles.css","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js","contributions.js","contributions.json","flow-agent-ui.js","sales-globe.js"];
+const names=["index.html","app.js","styles.css","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js","contributions.js","contributions.json","flow-agent-ui.js","sales-globe.js","sales-globe-realistic.js"];
 const digest=x=>createHash("sha256").update(x).digest("hex");
 function verifyIndex(html){
- for(const marker of ['id="portfolioValue"','id="holdingsBody"','id="themeSelect"','id="marketClock"','data-tf-app-panel="inventory"','data-tf-app-panel="finance"','data-tf-app-panel="revenue"','data-tf-app-panel="business"','src="inventory-core.js"','src="inventory-ui.js"','src="flow-core.js"','src="flow-ui.js"','src="contributions.js"','src="flow-agent-ui.js"','src="sales-globe.js"','id="tfFlowAnalyze"','data-tf-app-panel="contributions"'])
+ for(const marker of ['id="portfolioValue"','id="holdingsBody"','id="themeSelect"','id="marketClock"','data-tf-app-panel="inventory"','data-tf-app-panel="finance"','data-tf-app-panel="revenue"','data-tf-app-panel="business"','src="inventory-core.js"','src="inventory-ui.js"','src="flow-core.js"','src="flow-ui.js"','src="contributions.js"','src="flow-agent-ui.js"','src="sales-globe.js"','src="sales-globe-realistic.js"','id="tfFlowAnalyze"','data-tf-app-panel="contributions"'])
    if(!html.includes(marker))throw Error("Business preservation failure: "+marker);
  return true;
 }
@@ -32,7 +32,7 @@ async function run(){
   const bytes=await readFile(path);source.set(name,bytes);
  }
  verifyIndex(source.get("index.html").toString("utf8"));
- for(const name of ["app.js","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js","contributions.js","flow-agent-ui.js","sales-globe.js"]){
+ for(const name of ["app.js","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js","contributions.js","flow-agent-ui.js","sales-globe.js","sales-globe-realistic.js"]){
   execFileSync(process.execPath,["--check",join(sourceDir,name)],{timeout:12000,stdio:"pipe"});
  }
  const plan=[];
@@ -69,7 +69,8 @@ async function run(){
       "contributions.js":["tfContributorCards","contributions.json"],
       "contributions.json":["schemaVersion","pullRequest"],
       "flow-agent-ui.js":["tfAgentInspect","inventory.review","market.research"],
-      "sales-globe.js":["TOWERFLOW_SALES_GLOBE_V1","setRegionalSales"]
+      "sales-globe.js":["TOWERFLOW_SALES_GLOBE_V1","setRegionalSales"],
+      "sales-globe-realistic.js":["TOWERFLOW_EARTH_WEBGL_V1","earth-blue-marble.png"]
     };
     if(!known[name].every(s=>old.includes(s)))
       throw Error("Existing unrecognized product asset; refusing overwrite: "+dest);
