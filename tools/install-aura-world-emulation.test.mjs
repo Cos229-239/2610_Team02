@@ -36,6 +36,14 @@ test('refuses incomplete or unfamiliar Towerflow world',()=>{
  assert.throws(()=>patchRoom(fixture.replace('let vx=-Math.sin(yaw)*fw+Math.cos(yaw)*side','vx=side'),addon),/Preservation check/);
  assert.throws(()=>patchRoom(fixture+'\\n// TF_WORLD_EMULATION_V1_BEGIN',addon),/Partial previous/);
 });
+test('Earth exhibit prefers geographically accurate imagery with a safe fallback',()=>{
+ assert.match(addon,/function upgradeEarthSurface\(/);
+ assert.match(addon,/earth_atmos_2048\.jpg/);
+ assert.match(addon,/earth_clouds_1024\.png/);
+ assert.match(addon,/if\(name==="EARTH"\)upgradeEarthSurface/);
+ assert.match(addon,/procedural fallback remains visible/);
+ assert.match(addon,/earthCloudLayers\.forEach/);
+});
 test('no shell, eval or server writes exposed by sky emitter',()=>{
  assert.ok(!["child_process","execSync","eval(","new Function(","fetch(","WebSocket("].some(x=>addon.includes(x)));
  assert.match(addon,/Original Towerflow ceiling restored/i);
