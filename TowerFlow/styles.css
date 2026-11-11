@@ -84,3 +84,14 @@
 @media(max-width:940px){.tf-tier-showcase{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.tf-business-intro,.tf-tier-showcase,.tf-sim-payment-summary{grid-template-columns:1fr}.tf-business-orb{min-height:140px}.tf-sim-payment-fake{flex-wrap:wrap}.tf-tier-card p{min-height:0}}
 @media(prefers-reduced-motion:reduce){.tf-business-orb-core{animation:none!important}}
+
+/* Corporate geographic intelligence: visually isolated from starter and assisted. */
+.tf-sales-globe{margin:26px 0;border:1px solid #d9a7ff;background:radial-gradient(ellipse at 8% 0%,#2c1858,transparent 65%),linear-gradient(145deg,#090f30,#101a3c 70%,#2c1244);color:#f6eaff;box-shadow:0 0 45px #8d37e01a}
+.tf-sales-globe .eyebrow{color:#f4c76c}.tf-sales-globe h2{color:#f3dbff;font-size:clamp(24px,3vw,37px)}
+.tf-globe-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}.tf-globe-heading p{color:#b9c9e8}
+.tf-globe-controls{display:flex;gap:9px;flex-wrap:wrap}.tf-globe-controls button{border-color:#aa7edb}
+.tf-globe-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(235px,1fr);gap:20px;align-items:center}
+#tfGlobeCanvas{display:block;width:100%;max-height:620px;aspect-ratio:820/610;touch-action:none;cursor:grab}#tfGlobeCanvas:active{cursor:grabbing}
+.tf-globe-details{border:1px solid #7051a4;border-radius:12px;padding:20px;background:#101a3e;min-height:250px}.tf-globe-details h3{color:#f6ce79}.tf-globe-details p{line-height:1.6}
+.tf-globe-legend{display:grid;gap:12px;margin:20px 0}.tf-globe-legend span{display:flex;align-items:center;gap:10px}.tf-globe-legend i{display:inline-block;width:14px;height:14px;border-radius:50%;box-shadow:0 0 12px #6cc9ff55}
+@media(max-width:850px){.tf-globe-layout{grid-template-columns:1fr}.tf-globe-details{min-height:0}}
