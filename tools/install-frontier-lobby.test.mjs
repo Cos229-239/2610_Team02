@@ -34,25 +34,29 @@ test('source editor uses read APIs and explicit save confirmation',()=>{
  assert.doesNotMatch(addon,/child_process|execSync|eval\(|new Function\(/);
 });
 
-test('the cinematic Towerflow activation preserves 2-second timing and actual business links',()=>{
- assert.match(addon,/towerflowRevealStarted-2000/);
- assert.match(addon,/towerflowReveal===2/);
- assert.match(addon,/CircleGeometry\(3\.98,64\)/);
- assert.match(addon,/tabMeshes/);
- assert.match(addon,/"inventory","revenue","finance","business"/);
- assert.match(addon,/\/towerflow\/index\.html\?tab=/);
-  const patched=patchRoom(room,addon);
+test('wall-only projector flow cannot open a separate tab or activate from proximity',()=>{
+ assert.match(addon,/startWallProjection/);
+ assert.match(addon,/wallLayout/);
+ assert.match(addon,/projectorState\.tick/);
+ assert.match(addon,/projectorState\.activate/);
+ assert.match(addon,/projectorState\.powerOff/);
+ assert.match(addon,/state\.portalEnabled/);
+ assert.match(addon,/screen\.visible=state\.portalEnabled/);
+ assert.match(addon,/tfRegister\(left,"frontier-world"\)/);
+ assert.match(addon,/tfRegister\(right,"frontier-ide"\)/);
+ assert.doesNotMatch(addon,/popup\.target="_blank"/);
+ assert.doesNotMatch(addon,/stations\.push\(\{id:"frontier-towerflow-/);
+ const patched=patchRoom(room,addon);
  assert.match(patched,/let vx=-Math\.sin\(yaw\)/);
 });
-
-test('foreground display lifts entirely below floor and orb changes from AURA to FLOW',()=>{
- assert.match(addon,/TF_FRONTIER_DISPLAY_LIFT_V2/);
- assert.match(addon,/pad\.group\.position\.y=pad\.baseY-opening\*4\.6/);
- assert.match(addon,/pad\.group\.visible=opening<\.999/);
- assert.match(addon,/labelOrb\("AURA"\)/);
- assert.match(addon,/setOrbAgent\("FLOW"\)/);
- assert.match(addon,/new THREE\.SphereGeometry\(\.95,48,32\)/);
- assert.doesNotMatch(addon,/OctahedronGeometry\(\.46\)/);
+test('original fixtures and separate AURA orb preserve their identity',()=>{
+ assert.match(addon,/originalFixtures=scene\.children\.filter/);
+ assert.match(addon,/f\.mesh\.position\.y=f\.y-clearing\*7\.3/);
+ assert.match(addon,/pad\.group\.position\.y=pad\.baseY-clearing\*4\.6/);
+ assert.match(addon,/row\.station\.x=clearing/);
+ assert.match(addon,/orb\.position\.set\(16\.9,3\.1,12\.4\)/);
+ assert.match(addon,/projector\.position\.y=12\.1-descended\*8\.5/);
+ assert.match(addon,/color:0x9adfff,metalness:\.96/);
 });
 
 test('Rocky greeting is audio only: no official video player, floating video control, or embed',()=>{
