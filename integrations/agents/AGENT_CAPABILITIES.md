@@ -50,3 +50,13 @@ Introduce task planning only after strict JSON-schema tool call validation, dete
 ## References
 
 The implementation is reviewed under PR #8. Source tests: `integrations/agents/*.test.cjs`, `integrations/market/*.test.cjs`, `TowerFlow/flow-core.test.cjs`. This document is a capability assertion only where executable tests and deployment evidence support it.
+
+## Evidence-to-knowledge feedback loop (review branch, not live)
+
+- `integrations/agents/evidence-learning-loop.cjs` offers `propose → independent maintainer review → verified/rejected → query/exportReviewed` for bounded operational claims, observations, next actions and evidence references.
+- The purpose is compounding **reviewed external knowledge**, not autonomous model weight updates or unbounded self-modification. A model-generated suggestion remains **untrusted** until supported by evidence and independently reviewed.
+- Contributions remain attributable to their author. Rejections remain discoverable to prevent repeat mistakes. Queries default to verified knowledge.
+- **Not production connected:** current implementation is in-memory and per-process; no database persistence, server route, role binding, model retrieval, automatic evaluation, or scheduled optimization exists. The reviewer role is a trusted caller input for tests only and must be derived by a server-side authenticated authorization adapter before any live use.
+- Next implementation gates: durable per-team tenant-separated append-only event storage, versioned knowledge revisions, independent evidence verification, retrieval provenance, model quality benchmark and regression comparisons, feedback drift checks, PR-based optimization proposals and human-controlled release.
+- Verification command: `node --test integrations/agents/evidence-learning-loop.test.cjs`. GitHub commit alone is not proof that tests or host integration passed.
+- Security: no unrestricted shell, repo mutations, credential ingestion, arbitrary model-supplied tool execution or production deployment is introduced by this module.
