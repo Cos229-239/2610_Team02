@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 
+
 static std::vector<Part> Parts;
 
 const std::string PartsFile = "parts.txt";
