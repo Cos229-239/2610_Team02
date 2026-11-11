@@ -205,6 +205,54 @@
     tex.colorSpace=THREE.SRGBColorSpace;
     return tex;
   }
+  // Upgrade the miniature Earth from random land blobs to actual geographic
+  // imagery when available. Keep the procedural texture as an offline fallback.
+  // No image, credential or command is sent to the Towerflow backend.
+  const earthCloudLayers=[];
+  function upgradeEarthSurface(mesh,body,radius){
+    if(typeof THREE.TextureLoader!=="function")return;
+    const base="https://threejs.org/examples/textures/planets/";
+    const loader=new THREE.TextureLoader();
+    loader.setCrossOrigin("anonymous");
+    loader.load(base+"earth_atmos_2048.jpg",texture=>{
+      texture.colorSpace=THREE.SRGBColorSpace;
+      texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+      const old=mesh.material.map;
+      mesh.material.map=texture;
+      mesh.material.color.set(0xffffff);
+      mesh.material.emissive.set(0x080f1c);
+      mesh.material.emissiveIntensity=.08;
+      mesh.material.roughness=.93;
+      mesh.material.needsUpdate=true;
+      if(old&&old!==texture)old.dispose();
+    },undefined,()=>{/* procedural fallback remains visible */});
+    loader.load(base+"earth_clouds_1024.png",texture=>{
+      texture.colorSpace=THREE.SRGBColorSpace;
+      texture.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());
+      const clouds=new THREE.Mesh(
+        new THREE.SphereGeometry(radius*1.018,40,28),
+        new THREE.MeshBasicMaterial({
+          map:texture,transparent:true,opacity:.38,depthWrite:false,
+          blending:THREE.NormalBlending,side:THREE.FrontSide
+        })
+      );
+      clouds.rotation.y=mesh.rotation.y;
+      body.add(clouds);
+      earthCloudLayers.push(clouds);
+    },undefined,()=>{/* globe still renders if cloud imagery is unavailable */});
+    // A restrained additive limb, not a bright holographic outline.
+    const atmosphere=new THREE.Mesh(
+      new THREE.SphereGeometry(radius*1.055,40,28),
+      new THREE.ShaderMaterial({
+        uniforms:{glowColor:{value:new THREE.Color(0x478dcb)}},
+        vertexShader:"varying vec3 vNormal;varying vec3 vView;void main(){vec4 viewPos=modelViewMatrix*vec4(position,1.0);vNormal=normalize(normalMatrix*normal);vView=normalize(-viewPos.xyz);gl_Position=projectionMatrix*viewPos;}",
+        fragmentShader:"uniform vec3 glowColor;varying vec3 vNormal;varying vec3 vView;void main(){float edge=pow(1.0-max(0.0,dot(normalize(vNormal),normalize(vView))),3.0);gl_FragColor=vec4(glowColor,edge*0.22);}",
+        transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+        side:THREE.FrontSide
+      })
+    );
+    body.add(atmosphere);
+  }
   function labelTexture(label) {
     const c=document.createElement("canvas");c.width=256;c.height=72;
     const cx=c.getContext("2d");
@@ -245,6 +293,7 @@
         emissive:new THREE.Color(base),emissiveIntensity:.16
       }));
       body.add(mesh);
+      if(name==="EARTH")upgradeEarthSurface(mesh,body,radius);
       if(name==="SATURN") {
         const ring=new THREE.Mesh(new THREE.RingGeometry(.79,1.23,48),new THREE.MeshBasicMaterial({
           color:0xa89c77,side:THREE.DoubleSide,transparent:true,opacity:.74,depthWrite:false
@@ -286,6 +335,7 @@
         texture.needsUpdate=true;
       }
       if(active.mode==="solar-system")planets.forEach((mesh,i)=>{mesh.rotation.y+=.005+(i%3)*.002;});
+      if(active.mode==="solar-system")earthCloudLayers.forEach(layer=>{layer.rotation.y+=.0018;});
     };
     // Render only while mode selected; otherwise original opaque ceiling stays visible.
     loop();
