@@ -6,8 +6,20 @@
   "use strict";
   if(typeof THREE==="undefined" || typeof scene==="undefined" || typeof stations==="undefined" ||
      typeof renderer==="undefined" || typeof tfRegister!=="function" ||
-     typeof openPanel!=="function" || typeof activateTFStation!=="function") return;
+     typeof openPanel!=="function" || typeof activateTFStation!=="function" ||
+     !window.TowerflowProjectorMachine) return;
   const lobbyId="frontier";
+  const projectorState=window.TowerflowProjectorMachine.create({clock:()=>performance.now()});
+  // Physical fixtures from the ORIGINAL room; preserve each object's identity.
+  const originalFixtures=scene.children.filter(obj=>{
+    if(!obj.isMesh||!obj.geometry?.parameters)return false;
+    const p=obj.position,g=obj.geometry.parameters;
+    const near=[{x:0,z:-9},{x:-12,z:-7},{x:12,z:-7}].some(d=>Math.abs(p.x-d.x)<2.6&&Math.abs(p.z-d.z)<1.7);
+    return near&&p.y>=.2&&p.y<=5.5&&(g.width===undefined||g.width<6)&&(g.depth===undefined||g.depth<4);
+  }).map(mesh=>({mesh,y:mesh.position.y,visible:mesh.visible}));
+  const frontStations=stations.filter(item=>["ide","ai","work"].includes(item.id)&&item.z< -5)
+    .map(item=>({station:item,x:item.x,z:item.z}));
+
   const darkTheme={background:"#071522",border:"#7ceaff",primary:"#c6efff"};
   const surface=document.createElement("canvas");
   surface.width=1536;surface.height=864;
@@ -18,15 +30,14 @@
     map:texture,side:THREE.DoubleSide,depthWrite:false,toneMapped:false
   }));
   screen.position.set(0,5.15,-15.17);
-  scene.add(screen);
+  scene.add(screen);screen.visible=false;
   const bezel=new THREE.Mesh(new THREE.BoxGeometry(19.5,6.95,.16),new THREE.MeshStandardMaterial({
     color:0x10293b,metalness:.7,roughness:.28,emissive:0x105e86,emissiveIntensity:.25
   }));
   bezel.position.set(0,5.15,-15.31);
-  scene.add(bezel);
-  tfRegister(screen,"frontier-dashboard");
+  scene.add(bezel);bezel.visible=false;
+  // No walk-up / collision activation station: the wall click is the only trigger.
   // The original Development Room entrance remains a separate clickable object.
-  stations.push({id:"frontier-dashboard",label:"FRONTIER DASHBOARD",x:0,z:-12.8});
   // Move the existing entry logo out of the projection rectangle.
   if(typeof tfEntrance!=="undefined" && tfEntrance){
     tfEntrance.position.y=8.95;
@@ -44,7 +55,7 @@
   const projector=new THREE.Group();
   projector.position.set(0,12.0,-1.5);
   scene.add(projector);
-  const graphite=new THREE.MeshStandardMaterial({color:0x10202f,metalness:.7,roughness:.22});
+  const graphite=new THREE.MeshStandardMaterial({color:0xb8d1e7,metalness:1,roughness:.12});
   const glass=new THREE.MeshStandardMaterial({color:0x7ceaff,emissive:0x34bbff,emissiveIntensity:1.5});
   const housing=new THREE.Mesh(new THREE.BoxGeometry(1.65,.58,1.35),graphite);
   projector.add(housing);
@@ -55,7 +66,7 @@
   // Layered spacecraft-inspired projector assembly. Geometry is authored
   // procedurally, NOT represented as a photographic scan or exact spacecraft.
   projector.scale.setScalar(1.42);
-  const secondaryMetal=new THREE.MeshStandardMaterial({color:0x344e62,metalness:.82,roughness:.22});
+  const secondaryMetal=new THREE.MeshStandardMaterial({color:0x9adfff,metalness:.96,roughness:.16});
   const graphiteTrim=new THREE.MeshStandardMaterial({color:0x061424,metalness:.63,roughness:.34});
   const opticGlow=new THREE.MeshStandardMaterial({color:0x5edcfb,metalness:.15,roughness:.08,emissive:0x31afe0,emissiveIntensity:1.4});
   for(const side of [-1,1]){
@@ -147,8 +158,9 @@
     new THREE.MeshBasicMaterial({map:orbTexture,transparent:true,depthWrite:false,side:THREE.DoubleSide}));
   orbText.position.z=.97;orb.add(orbText);
   let orbAgent="AURA";
-  // The orb is part of the LEFT platform so its entire assembly descends.
-  // All four platform assemblies are renderer-owned, not original scene assets.
+  // AURA orb occupies the opposite corner; it is no longer carried by a floor platform.
+  orb.position.set(16.9,3.1,12.4);scene.add(orb);
+  // The four platform assemblies are renderer-owned.
   for(const [i,x] of [-5.7,-1.9,1.9,5.7].entries()){
     const pad=new THREE.Group();
     pad.position.set(x,0,-3.3);
@@ -164,7 +176,7 @@
     pedestal.position.y=.5;pad.add(pedestal);
     const holo=new THREE.Group();holo.position.y=1.6;
     if(i===0){
-      holo.add(orb);
+      holo.add(new THREE.Mesh(new THREE.TorusGeometry(.7,.1,16,56),displayMaterial));
     }else{
       const shape=i===1?new THREE.IcosahedronGeometry(.64,1):
         i===2?new THREE.TorusKnotGeometry(.45,.14,70,10):
@@ -204,7 +216,6 @@
       new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(canvas),emissive:0x085b78,emissiveIntensity:.6,metalness:.45,roughness:.28}));
     mesh.position.set(x,3.9,-12.45);mesh.visible=false;scene.add(mesh);
     tfRegister(mesh,"frontier-towerflow-"+tab);
-    stations.push({id:"frontier-towerflow-"+tab,label:label+" / TOWERFLOW",x,z:-10.7});
     tabMeshes.push({mesh,tab,x});
   }
   let towerflowDesiredTab="inventory",lastTabEnter=0;
@@ -301,12 +312,10 @@
     const content=makeEl("div");
     app.append(content);
     if(currentTab==="OVERVIEW"){
-      const towerLink=makeEl("a","OPEN ACTUAL TOWERFLOW BUSINESS DASHBOARD ↗");
-      towerLink.href="/towerflow/index.html?tab=inventory";towerLink.target="_blank";towerLink.rel="noopener noreferrer";
-      content.append(towerLink,makeEl("br"));
+      content.append(makeEl("p","Click a room wall to activate the TowerFlow projector before entering the app."));
       content.append(makeEl("h3","THREE WORLD SECTIONS"));
       const zones=[
-        ["Towerflow Business","Inventory, revenue, market portfolio and tier experience.",openBusinessPanel],
+        ["Towerflow Gateway","Click any wall to deploy the interactive projector.",()=>{closePanel();showToast("Click a room wall to deploy the projector");}],
         ["Development","Enter the preserved four-station Development Room.",()=>{tfTeleport(true);}],
         ["World Studio","AURA, world knowledge and visual design.",()=>{openPanel("help");}]
       ];
@@ -344,8 +353,7 @@
   function openBusinessPanel(tab="inventory"){
     if(typeof tab!=="string"||!["inventory","revenue","finance","business"].includes(tab))tab="inventory";
     towerflowDesiredTab=tab;
-    if(towerflowReveal===0){revealTowerflow();return;}
-    if(towerflowReveal===1||towerflowReveal===2)return;
+    if(projectorState.tick(performance.now()).stage!=="PROJECTING")return;
     isPanel=true;
     openPanel("towerflow-business");
     const panel=document.getElementById("panel");
@@ -356,10 +364,8 @@
     const controls=makeEl("div");
     controls.style.cssText="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px";
     const back=makeEl("button","FRONTIER CONTROL CENTER");back.type="button";back.onclick=openDashboard;
-    const popup=makeEl("a","OPEN BUSINESS APP IN A FULL TAB ↗");
-    popup.href="/towerflow/index.html?tab="+encodeURIComponent(tab);popup.target="_blank";popup.rel="noopener noreferrer";
     const info=makeEl("p","A real, interactive TowerFlow application. Inventory figures are illustrative until imported; finance and theme settings remain available. Local browser data is not shared with teammates.");
-    controls.append(back,popup);root.append(controls,info);
+    controls.append(back);root.append(controls,info);
     const frame=document.createElement("iframe");
     frame.title="TowerFlow Business Inventory and Financial Portfolio";
     frame.src="/towerflow/index.html?tab="+encodeURIComponent(tab);
@@ -457,7 +463,7 @@
   }
   const originalActivate=activateTFStation;
   activateTFStation=function frontierStation(id){
-    if(id==="frontier-dashboard"){openBusinessPanel();return;}
+    if(id==="frontier-dashboard"){showToast("Click a room wall to activate the projector");return;}
     if(id==="frontier-ide"){openFrontierIDE();return;}
     if(id==="frontier-world"){openPanel("help");return;}
     if(id.startsWith("dev-ide-")){
@@ -482,6 +488,7 @@
       return;
     }
     if(typeof id==="string"&&id.startsWith("frontier-towerflow-")){
+      if(projectorState.tick(performance.now()).stage!=="PROJECTING")return;
       openBusinessPanel(id.slice("frontier-towerflow-".length));
       return;
     }
@@ -514,8 +521,8 @@
     position.set(0,1.7,12);
     yaw=0;pitch=0;send({type:"move",x:0,z:12});
     document.getElementById("areaName").textContent="FRONTIER • CONTROL CENTER";
-    projectionOn=towerflowReveal>=2;
-    showToast("Welcome to Frontier. Walk toward the projected dashboard and press E.");
+    projectionOn=false;
+    showToast("Welcome to Frontier. Click a wall to activate the projector.");
     // The Rocky proposal is silent unless an authorized original film audio asset
     // is explicitly configured. Never synthesize, clone, or swap a stand-in voice.
     window.tfRockyGreeting?.onEnter();
