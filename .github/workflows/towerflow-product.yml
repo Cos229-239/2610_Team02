@@ -55,6 +55,8 @@ jobs:
       - run: node --check integrations/agents/task-orchestrator.cjs
       - run: node --check integrations/collaboration/whiteboard-core.cjs
       - run: node --check TowerFlow/sales-globe.js
+      - run: node --check TowerFlow/sales-globe-realistic.js
+      - run: node --check tools/install-towerflow-earth-texture.mjs
       - run: node --check TowerFlow/corporate-core.js
       - run: node --check integrations/agents/towerflow-agent.cjs
       - run: node --check integrations/agents/agent-handler.cjs
@@ -65,7 +67,7 @@ jobs:
       - run: node --check TowerFlow/inventory-ui.js
       - run: node --check tools/serve-portfolio-preview.cjs
       - run: node --check tools/install-towerflow-business-product.mjs
-      - run: node --test TowerFlow/inventory-core.test.cjs TowerFlow/flow-core.test.cjs TowerFlow/corporate-core.test.cjs TowerFlow/flow-integration.test.cjs integrations/frontier/projector-machine.test.cjs integrations/agents/task-orchestrator.test.cjs integrations/collaboration/whiteboard-core.test.cjs integrations/market/alpha-vantage.test.cjs integrations/market/market-handler.test.cjs integrations/agents/towerflow-agent.test.cjs integrations/agents/agent-handler.test.cjs integrations/agents/flow-planner.test.cjs integrations/contributions/pr-reader.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs tools/towerflow-pr-synopsis.test.cjs
+      - run: node --test TowerFlow/inventory-core.test.cjs TowerFlow/flow-core.test.cjs TowerFlow/corporate-core.test.cjs TowerFlow/flow-integration.test.cjs integrations/frontier/projector-machine.test.cjs integrations/agents/task-orchestrator.test.cjs integrations/collaboration/whiteboard-core.test.cjs tools/install-towerflow-earth-texture.test.mjs integrations/market/alpha-vantage.test.cjs integrations/market/market-handler.test.cjs integrations/agents/towerflow-agent.test.cjs integrations/agents/agent-handler.test.cjs integrations/agents/flow-planner.test.cjs integrations/contributions/pr-reader.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs tools/towerflow-pr-synopsis.test.cjs
       - name: Validate PowerShell deployment script syntax
         if: runner.os == 'Windows'
         shell: pwsh
