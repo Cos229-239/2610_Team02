@@ -220,14 +220,64 @@
   }
   let towerflowDesiredTab="inventory",lastTabEnter=0;
 
-  function revealTowerflow(){
-    if(towerflowReveal!==0)return;
-    towerflowReveal=1;towerflowRevealStarted=performance.now();
-    // Progressive-enhancement: viewers requesting reduced motion go straight in.
-    if(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches){
-      towerflowReveal=3;setOrbAgent("FLOW");openBusinessPanel(towerflowDesiredTab);return;
+  const wallLayout={
+    front:{x:0,z:-15.28,ry:0,w:39},back:{x:0,z:15.28,ry:Math.PI,w:39},
+    left:{x:-20.58,z:0,ry:Math.PI/2,w:29},
+    right:{x:20.58,z:0,ry:-Math.PI/2,w:29}
+  };
+  const wallTargets=[];
+  for(const [id,w] of Object.entries(wallLayout)){
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(w.w,9.8),
+      new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+    face.position.set(w.x,5.25,w.z);face.rotation.y=w.ry;
+    face.userData.tfWall=id;scene.add(face);wallTargets.push(face);
+  }
+  function aimAtWall(id){
+    const w=wallLayout[id];if(!w)return;
+    const normal=new THREE.Vector3(Math.sin(w.ry),0,Math.cos(w.ry));
+    const edge=new THREE.Vector3(Math.cos(w.ry),0,-Math.sin(w.ry));
+    screen.position.set(w.x+normal.x*.08,5.15,w.z+normal.z*.08);
+    bezel.position.set(w.x-normal.x*.03,5.15,w.z-normal.z*.03);
+    screen.rotation.y=w.ry;bezel.rotation.y=w.ry;
+    for(const tile of tabMeshes){
+      tile.mesh.position.set(
+        w.x+normal.x*.4+edge.x*tile.x,3.9,
+        w.z+normal.z*.4+edge.z*tile.x);
+      tile.mesh.rotation.y=w.ry;
     }
-    showToast("TOWERFLOW • PROJECTOR ACTIVATION");
+    const target=new THREE.Vector3(w.x,5.15,w.z);
+    const source=new THREE.Vector3(0,5.4,-1.5);
+    beam.target.position.copy(target);
+    const direction=target.clone().sub(source);
+    projector.rotation.y=Math.atan2(-direction.x,-direction.z);
+    const length=direction.length();
+    cone.position.copy(source.clone().add(target).multiplyScalar(.5));
+    cone.scale.set(1,length/13,1);
+    cone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());
+  }
+  function startWallProjection(id){
+    const state=projectorState.tick(performance.now());
+    if(state.stage==="IDLE"){
+      if(projectorState.activate(id)){aimAtWall(id);showToast("Projector: clearing workstation zone");}
+    }else if(state.stage==="PROJECTING"&&state.wall!==id){
+      if(projectorState.activate(id)){aimAtWall(id);showToast("Projector: switching to "+id+" wall");}
+    }
+  }
+  function projectorSettings(){
+    const current=projectorState.tick(performance.now());
+    if(current.stage==="IDLE")return;
+    openPanel("towerflow-projector");
+    document.getElementById("panelTitle").textContent="PROJECTOR • CONTROLS";
+    const root=document.getElementById("panelContent");root.replaceChildren();
+    root.append(makeEl("p","Beam theme and power. Floor workstations retain their original state and interactions when raised."));
+    for(const [label,color] of [["AZURE",0x81d8ff],["ROYAL BLUE",0x476dff],["MAGENTA",0xf13ed3],["GOLD",0xf2c15a]]){
+      const button=makeEl("button",label);button.type="button";
+      button.onclick=()=>{beam.color.setHex(color);cone.material.color.setHex(color);showToast("Projector: "+label);};
+      root.append(button);
+    }
+    const off=makeEl("button","POWER OFF / RESTORE FLOOR");off.type="button";
+    off.onclick=()=>{projectorState.powerOff();closePanel();showToast("Projector retracting");};
+    root.append(off);
   }
 
   const titles=["OVERVIEW","REPOSITORY","TEAM","TASKS","AURA"];
