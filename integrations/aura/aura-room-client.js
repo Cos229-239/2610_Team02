@@ -45,7 +45,86 @@
     remember.textContent = "Save this memory";
     remember.disabled = true;
     const memoryItems = document.createElement("ul");
-    area.append(title,note,status,question,ask,reply,memoryLabel,memoryInput,remember,memoryItems);
+    // AURA speech belongs exclusively to this assistant, NEVER multiplayer
+    // teammate audio. Browser voices differ across Windows installations.
+    const voiceKey="towerflow.aura.voice.v1";
+    let voiceSettings={enabled:false,voiceURI:"",rate:.94,pitch:1.04};
+    try {
+      const old=JSON.parse(localStorage.getItem(voiceKey)||"null");
+      if(old&&typeof old==="object"){
+        voiceSettings.enabled=old.enabled===true;
+        if(typeof old.voiceURI==="string")voiceSettings.voiceURI=old.voiceURI.slice(0,200);
+      }
+    }catch{}
+    const voiceSection=document.createElement("fieldset");
+    voiceSection.setAttribute("aria-label","AURA feminine voice settings");
+    const voiceLegend=document.createElement("legend");
+    voiceLegend.textContent="AURA • NATURAL FEMININE VOICE";
+    const voiceEnabled=document.createElement("label");
+    const voiceToggle=document.createElement("input");
+    voiceToggle.type="checkbox";voiceToggle.checked=voiceSettings.enabled;
+    voiceEnabled.append(voiceToggle,document.createTextNode(" Speak AURA replies"));
+    const voiceSelect=document.createElement("select");
+    voiceSelect.setAttribute("aria-label","AURA speech voice");
+    const sample=document.createElement("button");
+    sample.type="button";sample.textContent="Preview voice";
+    const stopVoice=document.createElement("button");
+    stopVoice.type="button";stopVoice.textContent="Stop AURA voice";
+    const voiceStatus=document.createElement("small");
+    const tts=window.speechSynthesis;
+    const voiceSupported=typeof SpeechSynthesisUtterance!=="undefined"&&!!tts;
+    const preferred=/aria|jenny|zira|samantha|ava|susan|hazel|sonia|female|feminine/i;
+    const storeVoice=()=>{
+      try{localStorage.setItem(voiceKey,JSON.stringify(voiceSettings));}catch{}
+    };
+    function availableVoices(){
+      return voiceSupported?tts.getVoices().filter(v=>/^en([-_]|$)/i.test(v.lang)): [];
+    }
+    function loadVoiceOptions(){
+      if(!voiceSupported)return;
+      const voices=availableVoices();
+      voiceSelect.replaceChildren();
+      for(const v of voices){
+        const option=document.createElement("option");
+        option.value=v.voiceURI;option.textContent=v.name+" ("+v.lang+")";
+        voiceSelect.append(option);
+      }
+      const chosen=voices.find(v=>v.voiceURI===voiceSettings.voiceURI)||
+        voices.find(v=>preferred.test(v.name))||voices[0];
+      if(chosen){voiceSelect.value=chosen.voiceURI;voiceSettings.voiceURI=chosen.voiceURI;}
+      voiceStatus.textContent=voices.length?
+        "Installed browser voice. Quality and voice identity depend on your device.":
+        "No English voices installed. Add a Windows speech voice.";
+    }
+    function speakAura(text){
+      if(!voiceSupported||!text||typeof text!=="string")return false;
+      tts.cancel();
+      const utterance=new SpeechSynthesisUtterance(text.slice(0,4000));
+      utterance.rate=voiceSettings.rate;utterance.pitch=voiceSettings.pitch;utterance.volume=.85;
+      const chosen=availableVoices().find(v=>v.voiceURI===voiceSettings.voiceURI);
+      if(chosen)utterance.voice=chosen;
+      utterance.onerror=()=>{voiceStatus.textContent="Speech failed or was blocked by the browser.";};
+      tts.speak(utterance);
+      return true;
+    }
+    if(voiceSupported){
+      loadVoiceOptions();
+      tts.addEventListener?.("voiceschanged",loadVoiceOptions);
+    }else{
+      voiceToggle.disabled=true;voiceSelect.disabled=true;sample.disabled=true;stopVoice.disabled=true;
+      voiceStatus.textContent="Browser speech is not available; AURA text remains functional.";
+    }
+    voiceToggle.addEventListener("change",()=>{
+      voiceSettings.enabled=voiceToggle.checked;storeVoice();
+      if(!voiceSettings.enabled&&voiceSupported)tts.cancel();
+    });
+    voiceSelect.addEventListener("change",()=>{
+      voiceSettings.voiceURI=voiceSelect.value;storeVoice();
+    });
+    sample.addEventListener("click",()=>speakAura("Hello, welcome to Frontier. I'm AURA. I'm here to help you build, explore, and create."));
+    stopVoice.addEventListener("click",()=>{if(voiceSupported)tts.cancel();});
+    voiceSection.append(voiceLegend,voiceEnabled,voiceSelect,sample,stopVoice,voiceStatus);
+    area.append(title,note,status,question,ask,reply,voiceSection,memoryLabel,memoryInput,remember,memoryItems);
     container.append(area);
     const headers = { "Content-Type": "application/json" };
     async function request(path, opts={}) {
@@ -96,6 +175,7 @@
         const data=await request("/api/aura/chat",{method:"POST",headers,body:JSON.stringify({question:text})});
         reply.textContent=data.answer+"\n\nSource: "+(data.sources||[]).join(", ");
         status.textContent="AURA replied.";
+        if(voiceSettings.enabled)speakAura(data.answer);
       } catch(err){status.textContent=err.message;}
       finally {ask.disabled=false;}
     });
