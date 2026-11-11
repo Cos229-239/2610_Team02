@@ -12,7 +12,12 @@ const REQUIRED="tfGlobeCanvas";
 const NASA_CREDIT="NASA/Goddard Space Flight Center Scientific Visualization Studio · Blue Marble";
 const surface=document.getElementById(REQUIRED);
 if(!surface)return;
-const parent=surface.parentElement;
+const stage=document.createElement("div");
+stage.className="tf-globe-webgl-stage";
+stage.style.cssText="position:relative;max-width:820px;aspect-ratio:820/610;width:100%;min-width:0;overflow:hidden";
+surface.parentElement.insertBefore(stage,surface);
+stage.append(surface);
+const parent=stage;
 const oldLabel=document.createElement("div");
 oldLabel.id="tfGlobeEarthStatus";
 oldLabel.setAttribute("role","status");
@@ -31,7 +36,7 @@ if(!gl){oldLabel.textContent="WebGL2 is unavailable: using the basic geographic 
 const overlay=document.createElement("canvas");
 overlay.width=820;overlay.height=610;
 overlay.style.cssText="position:absolute;inset:0;width:100%;height:100%;pointer-events:none";
-parent.style.minHeight="min(74vw,610px)";
+
 parent.append(canvas,overlay);
 surface.style.visibility="hidden";
 const ctx=overlay.getContext("2d");
@@ -79,6 +84,7 @@ try{gpu=program();}catch(e){oldLabel.textContent="3D renderer initialization fai
 gl.useProgram(gpu);
 const model=gl.getUniformLocation(gpu,"uModel");
 const textureUniform=gl.getUniformLocation(gpu,"uEarth");
+const PI=Math.PI;
 const strips=96,sectors=192,vertex=[],index=[];
 for(let j=0;j<=strips;j++){
  const latitude=PI*(j/strips-.5);
@@ -102,7 +108,7 @@ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-const PI=Math.PI,colors={green:"#39e584",yellow:"#f4d75a",red:"#fb536c"};
+const colors={green:"#39e584",yellow:"#f4d75a",red:"#fb536c"};
 function setRotation(){
  const cy=Math.cos(state.yaw),sy=Math.sin(state.yaw),cp=Math.cos(state.pitch),sp=Math.sin(state.pitch);
  // y-axis rotation followed by x-axis tilt.
@@ -147,6 +153,7 @@ function draw(time){
  requestAnimationFrame(draw);
 }
 const image=new Image();
+image.crossOrigin="anonymous";
 image.onload=()=>{
  try{
   gl.bindTexture(gl.TEXTURE_2D,earth);
