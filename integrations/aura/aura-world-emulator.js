@@ -35,6 +35,12 @@
     try{localStorage.removeItem(STORAGE);}
     catch{}
   }
+  function hasPersonalSetting(){
+    try {
+      const raw=localStorage.getItem(STORAGE);
+      return raw!==null&&!!cleanState(JSON.parse(raw)).mode;
+    }catch{return false;}
+  }
   function rgba(hex,alpha){
     const c=new THREE.Color(hex);
     return "rgba("+Math.round(c.r*255)+","+Math.round(c.g*255)+","+Math.round(c.b*255)+","+alpha+")";
@@ -383,13 +389,17 @@
     version:1,
     supportedModes:Object.freeze([...THEMES]),
     getActive:()=>Object.freeze({...active}),
+    hasPersonalSetting,
     applyAuthoritative:(scene,approvedAt)=>{
       if(typeof approvedAt==="string"){
         const stamp=Date.parse(approvedAt);
         if(Number.isFinite(stamp))clock=Math.max(0,(Date.now()-stamp)/1000)%3600;
       }
-      if(!scene){saved={...savedDefault};renderMode(saved);return;}
-      saved=cleanState(scene);renderMode(saved);
+      // Shared scene updates never overwrite a browser-owned saved design.
+      // The room sync client also checks this before applying changes.
+      if(hasPersonalSetting())return false;
+      if(!scene){saved={...savedDefault};renderMode(saved);return true;}
+      saved=cleanState(scene);renderMode(saved);return true;
     },
     requestPreview:request=>{const intent=interpret(request);if(!intent)return false;renderMode({...active,...intent});return true;},
     reset:()=>{saved={...savedDefault};renderMode(saved);deleteState();}
