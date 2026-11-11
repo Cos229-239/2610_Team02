@@ -8,7 +8,7 @@ test("five original and contributor workspaces remain wired",()=>{
   assert.match(html,new RegExp('data-tf-app-panel="'+tab+'"'));
   assert.ok(ui.includes('"'+tab+'"'));
  }
- for(const src of ["app.js","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js","flow-agent-ui.js","contributions.js"])
+ for(const src of ["app.js","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js","flow-agent-ui.js","sales-globe.js","contributions.js"])
   assert.ok(html.includes('src="'+src+'"'),src);
 });
 test("contribution UI has source-bound previews and no destructive controls",()=>{
@@ -27,4 +27,14 @@ test("agent execution is explicit and its evidence UI cannot silently run",()=>{
  assert.match(ui,/\/api\/agents\/run/);
  assert.match(ui,/result\.trace/);
  assert.doesNotMatch(ui,/eval\(|new Function\(|child_process/);
+});
+
+test("corporate globe is scoped to enterprise and never fabricates unreported sales",()=>{
+ const globe=read("sales-globe.js");
+ assert.match(globe,/tier\?\.value!=="corporate"/);
+ assert.match(globe,/NO DATA CONNECTED/);
+ assert.match(globe,/USER-IMPORTED/);
+ assert.match(globe,/ILLUSTRATIVE SAMPLE/);
+ assert.match(globe,/setRegionalSales/);
+ assert.match(globe,/requestAnimationFrame\(animate\)/);
 });
