@@ -23,7 +23,7 @@
    const weeklyHolding=rounded(x.unitsOnHand*x.weeklyHoldingCostPerUnit);
    const coverWeeks=x.weeklyUnitsSold?rounded(x.unitsOnHand/x.weeklyUnitsSold):null;
    return {...x,weeklyRevenue,weeklyGrossMargin,weeklyHolding,coverWeeks,
-    status:x.weeklyGrossMargin>weeklyHolding*3?"TOP SELLER":"REVIEW"};
+    status:weeklyGrossMargin>weeklyHolding*3?"TOP SELLER":"REVIEW"};
   });
  }
  function createSimulator({policy=POLICY,clock=()=>new Date(),uuid=()=>String(Date.now())}={}){
