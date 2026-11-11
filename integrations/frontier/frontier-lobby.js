@@ -544,22 +544,45 @@
     }
     return originalActivate(id);
   };
-  // Capture clicks on the new wall panels before the original station raycaster.
+  // A deliberate wall click is the ONLY way to start or retarget projection.
+  // Existing props retain original clickable behavior; click-through is blocked.
   const raycaster=new THREE.Raycaster();
   renderer.domElement.addEventListener("click",e=>{
-    if(!running||!document.getElementById("panel").hidden||!document.getElementById("menu").hidden||tfDevRoom)return;
+    if(!running||!document.getElementById("panel").hidden||
+       !document.getElementById("menu").hidden||tfDevRoom)return;
+    if(renderer.domElement.dataset.dragging==="1")return;
     const bounds=renderer.domElement.getBoundingClientRect();
-    const pointer=new THREE.Vector2((e.clientX-bounds.left)/bounds.width*2-1,-(e.clientY-bounds.top)/bounds.height*2+1);
+    const pointer=new THREE.Vector2((e.clientX-bounds.left)/bounds.width*2-1,
+      -(e.clientY-bounds.top)/bounds.height*2+1);
     raycaster.setFromCamera(pointer,camera);
-    const hits=raycaster.intersectObjects([screen,left,right,...tabMeshes.map(p=>p.mesh).filter(m=>m.visible)],false);
-    if(!hits.length || hits[0].distance>35)return;
-    e.stopImmediatePropagation();
-    if(tabMeshes.some(p=>p.mesh===hits[0].object)){
-      const entry=tabMeshes.find(p=>p.mesh===hits[0].object);
-      openBusinessPanel(entry.tab);
-    }else if(hits[0].object===screen)openBusinessPanel();
-    else if(hits[0].object===left)openPanel("help");
-    else openFrontierIDE();
+    const state=projectorState.tick(performance.now());
+    const targets=[left,right,...(state.portalEnabled?[screen,...tabMeshes.map(p=>p.mesh)]:[]),...wallTargets];
+    const hits=raycaster.intersectObjects(targets,false);
+    const projectorHit=state.descended>.8?raycaster.intersectObject(projector,true)[0]:null;
+    if(projectorHit&&projectorHit.distance<30&&
+       (!hits.length||projectorHit.distance<hits[0].distance)){
+      e.stopImmediatePropagation();projectorSettings();return;
+    }
+    if(!hits.length||hits[0].distance>35)return;
+    const object=hits[0].object;
+    if(object.userData.tfWall){
+      // The room's original physical props must not become transparent click targets.
+      const blockers=raycaster.intersectObjects(scene.children,true).filter(h=>
+        h.object!==object&&!wallTargets.includes(h.object)&&
+        h.object!==screen&&h.object!==bezel&&h.object!==cone&&
+        h.object.visible&&h.object.material?.opacity!==0&&
+        !h.object.userData.tfWall);
+      const blocked=blockers.some(h=>h.distance+.12<hits[0].distance&&
+        !(h.object.geometry?.type==="BoxGeometry"&&
+          (h.object.geometry.parameters.width>=20||h.object.geometry.parameters.depth>=20)));
+      if(blocked)return;
+      e.stopImmediatePropagation();startWallProjection(object.userData.tfWall);return;
+    }
+    if(object===left){e.stopImmediatePropagation();openPanel("help");return;}
+    if(object===right){e.stopImmediatePropagation();openFrontierIDE();return;}
+    if(object===screen){e.stopImmediatePropagation();openBusinessPanel("business");return;}
+    const entry=tabMeshes.find(p=>p.mesh===object);
+    if(entry){e.stopImmediatePropagation();openBusinessPanel(entry.tab);}
   },true);
   // Preserve original Enter handler; do not intercept any Development Room return portal.
   // Ensure all first entries land in the Frontier dashboard atrium.
