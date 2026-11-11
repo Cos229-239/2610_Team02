@@ -1,0 +1,29 @@
+name: Frontier Execution Evidence Gate
+on:
+  pull_request:
+    paths:
+      - 'integrations/agents/frontier-execution-evidence*'
+      - 'integrations/agents/frontier-workflow-adapter*'
+      - '.github/workflows/frontier-execution-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and grounded workflow tests
+        run: |
+          node --check integrations/agents/frontier-execution-evidence.cjs
+          node --check integrations/agents/frontier-workflow-adapter.cjs
+          node --test integrations/agents/frontier-execution-evidence.test.cjs integrations/agents/frontier-workflow-adapter.test.cjs
