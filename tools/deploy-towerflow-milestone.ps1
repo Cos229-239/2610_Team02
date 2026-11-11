@@ -25,7 +25,7 @@ try {
     'TowerFlow/index.html','TowerFlow/app.js','TowerFlow/styles.css',
     'TowerFlow/inventory-core.js','TowerFlow/inventory-ui.js','TowerFlow/inventory-core.test.cjs',
     'TowerFlow/flow-core.js','TowerFlow/flow-ui.js','TowerFlow/flow-core.test.cjs',
-    'TowerFlow/flow-agent-ui.js','TowerFlow/contributions.js','TowerFlow/contributions.json',
+    'TowerFlow/flow-agent-ui.js','TowerFlow/sales-globe.js','TowerFlow/contributions.js','TowerFlow/contributions.json',
     'TowerFlow/flow-integration.test.cjs',
     'integrations/frontier/frontier-lobby.js',
     'integrations/aura/aura-world-emulator.js',
