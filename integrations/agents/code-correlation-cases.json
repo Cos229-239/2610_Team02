@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "provenance": "User-supplied corrected domain map plus explicitly labeled Towerflow-oriented evaluation hypotheses; criteria require expert acceptance",
+  "cases": [
+    {
+      "id": "visual-portrait",
+      "input": "Make this portrait photogenic with shallow background blur and natural skin; do not change the person, pose, or crop.",
+      "expected": {
+        "codes": [
+          "visual"
+        ],
+        "patterns": [
+          "shallow-depth-of-field",
+          "natural-skin-lighting"
+        ],
+        "preserve": [
+          "identity",
+          "pose",
+          "framing"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "visual-room",
+      "input": "Make the first-person Towerflow Development Room look photorealistic, but do not change navigation or station placement. Avoid portrait-style camera blur.",
+      "expected": {
+        "codes": [
+          "visual",
+          "embodied"
+        ],
+        "patterns": [
+          "physically-based-materials",
+          "plausible-environment-lighting",
+          "first-person-readable-focus"
+        ],
+        "preserve": [
+          "camera-controls",
+          "station-placement"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "sound-studio",
+      "input": "Make the spoken entrance greeting feel close and present, without boomy bass, plosives, or audible room slap. Keep the speech understandable.",
+      "expected": {
+        "codes": [
+          "sound-studio"
+        ],
+        "patterns": [
+          "direct-to-reverberant-control",
+          "proximity-management",
+          "reflection-control"
+        ],
+        "preserve": [
+          "speech-intelligibility",
+          "no-plosive-distortion"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "transduction",
+      "input": "Record the raw light intensity and sound pressure before interpreting what caused them. Do not turn measurements into guesses.",
+      "expected": {
+        "codes": [
+          "transduction"
+        ],
+        "patterns": [
+          "physical-stimulus-measurement",
+          "raw-signal-separation"
+        ],
+        "preserve": [
+          "raw-stimulus",
+          "no-inferred-labels"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "embodied",
+      "input": "When an avatar turns and moves forward, the meaning of left and right should follow its orientation; preserve position and collision boundaries.",
+      "expected": {
+        "codes": [
+          "embodied"
+        ],
+        "patterns": [
+          "body-reference-frame",
+          "sensorimotor-coordinate-update"
+        ],
+        "preserve": [
+          "collision-boundaries",
+          "position-consistency"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "interaction",
+      "input": "Use the player's action and delayed environment response to update perception, but preserve the timing between input and feedback.",
+      "expected": {
+        "codes": [
+          "interaction"
+        ],
+        "patterns": [
+          "action-perception-feedback",
+          "temporal-coupling"
+        ],
+        "preserve": [
+          "temporal-order",
+          "input-feedback-link"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "situational",
+      "input": "In the 3D team room, identify who is present, what a disconnected teammate means for this meeting, and what may happen next. Do not lose room context.",
+      "expected": {
+        "codes": [
+          "situational"
+        ],
+        "patterns": [
+          "perception",
+          "comprehension",
+          "projection"
+        ],
+        "preserve": [
+          "meeting-context",
+          "observed-vs-predicted"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "logic",
+      "input": "Check whether this argument form is valid regardless of whether the premises happen to be true. Preserve the formal rules and structure.",
+      "expected": {
+        "codes": [
+          "logic"
+        ],
+        "patterns": [
+          "formal-validity-check",
+          "argument-structure"
+        ],
+        "preserve": [
+          "rule-structure",
+          "premise-conclusion-distinction"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "deduction",
+      "input": "All authorized editors can submit review requests. Riley is an authorized editor. Determine whether Riley can submit a review request; do not invent additional permissions.",
+      "expected": {
+        "codes": [
+          "deduction"
+        ],
+        "patterns": [
+          "necessary-inference",
+          "rule-instantiation"
+        ],
+        "preserve": [
+          "premise-truth-conditions",
+          "no-added-permissions"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "induction",
+      "input": "Three recent devices sold slowly; estimate whether the next launch could sell slowly. This is a tendency, not proof. Preserve uncertainty.",
+      "expected": {
+        "codes": [
+          "induction"
+        ],
+        "patterns": [
+          "generalization-from-observations",
+          "uncertainty-qualification"
+        ],
+        "preserve": [
+          "sample-limitation",
+          "no-certainty-claim"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "abduction",
+      "input": "The projector stopped opening after a UI update. Consider the most plausible explanation based on incomplete evidence, but do not claim a verified cause.",
+      "expected": {
+        "codes": [
+          "abduction"
+        ],
+        "patterns": [
+          "competing-explanations",
+          "best-supported-hypothesis"
+        ],
+        "preserve": [
+          "observed-facts",
+          "hypothesis-not-proof"
+        ],
+        "needsClarification": false
+      }
+    },
+    {
+      "id": "ambiguous-sound",
+      "input": "Make the room sound more realistic but do not alter its current ambience or music.",
+      "expected": {
+        "codes": [
+          "sound-studio"
+        ],
+        "patterns": [
+          "acoustic-goal-uncertain"
+        ],
+        "preserve": [
+          "existing-ambience",
+          "music"
+        ],
+        "needsClarification": true
+      }
+    }
+  ]
+}
