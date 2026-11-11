@@ -8,7 +8,7 @@ test("five original and contributor workspaces remain wired",()=>{
   assert.match(html,new RegExp('data-tf-app-panel="'+tab+'"'));
   assert.ok(ui.includes('"'+tab+'"'));
  }
- for(const src of ["app.js","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js","flow-agent-ui.js","sales-globe.js","contributions.js"])
+ for(const src of ["app.js","inventory-core.js","inventory-ui.js","flow-core.js","flow-ui.js","flow-agent-ui.js","sales-globe.js","sales-globe-realistic.js","contributions.js"])
   assert.ok(html.includes('src="'+src+'"'),src);
 });
 test("contribution UI has source-bound previews and no destructive controls",()=>{
@@ -37,4 +37,13 @@ test("corporate globe is scoped to enterprise and never fabricates unreported sa
  assert.match(globe,/ILLUSTRATIVE SAMPLE/);
  assert.match(globe,/setRegionalSales/);
  assert.match(globe,/requestAnimationFrame\(animate\)/);
+});
+
+test("Earth globe upgrades schematic map with local NASA Blue Marble, not fabricated imagery",()=>{
+ const globe=read("sales-globe-realistic.js");
+ assert.match(globe,/getContext\("webgl2"/);
+ assert.match(globe,/assets\/earth-blue-marble\.png/);
+ assert.match(globe,/NASA\/Goddard/);
+ assert.match(globe,/setRegionalSales/);
+ assert.match(globe,/DEMONSTRATION/);
 });
