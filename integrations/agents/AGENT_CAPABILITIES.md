@@ -50,3 +50,15 @@ Introduce task planning only after strict JSON-schema tool call validation, dete
 ## References
 
 The implementation is reviewed under PR #8. Source tests: `integrations/agents/*.test.cjs`, `integrations/market/*.test.cjs`, `TowerFlow/flow-core.test.cjs`. This document is a capability assertion only where executable tests and deployment evidence support it.
+
+## Prediction experiment harness — isolated research implementation (2026-11-10)
+
+Research grounding: NIST AI RMF MEASURE (https://airc.nist.gov/airmf-resources/playbook/measure/); scikit-learn calibration and proper scoring rules (https://scikit-learn.org/stable/modules/calibration.html); DeepMind AlphaEvolve's candidate/evaluator architecture (https://deepmind.google/blog/alphaevolve-a-gemini-powered-coding-agent-for-designing-advanced-algorithms/).
+
+- Experimental branch: `experiment/prediction-calibration-harness-20261110`, not merged or deployed.
+- Pure, no-storage module: `integrations/agents/prediction-experiment.cjs`. Inputs: precommitted binary forecast, probability, timestamp, later observed actual, independently supplied evidence reference and experiment protocol. Outputs: exact-outcome accuracy, Brier score, log loss, calibration bins and confidently incorrect count. Compares a baseline against a candidate over identical observed cases.
+- Tests: `node --test integrations/agents/prediction-experiment.test.cjs`. **Not yet executed on host**. No measurements of model performance yet.
+- An evidence reference is not proof of independence. Production tooling must actually verify immutable sources, timestamp ordering, protocol version, holdout partition, and evaluator integrity.
+- Brier/log loss measure forecast quality **only for the defined binary event**. Perfect scores on a finite experiment cannot establish universal 100% predictability. Keep untouched holdout cases and test on unseen environments before claiming generalization.
+- No model/provider selection, model training, autonomous execution, DB writes, server routes, dashboard, or production deployment was added. Qwen3 is not selected as the benchmark.
+- Next safe experiment: identify one reproducible Towerflow task (e.g., whether a targeted visual edit preserves Development Room interaction), pre-register predicted pass/fail and confidence, run an isolated deterministic test, independently record result, and compare subsequent revisions on held-out variants.
