@@ -31,10 +31,17 @@
      ? current.mode!==desired.mode || (desired.mode==="ceiling-text" &&
        (current.text!==desired.text || current.color!==desired.color))
      : current.mode!==null;
-   if(!paused&&(data.revision!==lastRevision||diverged)){
-     engine.applyAuthoritative(data.scene,data.updatedAt);
+   if(!paused&&engine.hasPersonalSetting?.()){
+     // Personal scene preferences persist, even when a shared room revision
+     // is polled every eight seconds. They are never silently overwritten.
      lastRevision=data.revision;
-     say(data.scene?"Shared scene "+data.scene.mode+" • revision "+data.revision:"Original shared room • revision "+data.revision);
+     say("Personal saved ceiling preserved. To follow shared settings, restore your original ceiling in AURA World Studio.");
+   }else if(!paused&&(data.revision!==lastRevision||diverged)){
+     const applied=engine.applyAuthoritative(data.scene,data.updatedAt);
+     if(applied!==false){
+       lastRevision=data.revision;
+       say(data.scene?"Shared scene "+data.scene.mode+" • revision "+data.revision:"Original shared room • revision "+data.revision);
+     }
    }
   }catch(err){
    if(!connected)say("Shared scene service not yet active. Local previews remain available.");
