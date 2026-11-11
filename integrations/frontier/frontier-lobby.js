@@ -544,45 +544,76 @@
     }
     return originalActivate(id);
   };
-  // A deliberate wall click is the ONLY way to start or retarget projection.
-  // Existing props retain original clickable behavior; click-through is blocked.
+  // Explicit wall engagement: mouse click OR aiming at a wall and pressing E.
+  // Never intercept Development Room input, foreground stations, or avatar movement.
   const raycaster=new THREE.Raycaster();
-  renderer.domElement.addEventListener("click",e=>{
-    if(!running||!document.getElementById("panel").hidden||
-       !document.getElementById("menu").hidden||tfDevRoom)return;
-    if(renderer.domElement.dataset.dragging==="1")return;
-    const bounds=renderer.domElement.getBoundingClientRect();
-    const pointer=new THREE.Vector2((e.clientX-bounds.left)/bounds.width*2-1,
-      -(e.clientY-bounds.top)/bounds.height*2+1);
-    raycaster.setFromCamera(pointer,camera);
+  function projectorPick(ray,allowControls=true){
     const state=projectorState.tick(performance.now());
     const targets=[left,right,...(state.portalEnabled?[screen,...tabMeshes.map(p=>p.mesh)]:[]),...wallTargets];
-    const hits=raycaster.intersectObjects(targets,false);
-    const projectorHit=state.descended>.8?raycaster.intersectObject(projector,true)[0]:null;
-    if(projectorHit&&projectorHit.distance<30&&
-       (!hits.length||projectorHit.distance<hits[0].distance)){
-      e.stopImmediatePropagation();projectorSettings();return;
+    const hits=ray.intersectObjects(targets,false);
+    const closest=hits.find(hit=>hit.distance<=35);
+    const bodyHit=allowControls&&state.descended>.8?
+      ray.intersectObject(projector,true).find(hit=>hit.distance<=30):null;
+    if(bodyHit&&(!closest||bodyHit.distance<closest.distance)){
+      projectorSettings();return true;
     }
-    if(!hits.length||hits[0].distance>35)return;
-    const object=hits[0].object;
+    if(!closest)return false;
+    const object=closest.object;
+    // A foreground interactive floor object wins over a wall behind it.
+    // Ignore room architecture (large wall/floor/ceiling geometry) and
+    // invisible decorative elements, which otherwise masked ALL wall clicks.
     if(object.userData.tfWall){
-      // The room's original physical props must not become transparent click targets.
-      const blockers=raycaster.intersectObjects(scene.children,true).filter(h=>
-        h.object!==object&&!wallTargets.includes(h.object)&&
-        h.object!==screen&&h.object!==bezel&&h.object!==cone&&
-        h.object.visible&&h.object.material?.opacity!==0&&
-        !h.object.userData.tfWall);
-      const blocked=blockers.some(h=>h.distance+.12<hits[0].distance&&
-        !(h.object.geometry?.type==="BoxGeometry"&&
-          (h.object.geometry.parameters.width>=20||h.object.geometry.parameters.depth>=20)));
-      if(blocked)return;
-      e.stopImmediatePropagation();startWallProjection(object.userData.tfWall);return;
+      const blockers=ray.intersectObjects(scene.children,true);
+      const blocked=blockers.some(hit=>{
+        if(hit.distance>=closest.distance-.1)return false;
+        const o=hit.object,geo=o.geometry?.parameters||{};
+        if(o===object||wallTargets.includes(o)||o===screen||o===bezel||o===cone)return false;
+        if(!o.visible||o.material?.visible===false||o.material?.opacity===0)return false;
+        if(geo.width>=20||geo.depth>=20||geo.height>=12)return false; // architecture
+        if(o.parent===projector||o===projector)return false;
+        // Only identified interactable objects may block the trigger.
+        return !!o.userData?.tfStationId||!!o.userData?.stationId||
+          o===left||o===right||(typeof tfEntrance!=="undefined"&&o===tfEntrance);
+      });
+      if(blocked)return false;
+      startWallProjection(object.userData.tfWall);return true;
     }
-    if(object===left){e.stopImmediatePropagation();openPanel("help");return;}
-    if(object===right){e.stopImmediatePropagation();openFrontierIDE();return;}
-    if(object===screen){e.stopImmediatePropagation();openBusinessPanel("business");return;}
+    if(object===left){openPanel("help");return true;}
+    if(object===right){openFrontierIDE();return true;}
+    if(object===screen){openBusinessPanel("business");return true;}
     const entry=tabMeshes.find(p=>p.mesh===object);
-    if(entry){e.stopImmediatePropagation();openBusinessPanel(entry.tab);}
+    if(entry){openBusinessPanel(entry.tab);return true;}
+    return false;
+  }
+  function frontierInputReady(){
+    return running&&!tfDevRoom&&document.getElementById("panel")?.hidden&&
+      document.getElementById("menu")?.hidden;
+  }
+  renderer.domElement.addEventListener("click",e=>{
+    if(!frontierInputReady()||renderer.domElement.dataset.dragging==="1")return;
+    const bounds=renderer.domElement.getBoundingClientRect();
+    const pointer=new THREE.Vector2(
+      (e.clientX-bounds.left)/bounds.width*2-1,
+      -(e.clientY-bounds.top)/bounds.height*2+1);
+    raycaster.setFromCamera(pointer,camera);
+    if(projectorPick(raycaster))e.stopImmediatePropagation();
+  },true);
+  window.addEventListener("keydown",e=>{
+    if(e.code!=="KeyE"||e.repeat||e.altKey||e.ctrlKey||e.metaKey||
+      !frontierInputReady()||["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))return;
+    // Aimed interaction (screen center) is deliberately limited to wall
+    // and projector targets. Do not hijack E on a workstation or Dev portal.
+    raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+    const state=projectorState.tick(performance.now());
+    const nearest=raycaster.intersectObjects([
+      ...wallTargets,...(state.portalEnabled?[screen]:[])
+    ],false).find(hit=>hit.distance<=18);
+    if(!nearest)return;
+    // Do not consume E if the original room has a nearer interactable station.
+    if(stations.some(st=>Math.hypot(position.x-st.x,position.z-st.z)<3.0))return;
+    if(projectorPick(raycaster,false)){
+      e.preventDefault();e.stopImmediatePropagation();
+    }
   },true);
   // Preserve original Enter handler; do not intercept any Development Room return portal.
   // Ensure all first entries land in the Frontier dashboard atrium.
