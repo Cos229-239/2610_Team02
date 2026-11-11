@@ -25,7 +25,7 @@ try {
     'TowerFlow/index.html','TowerFlow/app.js','TowerFlow/styles.css',
     'TowerFlow/inventory-core.js','TowerFlow/inventory-ui.js','TowerFlow/inventory-core.test.cjs',
     'TowerFlow/flow-core.js','TowerFlow/flow-ui.js','TowerFlow/flow-core.test.cjs',
-    'TowerFlow/flow-agent-ui.js','TowerFlow/sales-globe.js','TowerFlow/corporate-core.js','TowerFlow/corporate-core.test.cjs','TowerFlow/contributions.js','TowerFlow/contributions.json',
+    'TowerFlow/flow-agent-ui.js','TowerFlow/sales-globe.js','TowerFlow/sales-globe-realistic.js','TowerFlow/corporate-core.js','TowerFlow/corporate-core.test.cjs','TowerFlow/contributions.js','TowerFlow/contributions.json',
     'TowerFlow/flow-integration.test.cjs',
       'TowerFlow/corporate-core.test.cjs',
       'integrations/frontier/projector-machine.test.cjs',
@@ -47,6 +47,7 @@ try {
     'integrations/mediator/configuration-mediator.cjs',
     'integrations/mediator/configuration-mediator.test.cjs',
     'tools/install-frontier-lobby.mjs','tools/install-frontier-lobby.test.mjs',
+    'tools/install-towerflow-earth-texture.mjs','tools/install-towerflow-earth-texture.test.mjs',
     'tools/install-aura-world-emulation.mjs','tools/install-aura-world-emulation.test.mjs',
     'tools/install-towerflow-business-product.mjs',
     'tools/install-towerflow-business-product.test.mjs',
@@ -108,6 +109,7 @@ try {
       'TowerFlow/inventory-core.test.cjs',
       'TowerFlow/flow-core.test.cjs',
       'TowerFlow/flow-integration.test.cjs',
+      'tools/install-towerflow-earth-texture.test.mjs',
       'tools/serve-portfolio-preview.test.cjs',
       'tools/install-towerflow-business-product.test.mjs',
       'integrations/mediator/configuration-mediator.test.cjs',
@@ -130,6 +132,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Agent skill acceptance failed. Deployment not performed.' }
     $report.Add('AUTOMATED TESTS: PASSED')
     $installers = @(
+      'tools/install-towerflow-earth-texture.mjs',
       'tools/install-frontier-lobby.mjs',
       'tools/install-aura-world-emulation.mjs',
       'tools/install-towerflow-business-product.mjs',
