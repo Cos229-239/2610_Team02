@@ -1,0 +1,33 @@
+name: Code Correlation Eval Gate
+on:
+  pull_request:
+    paths:
+      - 'integrations/agents/code-correlation-*'
+      - 'integrations/agents/run-code-correlation-eval.cjs'
+      - '.github/workflows/code-correlation-eval.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deterministic-eval:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and source-level tests
+        run: |
+          node --check integrations/agents/code-correlation-eval.cjs
+          node --check integrations/agents/run-code-correlation-eval.cjs
+          node --test integrations/agents/code-correlation-eval.test.cjs
+      - name: Prove the grader refuses intentionally wrong predictions
+        run: |
+          node -e "const p=require('node:child_process').spawnSync(process.execPath,['integrations/agents/run-code-correlation-eval.cjs','--smoke'],{encoding:'utf8'});if(p.status!==2)process.exit(1);const r=JSON.parse(p.stdout);if(r.summary.passed!==0||r.summary.n!==12)process.exit(1);"
