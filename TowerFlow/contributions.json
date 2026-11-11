@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "kind": "review-only-source-metadata",
+  "disclaimer": "Static record; inspect GitHub for live PR state. Not an editable owner registry.",
+  "records": [
+    {
+      "pullRequest": 8,
+      "author": "Dulskinator96",
+      "title": "Connect Towerflow live room to VS Code review and safe GitHub import",
+      "url": "https://github.com/Cos229-239/2610_Team02/pull/8",
+      "contribution": "IDE and safe GitHub import",
+      "reviewStatus": "READ THE LIVE PR",
+      "previewStatus": "Use isolated pinned PR worktree, not a fabricated visual",
+      "source": "Verified GitHub PR #8 metadata"
+    }
+  ]
+}

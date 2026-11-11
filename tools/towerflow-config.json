@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "repositoryUrl": "https://github.com/Cos229-239/2610_Team02",
+  "stations": [
+    {
+      "id": "dev-ide-vs",
+      "title": "Visual Studio Community",
+      "description": "Full desktop IDE for solutions and debugging. Browser room shows project files; a secure desktop bridge is not configured.",
+      "mode": "desktop-bridge-pending"
+    },
+    {
+      "id": "dev-ide-code",
+      "title": "Visual Studio Code",
+      "description": "VS Code local workspace is available from the repository. Browser source editor is available inside Towerflow.",
+      "mode": "browser-editor"
+    },
+    {
+      "id": "dev-ide-cursor",
+      "title": "Cursor",
+      "description": "Cursor operates on the same Git checkout. No interactive desktop IDE bridge is exposed through Towerflow.",
+      "mode": "desktop-bridge-pending"
+    },
+    {
+      "id": "dev-ide-antigravity",
+      "title": "Google Antigravity",
+      "description": "Agent development works through the shared repository; remote graphical IDE integration is not configured.",
+      "mode": "desktop-bridge-pending"
+    }
+  ]
+}
