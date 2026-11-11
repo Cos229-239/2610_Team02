@@ -34,7 +34,7 @@ try {
     'integrations/frontier/frontier-lobby.js',
     'integrations/frontier/projector-machine.js','integrations/frontier/projector-machine.test.cjs',
     'integrations/collaboration/whiteboard-core.cjs','integrations/collaboration/whiteboard-core.test.cjs',
-    'integrations/aura/aura-world-emulator.js',
+    'integrations/aura/aura-world-emulator.js','integrations/aura/aura-room-client.js',
     'integrations/world/world-state.cjs','integrations/world/world-sync-client.js',
     'integrations/world/world-state.test.cjs',
     'integrations/market/alpha-vantage.cjs','integrations/market/market-handler.cjs',
@@ -49,6 +49,7 @@ try {
     'tools/install-frontier-lobby.mjs','tools/install-frontier-lobby.test.mjs',
     'tools/install-towerflow-earth-texture.mjs','tools/install-towerflow-earth-texture.test.mjs',
     'tools/install-aura-world-emulation.mjs','tools/install-aura-world-emulation.test.mjs',
+    'tools/install-aura-room-ui.mjs','tools/install-aura-room-ui.test.mjs',
     'tools/install-towerflow-business-product.mjs',
     'tools/install-towerflow-business-product.test.mjs',
     'tools/install-shared-world-from-git.mjs','tools/install-shared-world-from-git.test.mjs',
@@ -135,6 +136,7 @@ try {
       'tools/install-towerflow-earth-texture.mjs',
       'tools/install-frontier-lobby.mjs',
       'tools/install-aura-world-emulation.mjs',
+      'tools/install-aura-room-ui.mjs',
       'tools/install-towerflow-business-product.mjs',
       'tools/install-shared-world-from-git.mjs'
     )
