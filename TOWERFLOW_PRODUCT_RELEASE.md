@@ -50,3 +50,11 @@
 7. Do not mark a live quote, subscription, contribution build preview, exact character voice or photorealistic reconstruction as `VERIFIED` absent actual provider/asset access and observed behavior.
 
 **Commercialization blockers:** business entity and permissions model, live POS/warehouse data connectors, secure and licensed financial feeds, real payment infrastructure, data retention/privacy policies, licensing of film/anime persona assets and voices, code-execution isolation with durable jobs, accessible design QA, and real-world scene performance measurements.
+
+## Earth visual fidelity — isolated review branch (2026-11-10)
+
+- Branch: `feature/earth-visual-fidelity-20261110` (review only; not merged or deployed).
+- Changed `integrations/aura/aura-world-emulator.js`: the small **solar-system exhibit Earth** now attempts geographic Earth and cloud textures with a subtle atmospheric limb. If remote images fail, the existing procedural Earth remains. Added source-level assertions in `tools/install-aura-world-emulation.test.mjs`.
+- Asset URLs currently point to public Three.js example imagery. **Before production:** verify browser CSP/CORS, image rights/provenance, image availability, and visual performance. Prefer reviewed self-hosted licensed assets rather than runtime third-party dependencies.
+- **Scope boundary:** This does **not** repair a separate TowerFlow sales globe, does not implement a full-size Earth viewer, does not alter the Windows live room, and does not restart Node. The locally untracked `TowerFlow/sales-globe.js` and modified working-tree files must be examined on the host before integrating.
+- Validation pending: run `node --test tools/install-aura-world-emulation.test.mjs`, verify desktop rendering and cloud alignment, confirm existing camera-relative movement and Development Room are preserved. Do not claim these tests have run or visual quality has been accepted.
