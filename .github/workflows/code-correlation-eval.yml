@@ -29,7 +29,5 @@ jobs:
           node --check integrations/agents/run-code-correlation-eval.cjs
           node --test integrations/agents/code-correlation-eval.test.cjs
       - name: Prove the grader refuses intentionally wrong predictions
-        shell: pwsh
         run: |
-          node integrations/agents/run-code-correlation-eval.cjs --smoke > $null
-          if ($LASTEXITCODE -ne 2) { throw "Expected failure-detecting smoke exit code 2; got $LASTEXITCODE" }
+          node -e "const p=require('node:child_process').spawnSync(process.execPath,['integrations/agents/run-code-correlation-eval.cjs','--smoke'],{encoding:'utf8'});if(p.status!==2)process.exit(1);const r=JSON.parse(p.stdout);if(r.summary.passed!==0||r.summary.n!==12)process.exit(1);"
