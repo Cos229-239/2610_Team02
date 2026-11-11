@@ -51,6 +51,11 @@ jobs:
       - run: node --check TowerFlow/contributions.js
       - run: node --check integrations/market/alpha-vantage.cjs
       - run: node --check integrations/market/market-handler.cjs
+      - run: node --check integrations/frontier/projector-machine.js
+      - run: node --check integrations/agents/task-orchestrator.cjs
+      - run: node --check integrations/collaboration/whiteboard-core.cjs
+      - run: node --check TowerFlow/sales-globe.js
+      - run: node --check TowerFlow/corporate-core.js
       - run: node --check integrations/agents/towerflow-agent.cjs
       - run: node --check integrations/agents/agent-handler.cjs
       - run: node --check integrations/agents/flow-planner.cjs
@@ -60,14 +65,14 @@ jobs:
       - run: node --check TowerFlow/inventory-ui.js
       - run: node --check tools/serve-portfolio-preview.cjs
       - run: node --check tools/install-towerflow-business-product.mjs
-      - run: node --test TowerFlow/inventory-core.test.cjs TowerFlow/flow-core.test.cjs TowerFlow/flow-integration.test.cjs integrations/market/alpha-vantage.test.cjs integrations/market/market-handler.test.cjs integrations/agents/towerflow-agent.test.cjs integrations/agents/agent-handler.test.cjs integrations/agents/flow-planner.test.cjs integrations/contributions/pr-reader.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs tools/towerflow-pr-synopsis.test.cjs
+      - run: node --test TowerFlow/inventory-core.test.cjs TowerFlow/flow-core.test.cjs TowerFlow/corporate-core.test.cjs TowerFlow/flow-integration.test.cjs integrations/frontier/projector-machine.test.cjs integrations/agents/task-orchestrator.test.cjs integrations/collaboration/whiteboard-core.test.cjs integrations/market/alpha-vantage.test.cjs integrations/market/market-handler.test.cjs integrations/agents/towerflow-agent.test.cjs integrations/agents/agent-handler.test.cjs integrations/agents/flow-planner.test.cjs integrations/contributions/pr-reader.test.cjs tools/serve-portfolio-preview.test.cjs tools/install-towerflow-business-product.test.mjs integrations/mediator/configuration-mediator.test.cjs tools/towerflow-pr-synopsis.test.cjs
       - name: Validate PowerShell deployment script syntax
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $tokens = $null
           $parseErrors = $null
-          foreach ($file in @('tools/deploy-towerflow-milestone.ps1','tools/preview-towerflow-contribution.ps1')) {
+          foreach ($file in @('tools/deploy-towerflow-milestone.ps1','tools/preview-towerflow-contribution.ps1','tools/onboard-towerflow-contributor.ps1')) {
             $parseErrors = $null
             [System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$parseErrors) | Out-Null
             if ($parseErrors.Count -gt 0) { throw ($parseErrors | Out-String) }
