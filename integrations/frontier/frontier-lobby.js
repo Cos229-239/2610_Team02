@@ -667,22 +667,67 @@
     get playing(){return active;}
   });
   // TF_ROCKY_GREETING_PROPOSAL_V1_END
-  // Lightweight animation: projector descends and powers up, no new render loop.
+  // No scene-mount or proximity start. State changes ONLY from wall activation
+  // or projector power controls, with the 3s wait after descent completes.
+  let lastProjectorStage="IDLE",lastProjectedWall=null;
+  function drawProjectedGateway(){
+    const w=surface.width,h=surface.height;
+    const grad=ctx.createLinearGradient(0,0,w,h);
+    grad.addColorStop(0,"#061426");grad.addColorStop(1,"#093c5b");
+    ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle="#62deff";ctx.lineWidth=13;ctx.strokeRect(18,18,w-36,h-36);
+    ctx.textAlign="center";ctx.fillStyle="#b9eaff";ctx.font="bold 110px Segoe UI,Arial";
+    ctx.fillText("TOWERFLOW",w/2,230);
+    ctx.font="bold 46px Segoe UI,Arial";
+    ctx.fillText("INTERACTIVE PROJECTION • ENTER WORKSPACE",w/2,360);
+    ctx.font="34px Segoe UI,Arial";
+    ctx.fillText("Select the illuminated business destination below",w/2,490);
+    ctx.fillText("Three tiers • distinct licensed business experiences",w/2,570);
+    ctx.fillText("Click the projection to enter within Frontier",w/2,730);
+    texture.needsUpdate=true;
+  }
   function animateProjector(){
     requestAnimationFrame(animateProjector);
     const now=performance.now();
-    let descent=0,opening=0;
-    if(towerflowReveal===1&&now-towerflowRevealStarted>=2000){
-      towerflowReveal=2;projectionOn=true;setOrbAgent("FLOW");
-      showToast("TOWERFLOW • CEILING OPENING / PROJECTOR DESCENDING");
+    const state=projectorState.tick(now);
+    const active=state.lightOn;
+    const descended=state.descended;
+    const clearing=state.cleared;
+    if(state.stage!==lastProjectorStage){
+      if(state.stage==="PROJECTING"){
+        drawProjectedGateway();
+        showToast("TOWERFLOW • wall projection online");
+      }else if(state.stage==="IDLE"){
+        projectionOn=false;
+        draw();
+      }
+      lastProjectorStage=state.stage;
     }
-    if(towerflowReveal===2){
-      const elapsed=Math.max(0,now-towerflowRevealStarted-2000);
-      descent=Math.min(1,elapsed/3300);
-      opening=Math.min(1,elapsed/1750);
-      if(descent>=1){towerflowReveal=3;openBusinessPanel(towerflowDesiredTab);}
+    if(state.wall!==lastProjectedWall){
+      lastProjectedWall=state.wall;
+      if(state.wall)aimAtWall(state.wall);
     }
-    if(towerflowReveal===3){descent=1;opening=1;projectionOn=true;}
+    screen.visible=state.portalEnabled;
+    bezel.visible=state.portalEnabled;
+    for(const p of tabMeshes)p.mesh.visible=state.portalEnabled;
+    // Original station meshes and signs descend AND return with exact coordinates.
+    // Their original E/IDE/AI/TASK BOARD actions remain intact while raised.
+    for(const f of originalFixtures){
+      f.mesh.position.y=f.y-clearing*7.3;
+      f.mesh.visible=f.visible&&clearing<.999;
+    }
+    for(const row of frontStations){
+      row.station.x=clearing>.02?1e6:row.x;
+      row.station.z=clearing>.02?1e6:row.z;
+    }
+    // New platform assemblies are also lowered, preserving their geometry.
+    for(const pad of platforms){
+      pad.group.position.y=pad.baseY-clearing*4.6;
+      pad.group.visible=clearing<.999;
+      pad.holo.rotation.y=now*.00035;
+    }
+    orbHalo.rotation.y=now*.0006;
+    const opening=clearing;
     aperture.scale.setScalar(Math.max(.001,opening));
     rim.scale.setScalar(Math.max(.001,opening));
     for(let i=0;i<irisParts.length;i++){
@@ -691,32 +736,25 @@
       irisParts[i].position.z=Math.sin(angle)*opening*3.8;
       irisParts[i].rotation.z=opening*(i%2===0?.7:-.7);
     }
-    // Move EVERY component of the display assemblies below floor level.
-    // Fully hide at the end to prevent glints or holograms above the surface.
-    for(const pad of platforms){
-      pad.group.position.y=pad.baseY-opening*4.6;
-      pad.group.visible=opening<.999;
-      pad.holo.rotation.y=now*.00035;
+    projector.position.y=12.1-descended*8.5;
+    beam.position.copy(projector.position);
+    if(state.wall){
+      const w=wallLayout[state.wall];
+      const target=new THREE.Vector3(w.x,5.15,w.z);
+      const direction=target.clone().sub(projector.position);
+      const length=direction.length();
+      beam.target.position.copy(target);
+      cone.position.copy(projector.position.clone().add(target).multiplyScalar(.5));
+      cone.scale.set(1,length/13,1);
+      cone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());
+      projector.rotation.y=Math.atan2(-direction.x,-direction.z);
     }
-    orbHalo.rotation.y=now*.0006;
-    for(const p of tabMeshes)p.mesh.visible=towerflowReveal===3;
-    // Walk physically toward a published tab, without modifying core WASD.
-    if(towerflowReveal===3&&running&&!tfDevRoom&&
-       document.getElementById("panel")?.hidden&&document.getElementById("menu")?.hidden){
-      if(position.z< -10.0&&position.z> -13.6&&now-lastTabEnter>2600){
-        const near=tabMeshes.find(p=>Math.abs(position.x-p.x)<1.55);
-        if(near){lastTabEnter=now;openBusinessPanel(near.tab);}
-      }
-    }
-    const goal=projectionOn?1:0;
-    projection+=(goal-projection)*.045;
-    projector.position.y=12.1-projection*1.9-descent*6.65;
-    beam.position.y=10-descent*6.65;
-    beam.intensity=projection*23*(towerflowReveal===2?Math.max(0,descent-.28)/.72:towerflowReveal===1?0:1);
-    cone.material.opacity=.024*projection*(towerflowReveal===2?Math.max(0,descent-.28)/.72:towerflowReveal===1?0:1);
-    cone.visible=projection>.02;
+    const fade=state.stage==="RETARGETING"?Math.max(.2,state.retargetProgress):1;
+    beam.intensity=active?23*fade:0;
+    cone.material.opacity=active?.032*fade:0;
+    cone.visible=active;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,get orbAgent(){return orbAgent;}});
+  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;}});
 }());
 // TF_FRONTIER_LOBBY_V1_END
