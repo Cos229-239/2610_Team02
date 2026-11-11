@@ -46,7 +46,12 @@ async function main() {
   const args=process.argv.slice(2);
   if(args.length!==1||!['--dry-run','--apply'].includes(args[0]))throw Error('Use one --dry-run or --apply');
   const apply=args[0]==='--apply';
-  const addition=await readFile(additionFile,'utf8');
+  const projectorMachine=await readFile(join(root,'integrations','frontier','projector-machine.js'),'utf8');
+  if(!projectorMachine.includes('TF_PROJECTOR_MACHINE_V1'))throw Error('Missing reviewed projector state engine');
+  const addon=await readFile(additionFile,'utf8');
+  // The room is a classic browser script, not a module; embed its reviewed
+  // state engine inside the existing versioned Frontier region for safe updates.
+  const addition=addon.replace(start,start+'\n'+projectorMachine);
   const liveFile=paths[0],workspaceFile=paths[1];
   if(!existsSync(liveFile))throw Error('Authoritative live Towerflow room missing: '+liveFile);
   const before=await readFile(liveFile,'utf8');
