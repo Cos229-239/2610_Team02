@@ -131,7 +131,7 @@ function readCamera(){
   return validateCamera({
     fov:floatInput('lensFov'),height:floatInput('camHeight'),
     distance:floatInput('camDistance'),pitch:floatInput('camPitch'),
-    aspect:Math.max(1,mount.clientWidth)/Math.max(1,mount.clientHeight)
+    aspect:info.photo ? info.photo.width/info.photo.height : Math.max(1,mount.clientWidth)/Math.max(1,mount.clientHeight)
   });
 }
 function readDimensions(){
@@ -142,10 +142,16 @@ function readDimensions(){
 }
 function applyCamera(){
   const s=readCamera();
-  camera.fov=s.fov;camera.aspect=s.aspect;
+  camera.fov=s.fov;camera.aspect=Math.max(1,mount.clientWidth)/Math.max(1,mount.clientHeight);
   camera.position.set(0,s.height,s.distance);
   camera.lookAt(0,s.height-Math.tan(s.pitch*Math.PI/180)*s.distance,0);
   camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
+}
+function photoRay(ndcX,ndcY){
+  const refCamera=camera.clone();
+  refCamera.aspect=info.photo.width/info.photo.height;
+  refCamera.updateProjectionMatrix();refCamera.updateMatrixWorld(true);
+  return new THREE.Vector3(ndcX,ndcY,.5).unproject(refCamera).sub(refCamera.position).normalize();
 }
 function resize(){
   const w=Math.max(1,mount.clientWidth),h=Math.max(1,mount.clientHeight);
@@ -180,8 +186,7 @@ function clickContact(e){
     applyCamera();
     const rect=frame.getBoundingClientRect();
     const c=photoContact(e.clientX-rect.left,e.clientY-rect.top,rect.width,rect.height,info.photo.width,info.photo.height);
-    const position=new THREE.Vector3(c.ndcX,c.ndcY,.5).unproject(camera);
-    const direction=position.sub(camera.position).normalize();
+    const direction=photoRay(c.ndcX,c.ndcY);
     const ground=groundIntersection(camera.position,direction);
     if(Math.abs(ground.x)>8 || Math.abs(ground.z)>8)throw Error('This ray lands outside the demo room. Refine the camera model or contact point.');
     info.contact=c;
@@ -226,8 +231,7 @@ function place(){
     parsePinterestUrl($('pinUrl').value);
     const dims=readDimensions();applyCamera();
     const c=info.contact;
-    const p=new THREE.Vector3(c.ndcX,c.ndcY,.5).unproject(camera);
-    const ray=p.sub(camera.position).normalize();
+    const ray=photoRay(c.ndcX,c.ndcY);
     const floor=groundIntersection(camera.position,ray);
     if(Math.abs(floor.x)>8||Math.abs(floor.z)>8)throw Error('Candidate placement is outside supported scene bounds');
     const useGLB=$('objectKind').value==='uploaded_glb';
