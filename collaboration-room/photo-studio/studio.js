@@ -232,7 +232,7 @@ $('multiInput').addEventListener('change',async event=>{
     if(files.length+info.additionalViews.length>8)throw Error('Maximum eight secondary views per candidate');
     const next=[];
     for(const f of files){
-      if(!/^image\\/(jpeg|png|webp)$/.test(f.type)||f.size>16*1024*1024)throw Error('Each supporting photo must be a PNG/JPEG/WebP under 16 MB');
+      if(!/^image\/(jpeg|png|webp)$/.test(f.type)||f.size>16*1024*1024)throw Error('Each supporting photo must be a PNG/JPEG/WebP under 16 MB');
       const url=URL.createObjectURL(f);
       let img;
       try{
