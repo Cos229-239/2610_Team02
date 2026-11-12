@@ -7,7 +7,7 @@ import {requireRights,parsePinterestUrl,validateCamera,photoContact,groundInters
 
 const $=id=>document.getElementById(id);
 const mount=$('canvasMount'),frame=$('photoFrame'),photoImg=$('photoImg'),dot=$('photoDot');
-const info={photo:null,hash:null,contact:null,placement:null,imageUrl:null,imported:null,hdrUrl:null};
+const info={photo:null,hash:null,contact:null,placement:null,imageUrl:null,imported:null,hdrUrl:null,additionalViews:[]};
 const maps={map:null,normalMap:null,roughnessMap:null};
 const materials=new Set();
 const scene=new THREE.Scene();
@@ -213,7 +213,8 @@ async function usePhoto(e){
     if(info.imageUrl)URL.revokeObjectURL(info.imageUrl);
     info.imageUrl=nextUrl;nextUrl=null;
     info.hash=hash;info.photo={name:f.name,width:temp.naturalWidth,height:temp.naturalHeight};
-    info.contact=null;info.placement=null;dot.style.display='none';
+    info.contact=null;info.placement=null;info.additionalViews=[];dot.style.display='none';
+    $('multiMeta').textContent='0 secondary views · supports inference, but not automatic photogrammetry';
     photoImg.src=info.imageUrl;photoImg.hidden=false;$('emptyPhoto').hidden=true;
     $('photoMeta').textContent=f.name+' · '+temp.naturalWidth+' × '+temp.naturalHeight+' · SHA-256 recorded locally';
     say('Photograph loaded locally. Click the floor-contact point visible in the photo.',true);
@@ -222,6 +223,36 @@ async function usePhoto(e){
   }
 }
 $('photoInput').addEventListener('change',usePhoto);
+$('multiInput').addEventListener('change',async event=>{
+  const files=[...(event.target.files||[])];
+  try{
+    requireRights($('rights').value);
+    if(!files.length)return;
+    if(!info.photo)throw Error('Load the main photographic reference first');
+    if(files.length+info.additionalViews.length>8)throw Error('Maximum eight secondary views per candidate');
+    const next=[];
+    for(const f of files){
+      if(!/^image\\/(jpeg|png|webp)$/.test(f.type)||f.size>16*1024*1024)throw Error('Each supporting photo must be a PNG/JPEG/WebP under 16 MB');
+      const url=URL.createObjectURL(f);
+      let img;
+      try{
+        img=new Image();
+        img.src=url;
+        await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Supporting view could not be decoded'));});
+        if(img.naturalWidth>8192||img.naturalHeight>8192)throw Error('Supporting view exceeds 8192 pixels');
+      } finally {URL.revokeObjectURL(url);}
+      const digest=await crypto.subtle.digest('SHA-256',await f.arrayBuffer());
+      next.push({
+        name:f.name,width:img.naturalWidth,height:img.naturalHeight,
+        rights:$('rights').value,
+        sha256:[...new Uint8Array(digest)].map(v=>v.toString(16).padStart(2,'0')).join('')
+      });
+    }
+    info.additionalViews.push(...next);
+    $('multiMeta').textContent=info.additionalViews.length+' secondary views recorded (metadata only) · NOT depth recovered';
+    say('Supporting view metadata and hashes stored locally. Align camera poses independently before using views to infer missing geometry.',true);
+  }catch(error){say(error.message);}finally{event.target.value='';}
+});
 $('pinUrl').addEventListener('change',()=>{try{parsePinterestUrl($('pinUrl').value);say('Pinterest link recorded as reference only. No image fetched.',true);}catch(e){say(e.message);}});
 $('rights').addEventListener('change',()=>{if($('rights').value==='unknown')say('Permission is required before placing from the photo.');});
 function place(){
@@ -316,7 +347,8 @@ $('exportButton').addEventListener('click',()=>{
     if(!info.placement)throw Error('Place an evidence-grounded candidate before exporting');
     const m=buildManifest({
       photo:info.photo,sha256:info.hash,rights:$('rights').value,pinUrl:$('pinUrl').value,
-      camera:readCamera(),contact:info.contact,dimensions:readDimensions(),asset:info.placement.asset
+      camera:readCamera(),contact:info.contact,dimensions:readDimensions(),asset:info.placement.asset,
+      additionalViews:info.additionalViews
     });
     m.reconstruction.placementMeters=info.placement.world;
     m.render={engine:'Three.js',tonemapping:'ACESFilmic',hdrSource:$('hdrStatus').textContent,frameRates:'runtime UI only; not a verified benchmark'};
