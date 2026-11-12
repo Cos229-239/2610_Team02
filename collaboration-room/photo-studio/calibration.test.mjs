@@ -70,3 +70,17 @@ test('Reject missing photo, unknown rights, invalid pixel, and unsupported asset
   assert.throws(()=>buildManifest({...args,asset:'pinterest_copy'}));
   assert.throws(()=>buildManifest({...args,sha256:'abc'}));
 });
+
+test('Supplementary photo evidence retains rights, hash and original dimensions',()=>{
+  const v={name:'rear-angle.webp',width:1280,height:720,rights:'permission',sha256:'a'.repeat(64)};
+  const m=buildManifest({photo,pinUrl:'https://pin.it/example',rights:'owner',camera,contact,dimensions,additionalViews:[v]});
+  assert.deepEqual(m.source.additionalViews,[v]);
+  assert.equal(m.verification.heldOutView,'not_supplied');
+});
+test('Reject excessive secondary views, invalid hashes and missing permissions',()=>{
+  const args={photo,rights:'owner',camera,contact,dimensions};
+  const valid={name:'side.png',width:640,height:480,rights:'licensed',sha256:null};
+  assert.throws(()=>buildManifest({...args,additionalViews:Array(9).fill(valid)}));
+  assert.throws(()=>buildManifest({...args,additionalViews:[{...valid,rights:'unknown'}]}));
+  assert.throws(()=>buildManifest({...args,additionalViews:[{...valid,sha256:'not-a-hash'}]}));
+});
