@@ -1,0 +1,38 @@
+name: Photo-Grounded Studio Contract Tests
+on:
+  pull_request:
+    paths:
+      - 'collaboration-room/photo-studio/**'
+      - '.github/workflows/towerflow-photo-studio.yml'
+  push:
+    paths:
+      - 'collaboration-room/photo-studio/**'
+      - '.github/workflows/towerflow-photo-studio.yml'
+permissions:
+  contents: read
+jobs:
+  photo-studio-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          node --check collaboration-room/photo-studio/calibration.mjs
+          node --check collaboration-room/photo-studio/studio.js
+          node --check collaboration-room/photo-studio/calibration.test.mjs
+      - name: Execute photo safety and geometric calibration tests
+        run: node --test collaboration-room/photo-studio/calibration.test.mjs
+      - name: Preservation boundary checks
+        run: |
+          test -f collaboration-room/input/world-movement.js
+          test -f TowerFlow/app.js
+          test -f TowerFlow/server.js
+          test -f collaboration-room/photo-studio/index.html
+          if grep -R -E 'fetch\([^)]*pinterest|pinterest.*\.jpg|api\.pinterest\.com' collaboration-room/photo-studio/*.js; then
+            echo 'Potential unauthorized Pinterest media retrieval in photo-studio source' >&2
+            exit 1
+          fi
