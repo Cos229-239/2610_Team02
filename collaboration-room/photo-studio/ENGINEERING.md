@@ -83,3 +83,53 @@ Pinterest Pin/board discovery + original creator/licensing check
 
 ## Exact scope of this branch
 Photo rights/camera/ground-plane inference/local mesh/HDR/GLB prototype plus tests. **No automatic image-to-3D reconstruction or photorealistic equivalence is claimed.** Full room integration, automatic camera matching, photo segmentation, inverse rendering, texture baking, multiplayer and release verification are subsequent independently-gated tasks.
+
+## Integration audit against existing Team 02 Markdown (2026-11-12)
+Repository inspected at `dev` commit `529260800f003016bf4e4a3f88c6b483d91c590a`; this is repository evidence, not proof of any remote/local runtime.
+
+| Existing authoritative team document | Established constraint | Integration in this PR | Remaining |
+|---|---|---|---|
+| `README.md` | Team-owned project and shared source control | Additive feature branch, draft PR for review | Team reviewer acceptance |
+| `Documents/PMP3_TowerFlow_Phased_Development.md` | Keep C++ CLI as working portfolio core; API/service before web/cloud business changes | Photo lab is visual-engineering preview only. **No** portfolio/service writes or API claims | Verify CLI persistence independently; implement portfolio API in separate guarded release |
+| `TowerFlow/TowerFlow.Native/README.md` | CLI persists locally in `towerflow.dat`, no proven shared WebView backend | Did not alter C++ or portfolio persistence | Future service handoff after CLI smoke test |
+| `Documents/CLIvsIDE.md` | CLI/test/build are reproducible independent of an IDE | Plain Node `--test` and syntax checks run without package installation | CI + browser functional and visual checks |
+| `Documents/GIT_03_Merging_to_Dev.md` | Author feature work, test, review, and integrate with team consent | Opened **draft PR #14** targeting `dev`, with no automatic merge | Team review and approval |
+| `collaboration-room/FOUNDRY.md` | Current checked-in Foundry is a movement **preview**; external live collaboration-room source has not been imported; repo-first changes | Adds isolated `photo-studio` route and a navigation link to the **existing preview**, not authenticated room | Import canonical live room before actual portal/scene integration |
+
+### Critical movement-source mismatch
+The uploaded engineering blueprint describes **camera-relative FPS WASD as the approved live configuration**, but `collaboration-room/FOUNDRY.md` demonstrates **world-locked movement** and says that preview is not integrated into the live room. This branch does **not** choose between them, touch any movement logic, or infer a new live baseline. Before live integration, inspect and freeze the actual running room's movement behavior with a teammate-approved acceptance recording.
+
+### Code Correlation mappings for photographic engineering
+| User code phrase | Deterministic pattern / algorithm | Preservation contract |
+|---|---|---|
+| "Realistic photography" | Pin-hole camera model, perspective projection, filmic tonemapping, PBR materials, evidenced illumination | Match source lens/lighting as known; no invented precision |
+| "Whole object from image" | Visible geometry + measured reference scale + ray-plane anchors + multiple angles if available | Hidden areas remain explicitly inferred, never claimed as recovered |
+| "Hyper-real 3D room" | Physically meaningful room meshes, asset-level GLB and UV, HDR lighting, contact shadows, screenshot comparison | World interaction, navigation, UI, team permissions stay independent |
+| "Cheapest optimal" | Reuse permitted photorealistic assets, staged offline authoring, texture resolution budget, measured LOD/runtime | Avoid paid APIs or replacing working code without validated benefit |
+| "Pinterest references" | Discover design pins, record URLs, identify actual creator/license, require authorized local source | No unauthorized scraping, copying or model training |
+
+### Manifest as proposed integration API
+`photo-studio/calibration.mjs` exports a versioned, human-readable candidate schema. A future integration mediator may **read and validate** it (not execute it). The manifest contains photo metadata, per-view rights provenance and hashes, manual camera assumptions, an observed pixel anchor, estimated dimensions, inferred geometry labels, candidate placement, and independent verification statuses.
+
+No main-room script currently imports it. Future mediator contract:
+```
+POST /api/v1/world/assets/candidates
+  [authorized user + CSRF protection + tenant context]
+  body: validated manifest + separately uploaded licensed GLB
+  response: candidate_id + server-produced validation report
+PATCH /api/v1/world/assets/candidates/:id
+  [reviewer authorization + expected_revision]
+  body: staged transform / material changes
+  result: sandbox preview revision only, NEVER direct production mutation
+POST /api/v1/world/releases
+  [maintainer review + CODE/PATTERN/PRESERVATION receipts]
+  body: approved versioned candidate revision
+  result: audited immutable release
+```
+All three routes are **proposed**, not deployed or implemented.
+
+### Current execution ledger
+- **EXECUTED:** Additive prototype code, photo license gate, manual camera-to-floor prediction, GLB/HDR/PBR import, evidence export and repository preview link, PR creation.
+- **TESTED (automation):** Syntax + Node calibration/security unit checks via GitHub Actions (check current PR status).
+- **UNKNOWN:** Visually correct perspective against licensed photographs, realistic human perception, full screen browser interaction, image-to-object accuracy, RTX 2060 SUPER frame rate, site-wide regressions on the external live room.
+- **NOT EXECUTED:** Live-room deployment, OAuth changes, multiplayer scene state updates, C++ API integration, photo-derived full geometry reconstruction, Pinterest downloads.
