@@ -66,7 +66,7 @@ export function validateDimensions({width,depth,height,basis}) {
   if (basis !== 'measured' && basis !== 'estimated') throw new Error('Identify dimensional basis as measured or estimated');
   return {width,depth,height,basis};
 }
-export function buildManifest({pinUrl='',photo,rights,camera,contact,dimensions,asset='authored_mesh',sha256=null}) {
+export function buildManifest({pinUrl='',photo,rights,camera,contact,dimensions,asset='authored_mesh',sha256=null,additionalViews=[]}) {
   if (!photo || typeof photo.name !== 'string' || !photo.name ||
       !Number.isInteger(photo.width) || !Number.isInteger(photo.height) ||
       photo.width < 1 || photo.height < 1) throw new Error('An actual image reference is required');
@@ -78,9 +78,18 @@ export function buildManifest({pinUrl='',photo,rights,camera,contact,dimensions,
       contact.u < 0 || contact.u > 1 || contact.v < 0 || contact.v > 1) throw new Error('A valid observed floor-contact pixel is required');
   if (sha256 !== null && !/^[a-f0-9]{64}$/.test(sha256)) throw new Error('Invalid photo SHA-256');
   if (!['authored_mesh','uploaded_glb'].includes(asset)) throw new Error('Unsupported asset provenance');
+  if (!Array.isArray(additionalViews) || additionalViews.length > 8) throw new Error('Maximum eight additional photo angles');
+  const views=additionalViews.map(v=>{
+    if (!v || typeof v.name !== 'string' || !v.name ||
+        !Number.isInteger(v.width) || !Number.isInteger(v.height) || v.width < 1 || v.height < 1 ||
+        (v.sha256 !== null && v.sha256 !== undefined && !/^[a-f0-9]{64}$/.test(v.sha256))) {
+      throw new Error('Invalid additional view metadata');
+    }
+    return {name:v.name,width:v.width,height:v.height,rights:requireRights(v.rights),sha256:v.sha256??null};
+  });
   return {
     schemaVersion:1, status:'candidate_unverified',
-    source:{name:photo.name,width:photo.width,height:photo.height,pinterestReference:parsedPin,rights:validatedRights,sha256},
+    source:{name:photo.name,width:photo.width,height:photo.height,pinterestReference:parsedPin,rights:validatedRights,sha256,additionalViews:views},
     camera:{...cam,status:'user_calibrated_not_solved',focalLengthPixels:focalLengthPixels(photo.height,cam.fov)},
     reconstruction:{
       asset,dimensionsMeters:dims,
