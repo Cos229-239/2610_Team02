@@ -23,13 +23,14 @@ node --check .\collaboration-room\photo-studio\studio.js
 1. Explore photographic architecture, furniture, interiors, and lighting with **Find photographic references**. Paste a Pin or board link to track your design provenance.
 2. Check the **original creator's rights**. Pinterest does not grant a general license to copy or repurpose images found there. Select owner, valid license, or permission, and upload your authorized local photo. The app never fetches the Pin.
 3. Provide camera vertical field-of-view, height, distance and downward tilt. These are *manual approximate* parameters until you solve vanishing points, focal length, and physical scale in Blender Perspective Match / fSpy-like tools.
+   Optionally load up to **eight additional authorized photos** of the same subject from different angles. This stores file names, dimensions, license assertions and SHA-256 hashes only; no hidden geometry is computed automatically.
 4. Click the **visible floor-contact point** of the furniture in the photo. The ray/ground intersection is a *prediction conditional on the camera assumptions*.
 5. Enter furniture dimensions (meters) and identify whether physically measured or estimated; choose the procedural structurally modeled sofa or upload a rights-cleared **embedded-resource GLB**.
 6. Optionally load CC0 or licensed HDR photographic environment and albedo/normal/roughness material maps. For browser speed start with **1–2K** maps, not 8K. Photo texture alignment/UVs need manual validation.
 7. Press **Place from observed contact**, inspect the scene, then **Export evidence manifest**. The exported JSON contains metadata, camera assumptions and an observed pixel anchor; it does **not** contain the source photo.
 
 ## What executes now
-- Photo license gate, 16MB JPEG/PNG/WebP local intake and SHA-256 (when browser crypto is available).
+- Photo license gate, 16MB JPEG/PNG/WebP local intake, up to eight supplementary multi-angle metadata records, and SHA-256 (when browser crypto is available).
 - Legal Pinterest *URL capture only*, never Pinterest media fetching or scraping.
 - Pinhole camera parameter validation, aspect-correct contact-point projection, physically computed floor intersection.
 - A physically modeled sofa with individual cushions, back, arms, piping, metal legs; an architectural floor, walls, table, light fixture and plant are separate mesh elements.
