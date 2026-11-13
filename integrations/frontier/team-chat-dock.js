@@ -6,7 +6,7 @@
   if(root)root.TowerflowTeamChatDock=api;
 })(typeof globalThis!=="undefined"?globalThis:null,function(){
  "use strict";
- const MAX=180,LIMIT=2000;
+ const MAX=180,LIMIT=140; // Preserve the original deployed WebSocket chat limit.
  function isTyping(t){return !!t&&(t.isContentEditable||["INPUT","TEXTAREA","SELECT"].includes(String(t.tagName||"").toUpperCase())||
    !!t.closest?.('[contenteditable="true"],[role="textbox"]'));}
  function shouldToggle(e){return !!e&&(e.code==="KeyC"||e.key==="c"||e.key==="C")&&!e.repeat&&!e.isComposing&&
