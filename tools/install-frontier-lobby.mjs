@@ -36,6 +36,15 @@ export function patchRoom(original,addition) {
   }
   return original.replace(/\s*$/,'\n\n')+addon+'\n';
 }
+export function assertKnownFrontierInstallation(source,next,previous){
+  const i=source.indexOf(start),j=source.indexOf(end);
+  if(i===-1&&j===-1)return true;
+  if((i<0)!==(j<0)||j<i)throw Error('Partial Frontier install detected');
+  const observed=source.slice(i,j+end.length).trim();
+  if(observed!==next.trim()&&observed!==previous.trim())
+    throw Error('Existing Frontier module has unreviewed local changes; refusing replacement to preserve work');
+  return true;
+}
 async function checkSyntax(text) {
   const file=join(tmpdir(),'towerflow-frontier-'+randomUUID()+'.mjs');
   try {
@@ -55,9 +64,15 @@ async function main() {
   // The room is a classic browser script, not a module; embed its reviewed
   // state engine inside the existing versioned Frontier region for safe updates.
   const addition=addon.replace(start,start+'\n'+projectorMachine+'\n'+cyber);
+  // Exact previous installed Frontier version (ancestor Git blob), not a fuzzy search.
+  // A local edit to the old Frontier region is never overwritten automatically.
+  const baselineAddon=execFileSync('git',['-C',root,'show','56e5b94e14fff22a23dcec64a735ddb2e839cab8'],{encoding:'utf8',timeout:10000});
+  const baseline=baselineAddon.replace(start,start+'\n'+projectorMachine);
+
   const liveFile=paths[0],workspaceFile=paths[1];
   if(!existsSync(liveFile))throw Error('Authoritative live Towerflow room missing: '+liveFile);
   const before=await readFile(liveFile,'utf8');
+  assertKnownFrontierInstallation(before,addition,baseline);
   const after=patchRoom(before,addition);
   await checkSyntax(after);
   const plan=[{file:liveFile,before,after}];
