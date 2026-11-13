@@ -68,6 +68,9 @@ test('Rocky greeting is audio only: no official video player, floating video con
 test('cyber layer is optional, tied to original world scene and not a new dashboard',()=>{
  assert.match(addon,/TowerflowCyberAmbience\?\.install/);
  assert.match(addon,/cyberAmbience\?\.update\(now\)/);
+ assert.match(addon,/TowerflowCinematicFidelity\?\.install/);
+ assert.match(addon,/cinematicFidelity\?\.update\(now\)/);
+ assert.match(addon,/mountReviewedGLB/);
  assert.match(addon,/setCyberAtmosphere/);
  assert.match(addon,/Optional Frontier cyber ambience failed/);
  assert.doesNotMatch(addon,/window\.open\(['"]\/photo-studio/);
@@ -80,5 +83,6 @@ test('installer preserves local unreviewed edits rather than overwriting existin
  assert.equal(assertKnownFrontierInstallation(room,next,old),true);
  assert.equal(assertKnownFrontierInstallation(room+'\n'+old,next,old),true);
  assert.equal(assertKnownFrontierInstallation(room+'\n'+next,next,old),true);
+ assert.equal(assertKnownFrontierInstallation(room+'\n'+old,next,[old]),true);
  assert.throws(()=>assertKnownFrontierInstallation(room+'\n'+start+'\nLOCAL EDIT\n'+end,next,old),/unreviewed local changes/);
 });
