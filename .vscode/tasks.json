@@ -25,6 +25,27 @@
           "endsPattern": "^TowerFlow server listening at http://127\\.0\\.0\\.1:4173$"
         }
       }
+    },
+    {
+      "label": "Frontier: Validate graphics, chat, kinetic exhibits",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "--test",
+        "integrations/frontier/cinematic-fidelity.test.cjs",
+        "integrations/frontier/experience-upgrades.test.cjs",
+        "integrations/frontier/cyber-ambience.test.cjs",
+        "integrations/frontier/projector-machine.test.cjs",
+        "tools/install-frontier-lobby.test.mjs"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
     }
   ]
 }
