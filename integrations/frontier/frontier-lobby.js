@@ -695,6 +695,7 @@
     // Aimed interaction (screen center) is deliberately limited to wall
     // and projector targets. Do not hijack E on a workstation or Dev portal.
     raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+    if(pedestalPick(raycaster)){e.preventDefault();e.stopImmediatePropagation();return;}
     const state=projectorState.tick(performance.now());
     const nearest=raycaster.intersectObjects([
       ...wallTargets,...(state.portalEnabled?[screen]:[])
@@ -702,7 +703,7 @@
     if(!nearest)return;
     // Do not consume E if the original room has a nearer interactable station.
     if(stations.some(st=>Math.hypot(position.x-st.x,position.z-st.z)<3.0))return;
-    if(pedestalPick(raycaster)||projectorPick(raycaster,false)){
+    if(projectorPick(raycaster,false)){
       e.preventDefault();e.stopImmediatePropagation();
     }
   },true);
