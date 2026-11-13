@@ -51,7 +51,7 @@
     }
     return Object.freeze({
       chrome:Object.freeze(chrome),azure:Object.freeze(azure),violet:Object.freeze(violet),
-      instances:chrome.length+azure.length+violet.length,drawCallBudget:3
+      instances:chrome.length+azure.length+violet.length,drawCallBudget:5
     });
   }
   function install({THREE,scene,storage=typeof localStorage!=="undefined"?localStorage:null}={}){
@@ -88,7 +88,27 @@
       instanced.instanceMatrix.needsUpdate=true;
       group.add(instanced);
     });
-    let enabled=true,lastUpdate=-Infinity;
+    // Low-cost additive aura makes strip light visibly bleed beyond thin geometry.
+    // A full-screen bloom composer would modify the original renderer and is not injected.
+    const haloMaterials=[
+      new THREE.MeshBasicMaterial({color:0x31d4ff,transparent:true,opacity:.16,
+        blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}),
+      new THREE.MeshBasicMaterial({color:0xd15bff,transparent:true,opacity:.12,
+        blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})
+    ];
+    [plan.azure,plan.violet].forEach((records,index)=>{
+      const aura=new THREE.InstancedMesh(geometry,haloMaterials[index],records.length);
+      aura.name=index?"VIOLET_NEON_HALO":"AZURE_NEON_HALO";
+      aura.userData.tfDecorativeOnly=true;aura.raycast=()=>{};
+      aura.castShadow=false;aura.receiveShadow=false;
+      records.forEach((p,i)=>{
+        proxy.position.set(p.x,p.y,p.z);
+        proxy.scale.set(Math.max(.09,p.w*3),Math.max(.16,p.h*2),Math.max(.12,p.d*3));
+        proxy.updateMatrix();aura.setMatrixAt(i,proxy.matrix);
+      });
+      aura.instanceMatrix.needsUpdate=true;group.add(aura);
+    });
+    let enabled=true,lastUpdate=-Infinity,glowIntensity=1;
     try{enabled=storage?.getItem(KEY)!=="off";}catch{enabled=true;}
     group.visible=enabled;
     scene.add(group);
@@ -105,18 +125,25 @@
         if(disposed||!enabled||!Number.isFinite(now)||now-lastUpdate<160)return;
         lastUpdate=now;
         // Single soft breathing curve. No extra animation loop, shadow or lights.
-        materials[1].emissiveIntensity=.92+.13*Math.sin(now*.00043);
-        materials[2].emissiveIntensity=.55+.11*Math.sin(now*.00036+1.1);
+        materials[1].emissiveIntensity=glowIntensity*(1.35+.16*Math.sin(now*.00043));
+        materials[2].emissiveIntensity=glowIntensity*(1.08+.14*Math.sin(now*.00036+1.1));
+        haloMaterials[0].opacity=Math.min(.32,.16*glowIntensity);
+        haloMaterials[1].opacity=Math.min(.30,.12*glowIntensity);
+      },
+      setGlowIntensity(value){
+        if(disposed)throw Error("Cyber ambience disposed");
+        if(!Number.isFinite(value)||value<0||value>1.6)throw Error("Glow intensity outside validated range");
+        glowIntensity=value;return glowIntensity;
       },
       stats(){
-        return Object.freeze({enabled,instances:plan.instances,estimatedExtraDrawCalls:plan.drawCallBudget,
+        return Object.freeze({enabled,instances:plan.instances,glowIntensity,estimatedExtraDrawCalls:plan.drawCallBudget,
           changesSceneBackground:false,lightsAdded:0,shadowCastersAdded:0,
           clickTargetsAdded:0,newAnimationLoops:0,verifiedFrameRate:null});
       },
       dispose(){
         if(disposed)return;
         disposed=true;scene.remove(group);
-        geometry.dispose();materials.forEach(material=>material.dispose());
+        geometry.dispose();[...materials,...haloMaterials].forEach(material=>material.dispose());
         activeScenes.delete(scene);
       }
     });
