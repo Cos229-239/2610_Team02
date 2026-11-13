@@ -4,13 +4,13 @@
 const {createAgent}=require("./towerflow-agent.cjs");
 const {createFlowPlanner}=require("./flow-planner.cjs");
 function createAgentHandler({agent=createAgent(),planner=null,origin,getTrustedContext=null}={}){
- const providerContext=getTrustedContext||async()=>{
+ const providerContext=getTrustedContext||(async()=>{
    const status=agent.status();
    return {attested:true,revision:0,state:{
     dataProvider:status.marketFeed||"UNKNOWN",
     dataStatus:status.externallyConnected?.market?"PROVIDER_CONFIGURED_QUOTE_NOT_FETCHED":"MARKET_PROVIDER_NOT_CONNECTED"
    }};
- };
+ });
  const activePlanner=planner||createFlowPlanner({getTrustedContext:providerContext});
  if(typeof origin!=="string"||!/^https:\/\//.test(origin))throw Error("Reviewed public origin required");
  const quotas=new Map();
