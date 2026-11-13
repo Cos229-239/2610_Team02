@@ -109,6 +109,10 @@ async function run(){
    const assets=[
      {name:"world-state.cjs",source:sourceWorld,marker:"TOWERFLOW_SHARED_WORLD_V1"},
      {name:"alpha-vantage.cjs",source:join(sourceMarket,"alpha-vantage.cjs"),marker:"Optional authenticated financial market connector"},
+     {name:"alpaca-iex.cjs",source:join(sourceMarket,"alpaca-iex.cjs"),marker:"Alpaca IEX live-capable provider"},
+     {name:"sec-company-facts.cjs",source:join(sourceMarket,"sec-company-facts.cjs"),marker:"SEC EDGAR public corporate filing facts"},
+     {name:"dual-agent-harness.cjs",source:join(root,"integrations","agents","dual-agent-harness.cjs"),marker:"SOURCE-AWARE DUAL AGENT HARNESS"},
+     {name:"frontier-execution-evidence.cjs",source:join(root,"integrations","agents","frontier-execution-evidence.cjs"),marker:"FRONTIER_EXECUTION_EVIDENCE_V1"},
      {name:"market-handler.cjs",source:join(sourceMarket,"market-handler.cjs"),marker:"GET-only authenticated market quote handler"},
      {name:"towerflow-agent.cjs",source:join(root,"integrations","agents","towerflow-agent.cjs"),marker:"Bounded TowerFlow agent runner"},
      {name:"agent-handler.cjs",source:join(root,"integrations","agents","agent-handler.cjs"),marker:"Stand-alone authenticated REST handler"},
@@ -121,11 +125,14 @@ async function run(){
      const file=join(target,asset.name);
      let next=await readFile(asset.source,"utf8");
      if(asset.name==="flow-planner.cjs"){
-       next=next.replaceAll('require("../market/alpha-vantage.cjs")','require("./alpha-vantage.cjs")');
+       next=next.replaceAll('require("../market/alpha-vantage.cjs")','require("./alpha-vantage.cjs")')
+         .replaceAll('require("../market/sec-company-facts.cjs")','require("./sec-company-facts.cjs")');
        if(next.includes('require("../market'))throw Error("Planner dependency rewrite incomplete");
      }
      if(asset.name==="towerflow-agent.cjs"){
        next=next.replaceAll('require("../market/alpha-vantage.cjs")','require("./alpha-vantage.cjs")')
+         .replaceAll('require("../market/alpaca-iex.cjs")','require("./alpaca-iex.cjs")')
+         .replaceAll('require("../market/sec-company-facts.cjs")','require("./sec-company-facts.cjs")')
          .replaceAll('require("../../TowerFlow/flow-core.js")','require("./flow-core.cjs")')
          .replaceAll('require("../../TowerFlow/inventory-core.js")','require("./inventory-core.cjs")');
        if(next.includes('require("../../TowerFlow')||next.includes('require("../market'))
