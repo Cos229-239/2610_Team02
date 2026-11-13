@@ -83,7 +83,7 @@
  });
  companyBtn?.addEventListener("click",()=>{
   const cik=$("tfCompanyCIK")?.value.trim();
-  if(!/^\\d{1,10}$/.test(cik||"")){status.textContent="Enter a valid SEC CIK (1 to 10 digits).";return;}
+  if(!/^\d{1,10}$/.test(cik||"")){status.textContent="Enter a valid SEC CIK (1 to 10 digits).";return;}
   if(!confirm("Fetch real public-company SEC EDGAR financial filing facts for CIK "+cik+"? Figures are not streaming sales."))return;
   execute({skill:"company.research",idempotencyKey:taskKey(),cik});
  });
