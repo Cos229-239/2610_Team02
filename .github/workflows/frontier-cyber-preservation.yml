@@ -37,6 +37,7 @@ jobs:
           node --check integrations/frontier/environment-audio.js
           node --check integrations/frontier/frontier-lobby.js
           node --check tools/install-frontier-lobby.mjs
+          node --check tools/reconcile-frontier-cinematic.mjs
       - name: Test cyber geometry, projector, and existing room installer guards
         run: >
           node --test
@@ -46,6 +47,7 @@ jobs:
           integrations/frontier/environment-audio.test.cjs
           integrations/frontier/projector-machine.test.cjs
           tools/install-frontier-lobby.test.mjs
+          tools/reconcile-frontier-cinematic.test.mjs
       - name: Parse original-room release PowerShell (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
