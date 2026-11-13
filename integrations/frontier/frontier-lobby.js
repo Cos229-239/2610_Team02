@@ -198,6 +198,16 @@
     pad.add(holo);scene.add(pad);
     platforms.push({group:pad,holo,baseY:0,homeX:x});
   }
+
+  // Original retractable displays now support configurable geometry, kinetic patterns,
+  // colors and reversible fracture effects. The lift owns platform position.
+  let kineticPedestals=null,neonLighting=null,teamChatDock=null;
+  try {kineticPedestals=window.TowerflowKineticPedestals?.install({THREE,platforms})??null;}
+  catch(error){console.warn("Optional kinetic pedestal controls unavailable:",error?.message);}
+  try {neonLighting=window.TowerflowNeonLighting?.install({THREE,platforms})??null;}
+  catch(error){console.warn("Optional photonic illumination unavailable:",error?.message);}
+  try {teamChatDock=window.TowerflowTeamChatDock?.install({doc:document})??null;}
+  catch(error){console.warn("Optional C-key team chat dock unavailable:",error?.message);}
   function setOrbAgent(agent){
     if(agent!=="AURA"&&agent!=="FLOW")return false;
     orbAgent=agent;labelOrb(agent);return true;
@@ -440,6 +450,71 @@
     panel.style.maxWidth="96vw";
     renderDashboard();
   }
+  // Every exhibit has its own maintained preset; shattering is purely visual.
+  // Settings use the original world UI; user-local until trusted shared-world sync is wired.
+  function openPedestalSettings(index){
+    if(!kineticPedestals||!Number.isInteger(index)||index<0||index>=4)return false;
+    if(projectorState.tick(performance.now()).cleared>.02)return false;
+    isPanel=true;openPanel("frontier-pedestal");
+    document.getElementById("panelTag").textContent="FRONTIER / COMPUTATIONAL EXHIBITS";
+    document.getElementById("panelTitle").textContent="KINETIC MATRIX • "+String(index+1).padStart(2,"0");
+    const root=document.getElementById("panelContent");root.replaceChildren();
+    const intro=makeEl("p","Customizable 3D geometry, motion and illumination. Changes persist on this browser; authenticated shared-room replication requires a reviewed backend event.");
+    root.append(intro);
+    const current=kineticPedestals.get(index);
+    for(const [field,values] of [
+      ["shape",window.TowerflowKineticPedestals.SHAPES],
+      ["pattern",window.TowerflowKineticPedestals.PATTERNS],
+      ["color",Object.keys(window.TowerflowKineticPedestals.COLORS)]
+    ]){
+      const wrap=makeEl("label",field.toUpperCase()+" ");
+      const select=makeEl("select");select.setAttribute("aria-label","Pedestal "+field);
+      for(const value of values){
+        const opt=makeEl("option",value);opt.value=value;opt.selected=current[field]===value;
+        select.append(opt);
+      }
+      select.onchange=()=>{kineticPedestals.configure(index,{[field]:select.value});};
+      wrap.append(select);wrap.style.cssText="display:inline-flex;flex-direction:column;gap:5px;margin:10px";
+      root.append(wrap);
+    }
+    for(const [field,min,max,step] of [["speed",.1,2,.1],["intensity",0,2,.1]]){
+      const wrap=makeEl("label",field.toUpperCase()+" ");
+      const slider=makeEl("input");slider.type="range";slider.min=String(min);slider.max=String(max);
+      slider.step=String(step);slider.value=String(current[field]);slider.setAttribute("aria-label","Pedestal "+field);
+      const value=makeEl("span",String(current[field]));
+      slider.oninput=()=>{value.textContent=slider.value;kineticPedestals.configure(index,{[field]:Number(slider.value)});};
+      wrap.append(slider,value);wrap.style.cssText="display:inline-flex;flex-direction:column;gap:5px;margin:10px";
+      root.append(wrap);
+    }
+    const row=makeEl("div");row.style.cssText="display:flex;flex-wrap:wrap;gap:10px;margin-top:15px";
+    const fragment=makeEl("button","FRACTURE / REFORM");
+    fragment.onclick=()=>{kineticPedestals.shatter(index,performance.now());closePanel();showToast("Kinetic exhibit "+(index+1)+" • reversible fracture");};
+    const reset=makeEl("button","RESTORE DEFAULT GEOMETRY");
+    reset.onclick=()=>{kineticPedestals.reset(index);openPedestalSettings(index);};
+    const light=makeEl("button","PHOTONIC LIGHTING");
+    light.onclick=()=>{
+      if(!neonLighting)return;
+      const presets=Object.keys(window.TowerflowNeonLighting.PRESETS);
+      const now=neonLighting.stats().preset,idx=presets.indexOf(now);
+      const next=presets[(idx+1)%presets.length];
+      neonLighting.configure({preset:next});
+      showToast("Illumination • "+next);
+    };
+    row.append(fragment,reset,light);root.append(row);
+    return true;
+  }
+  function pedestalPick(ray){
+    if(!kineticPedestals||projectorState.tick(performance.now()).cleared>.02)return false;
+    const hits=ray.intersectObjects(platforms.map(p=>p.group),true);
+    const nearest=hits.find(hit=>hit.distance<=13&&hit.object?.visible!==false);
+    if(!nearest)return false;
+    const index=platforms.findIndex(p=>{
+      let parent=nearest.object;
+      while(parent){if(parent===p.group)return true;parent=parent.parent;}
+      return false;
+    });
+    return index>=0&&openPedestalSettings(index);
+  }
   let filePaths=[],chosenFile=null,originalCode="",editingDirty=false;
   function openFrontierIDE(){
     isPanel=true;openPanel("ide");
@@ -456,7 +531,15 @@
     links.append(link);
     const other=makeEl("a","Review PRs and commits ↗");
     other.href="https://github.com/Cos229-239/2610_Team02/pulls";other.target="_blank";other.rel="noopener noreferrer";
-    links.append(other);top.append(links);
+    links.append(other);
+    // github.dev edits code but cannot run/debug. Codespaces has an isolated
+    // runtime + real debugger. Never execute teammate code on the production host.
+    const debug=makeEl("a","RUN + DEBUG IN CODESPACES ↗");
+    debug.href="https://codespaces.new/Cos229-239/2610_Team02";
+    debug.target="_blank";debug.rel="noopener noreferrer";
+    debug.setAttribute("aria-label","Open isolated GitHub Codespaces debugger");
+    links.append(debug);
+    top.append(links,makeEl("p","DEBUG CONTRACT: Source editor = authenticated review and save. Codespaces = actual breakpoints, stack traces, watches, tests and terminal. No guest host-process execution."));
     const tool=makeEl("div");tool.style.cssText="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:12px 0";
     const status=makeEl("span","Loading repository permissions and files…");
     status.setAttribute("role","status");
@@ -604,7 +687,7 @@
       (e.clientX-bounds.left)/bounds.width*2-1,
       -(e.clientY-bounds.top)/bounds.height*2+1);
     raycaster.setFromCamera(pointer,camera);
-    if(projectorPick(raycaster))e.stopImmediatePropagation();
+    if(pedestalPick(raycaster)||projectorPick(raycaster))e.stopImmediatePropagation();
   },true);
   window.addEventListener("keydown",e=>{
     if(e.code!=="KeyE"||e.repeat||e.altKey||e.ctrlKey||e.metaKey||
@@ -619,7 +702,7 @@
     if(!nearest)return;
     // Do not consume E if the original room has a nearer interactable station.
     if(stations.some(st=>Math.hypot(position.x-st.x,position.z-st.z)<3.0))return;
-    if(projectorPick(raycaster,false)){
+    if(pedestalPick(raycaster)||projectorPick(raycaster,false)){
       e.preventDefault();e.stopImmediatePropagation();
     }
   },true);
@@ -765,8 +848,10 @@
     for(const pad of platforms){
       pad.group.position.y=pad.baseY-clearing*4.6;
       pad.group.visible=clearing<.999;
-      pad.holo.rotation.y=now*.00035;
+      if(!kineticPedestals)pad.holo.rotation.y=now*.00035;
     }
+    kineticPedestals?.update(now,clearing);
+    neonLighting?.update(now,clearing);
     orbHalo.rotation.y=now*.0006;
     const opening=clearing;
     aperture.scale.setScalar(Math.max(.001,opening));
@@ -796,6 +881,6 @@
     cone.visible=active;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader})});
+  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader}),get lighting(){return neonLighting?.stats()??null;},setLighting:(preset,intensity)=>neonLighting?.configure({preset,intensity}),get kineticPedestals(){return kineticPedestals?.stats()??null;},configurePedestal:(index,settings)=>kineticPedestals?.configure(index,settings),shatterPedestal:(index)=>kineticPedestals?.shatter(index,performance.now()),get chat(){return teamChatDock?.stats()??null;},toggleChat:()=>teamChatDock?.setOpen(!teamChatDock.open),bindTeamChatTransport:(adapter)=>teamChatDock?.attachTransport(adapter)});
 }());
 // TF_FRONTIER_LOBBY_V1_END
