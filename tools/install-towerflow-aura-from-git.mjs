@@ -18,6 +18,8 @@ const clientStart='// TF_AURA_ROOM_CLIENT_V1_BEGIN';
 const clientEnd='// TF_AURA_ROOM_CLIENT_V1_END';
 const moveMarker='// TF_DEV_ROOM_MOVE_SYNC_V1';
 const sha = s=>createHash('sha256').update(s).digest('hex');
+const gitBlob = s=>createHash('sha1').update('blob '+Buffer.byteLength(s,'utf8')+'\\0').update(s,'utf8').digest('hex');
+const reviewedPriorAuraBlob='5186450266fc2fb631ebc6e3a291473d3febad38';
 function requireUnique(source,anchor) {
   const index=source.indexOf(anchor);
   if(index<0 || source.indexOf(anchor,index+anchor.length)>=0) throw Error('Missing or duplicated patch anchor: '+anchor.slice(0,80));
@@ -32,7 +34,7 @@ export function patchServer(original) {
     const injection=String.raw`// TF_AURA_GIT_SERVER_V1: server-side authorization, loopback Ollama, no shell.
 const {createAuraHandler}=require('./aura-service.cjs');
 const auraHandler=createAuraHandler({
-  model:process.env.TOWERFLOW_AI_MODEL||'qwen3:8b',
+  model:process.env.TOWERFLOW_AURA_MODEL||process.env.TOWERFLOW_AI_MODEL||'dolphin-llama3:8b',
   knowledgeFile:path.join(__dirname,'aura-world.md'),
   publicOrigin,
   authorize:async req=>req.session?.user?.login && req.permission
@@ -99,7 +101,10 @@ async function main() {
   if(args.length!==1||!['--dry-run','--apply'].includes(args[0])) throw Error('Use --dry-run or --apply');
   const apply=args[0]==='--apply';
   const client=await readFile(join(repoRoot,'integrations','aura','aura-room-client.js'),'utf8');
-  const adapter=await readFile(join(repoRoot,'integrations','aura','aura-service.cjs'),'utf8');
+  const adapter=(await readFile(join(repoRoot,'integrations','aura','aura-service.cjs'),'utf8'))
+    .replaceAll('require("../agents/dual-agent-harness.cjs")','require("./dual-agent-harness.cjs")');
+  const harness=await readFile(join(repoRoot,'integrations','agents','dual-agent-harness.cjs'),'utf8');
+  const evaluator=await readFile(join(repoRoot,'integrations','agents','frontier-execution-evidence.cjs'),'utf8');
   const kb=await readFile(join(repoRoot,'towerflow-knowledge','WORLD.md'),'utf8');
   const serverFile=join(liveRoot,'server.js'),roomFile=join(liveRoot,'public','room.js');
   const syncFile=join(workspaceRoot,'public','room.js');
@@ -115,20 +120,28 @@ async function main() {
   await Promise.all([
     checkSyntax(newServer,'commonjs'),
     checkSyntax(newRoom,'module'),
-    checkSyntax(adapter,'commonjs')
+    checkSyntax(adapter,'commonjs'),
+    checkSyntax(harness,'commonjs'),
+    checkSyntax(evaluator,'commonjs')
   ]);
   const kbFile=join(liveRoot,'aura-world.md'),adapterFile=join(liveRoot,'aura-service.cjs');
+  const harnessFile=join(liveRoot,'dual-agent-harness.cjs'),evidenceFile=join(liveRoot,'frontier-execution-evidence.cjs');
   const plan=[
     {file:serverFile,after:newServer},
     {file:roomFile,after:newRoom},
     {file:syncFile,after:syncRoom},
     {file:kbFile,after:kb},
-    {file:adapterFile,after:adapter}
+    {file:adapterFile,after:adapter},
+    {file:harnessFile,after:harness},
+    {file:evidenceFile,after:evaluator}
   ];
   for(const entry of plan) entry.before=existsSync(entry.file)?await readFile(entry.file,'utf8'):null;
   for(const entry of plan) {
-    if(entry.before!==null && entry.before!==entry.after && [kbFile,adapterFile].includes(entry.file))
-      throw Error('Existing AURA service/knowledge changed; manual review required: '+entry.file);
+    if(entry.before!==null && entry.before!==entry.after){
+      if(entry.file===adapterFile && gitBlob(entry.before)===reviewedPriorAuraBlob)continue;
+      if([kbFile,adapterFile,harnessFile,evidenceFile].includes(entry.file))
+        throw Error('Existing AURA dependency is not the reviewed baseline; preserved: '+entry.file);
+    }
   }
   console.log('=== TOWERFLOW AURA FROM GIT: '+(apply?'APPLY':'DRY RUN')+' ===');
   for(const e of plan)console.log((e.before===e.after?'UNCHANGED':'CHANGE   ')+e.file);
