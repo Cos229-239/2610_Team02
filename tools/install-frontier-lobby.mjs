@@ -10,6 +10,7 @@ import {createHash,randomUUID} from 'node:crypto';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const additionFile=join(root,'integrations','frontier','frontier-lobby.js');
+const cyberFile=join(root,'integrations','frontier','cyber-ambience.js');
 const paths=[
   join(homedir(),'Desktop','Towerflow_Team02_Private_Invite_Room','Towerflow_Collaboration_Room','public','room.js'),
   join(root,'collaboration-room','live-room','public','room.js')
@@ -35,6 +36,15 @@ export function patchRoom(original,addition) {
   }
   return original.replace(/\s*$/,'\n\n')+addon+'\n';
 }
+export function assertKnownFrontierInstallation(source,next,previous){
+  const i=source.indexOf(start),j=source.indexOf(end);
+  if(i===-1&&j===-1)return true;
+  if((i<0)!==(j<0)||j<i)throw Error('Partial Frontier install detected');
+  const observed=source.slice(i,j+end.length).trim();
+  if(observed!==next.trim()&&observed!==previous.trim())
+    throw Error('Existing Frontier module has unreviewed local changes; refusing replacement to preserve work');
+  return true;
+}
 async function checkSyntax(text) {
   const file=join(tmpdir(),'towerflow-frontier-'+randomUUID()+'.mjs');
   try {
@@ -49,12 +59,23 @@ async function main() {
   const projectorMachine=await readFile(join(root,'integrations','frontier','projector-machine.js'),'utf8');
   if(!projectorMachine.includes('TF_PROJECTOR_MACHINE_V1'))throw Error('Missing reviewed projector state engine');
   const addon=await readFile(additionFile,'utf8');
+  const cyber=await readFile(cyberFile,'utf8');
+  if(!cyber.includes('TF_FRONTIER_CYBER_AMBIENCE_V1'))throw Error('Reviewed cyber ambience module missing');
   // The room is a classic browser script, not a module; embed its reviewed
   // state engine inside the existing versioned Frontier region for safe updates.
-  const addition=addon.replace(start,start+'\n'+projectorMachine);
+  const addition=addon.replace(start,start+'\n'+projectorMachine+'\n'+cyber);
+  // Exact previous installed Frontier version (ancestor Git blob), not a fuzzy search.
+  // A local edit to the old Frontier region is never overwritten automatically.
+  const baselineAddon=execFileSync('git',['-C',root,'show','56e5b94e14fff22a23dcec64a735ddb2e839cab8'],{encoding:'utf8',timeout:10000});
+  const baseline=baselineAddon.replace(start,start+'\n'+projectorMachine);
+
   const liveFile=paths[0],workspaceFile=paths[1];
   if(!existsSync(liveFile))throw Error('Authoritative live Towerflow room missing: '+liveFile);
   const before=await readFile(liveFile,'utf8');
+  // This release ONLY optimizes the already installed room. Never create a divergent room.
+  if(!before.includes(start)||!before.includes(end))
+    throw Error('Existing Frontier region not found; refusing to install a replacement room');
+  assertKnownFrontierInstallation(before,addition,baseline);
   const after=patchRoom(before,addition);
   await checkSyntax(after);
   const plan=[{file:liveFile,before,after}];

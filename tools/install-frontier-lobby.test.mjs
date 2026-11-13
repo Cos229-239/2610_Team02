@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {patchRoom} from './install-frontier-lobby.mjs';
+import {patchRoom,assertKnownFrontierInstallation} from './install-frontier-lobby.mjs';
 const addon=readFileSync(new URL('../integrations/frontier/frontier-lobby.js',import.meta.url),'utf8');
 const room=[
   "import * as THREE from 'three';",
@@ -63,4 +63,22 @@ test('Rocky greeting is audio only: no official video player, floating video con
  assert.match(addon,/tfRockyGreeting/);
  assert.match(addon,/document\.createElement\("audio"\)/);
  assert.doesNotMatch(addon,/TF_ROCKY_OFFICIAL_VIDEO_V1|tfRockyOfficial|tfOfficialRockyVideo|youtube-nocookie|showOfficialRockyVideo/);
+});
+
+test('cyber layer is optional, tied to original world scene and not a new dashboard',()=>{
+ assert.match(addon,/TowerflowCyberAmbience\?\.install/);
+ assert.match(addon,/cyberAmbience\?\.update\(now\)/);
+ assert.match(addon,/setCyberAtmosphere/);
+ assert.match(addon,/Optional Frontier cyber ambience failed/);
+ assert.doesNotMatch(addon,/window\.open\(['"]\/photo-studio/);
+});
+test('installer preserves local unreviewed edits rather than overwriting existing Frontier',()=>{
+ const start='// TF_FRONTIER_LOBBY_V1_BEGIN';
+ const end='// TF_FRONTIER_LOBBY_V1_END';
+ const next=start+'\nNEW CODE\n'+end;
+ const old=start+'\nAPPROVED BASELINE\n'+end;
+ assert.equal(assertKnownFrontierInstallation(room,next,old),true);
+ assert.equal(assertKnownFrontierInstallation(room+'\n'+old,next,old),true);
+ assert.equal(assertKnownFrontierInstallation(room+'\n'+next,next,old),true);
+ assert.throws(()=>assertKnownFrontierInstallation(room+'\n'+start+'\nLOCAL EDIT\n'+end,next,old),/unreviewed local changes/);
 });

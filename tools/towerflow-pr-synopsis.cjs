@@ -34,9 +34,13 @@ function synopsis(changes,commits){
  "- [ ] Reviewer approves merge; deployment remains separate");
  return lines.join("\n")+"\n";
 }
+function approvedBase(base){
+ // Allow exactly one reviewed stacked-PR integration base; no arbitrary branches.
+ return /^(dev|main|master|feature\/frontier-execution-evidence-20261111)$/.test(base);
+}
 function run(){
  const base=(process.env.GITHUB_BASE_REF||process.argv[2]||"dev");
- if(!/^(dev|main|master)$/.test(base))throw Error("Only approved base branches supported");
+ if(!approvedBase(base))throw Error("Only approved base branches supported");
  const ref="origin/"+base;
  const changes=git(["diff","--name-status",ref+"...HEAD","--"]).split(/\r?\n/).filter(Boolean).map(line=>{
   const parts=line.split("\t");return {status:parts[0],path:parts[parts.length-1]};
@@ -47,4 +51,4 @@ function run(){
  else process.stdout.write(output);
 }
 if(require.main===module)try{run();}catch(e){console.error("SYNOPSIS UNAVAILABLE:",e.message);process.exitCode=1;}
-module.exports={synopsis,bucket};
+module.exports={synopsis,bucket,approvedBase};

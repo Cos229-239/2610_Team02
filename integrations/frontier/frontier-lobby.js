@@ -10,6 +10,10 @@
      !window.TowerflowProjectorMachine) return;
   const lobbyId="frontier";
   const projectorState=window.TowerflowProjectorMachine.create({clock:()=>performance.now()});
+  // Additive photogenic cyber architecture. Decorative mesh never receives wall clicks.
+  let cyberAmbience=null;
+  try {cyberAmbience=window.TowerflowCyberAmbience?.install({THREE,scene})??null;}
+  catch(error){console.warn("Optional Frontier cyber ambience failed; original room preserved:",error?.message);}
   // Physical fixtures from the ORIGINAL room; preserve each object's identity.
   const originalFixtures=scene.children.filter(obj=>{
     if(!obj.isMesh||!obj.geometry?.parameters)return false;
@@ -720,6 +724,7 @@
   function animateProjector(){
     requestAnimationFrame(animateProjector);
     const now=performance.now();
+    cyberAmbience?.update(now);
     const state=projectorState.tick(now);
     const active=state.lightOn;
     const descended=state.descended;
@@ -786,6 +791,6 @@
     cone.visible=active;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;}});
+  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled)});
 }());
 // TF_FRONTIER_LOBBY_V1_END
