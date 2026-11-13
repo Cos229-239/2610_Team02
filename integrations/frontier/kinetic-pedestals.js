@@ -60,7 +60,12 @@
    let previous=null;
    try{previous=JSON.parse(storage?.getItem(KEY)||"null");}catch{}
    const rows=platforms.map((p,i)=>{
-     const original=p.holo.children.slice();
+     const original=p.holo.children.map(child=>{
+       const priorMaterial=child.material;
+       const priorVisible=child.visible;
+       if(priorMaterial?.clone)child.material=priorMaterial.clone();
+       return {child,priorMaterial,priorVisible,cloned:child.material!==priorMaterial};
+     });
      const shardGeo=new THREE.TetrahedronGeometry(.18,0);
      const shardMat=new THREE.MeshBasicMaterial({color:COLORS.azure,transparent:true,opacity:.85,
        depthWrite:false,blending:THREE.AdditiveBlending});
@@ -83,7 +88,14 @@
        row.custom.geometry.dispose();row.custom.material.dispose();row.custom=null;
      }
      const useOriginal=row.setting.shape==="original";
-     for(const child of row.original)child.visible=useOriginal;
+     for(const record of row.original){
+       record.child.visible=useOriginal&&record.priorVisible;
+       const material=record.child.material;
+       material?.color?.setHex?.(COLORS[row.setting.color]);
+       material?.emissive?.setHex?.(COLORS[row.setting.color]);
+       if(material && "emissiveIntensity" in material)
+         material.emissiveIntensity=row.setting.intensity*.65;
+     }
      if(!useOriginal){
        const mat=new THREE.MeshStandardMaterial({
          color:COLORS[row.setting.color],metalness:.52,roughness:.19,transparent:true,opacity:.94,
@@ -156,7 +168,11 @@
        for(const r of rows){
          if(r.custom){r.p.holo.remove(r.custom);r.custom.geometry.dispose();r.custom.material.dispose();}
          r.p.group.remove(r.shards);r.shardGeo.dispose();r.shardMat.dispose();
-         for(const child of r.original)child.visible=true;
+         for(const record of r.original){
+           if(record.cloned)record.child.material?.dispose?.();
+           record.child.material=record.priorMaterial;
+           record.child.visible=record.priorVisible;
+         }
          r.p.holo.position.copy(r.origPosition);r.p.holo.rotation.copy(r.origRotation);r.p.holo.scale.copy(r.origScale);
          delete r.p.holo.userData.tfPedestalId;delete r.p.holo.userData.tfPedestalSelectable;
        }
