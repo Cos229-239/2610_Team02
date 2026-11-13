@@ -92,7 +92,14 @@ test("photonic lighting retains original ring props and uses two actual shadowle
  assert.equal(ctl.stats().newLocalLights,2);
  assert.equal(ctl.stats().newShadowCasters,0);
  assert.equal(ctl.stats().bloomComposerAdded,false);
- ctl.configure({preset:"ember-portal",intensity:1.6});
+ assert.equal(ctl.stats().estimatedMeshDrawCalls,16);
+ assert.ok(neon.PRESETS["phoenix-spectrum"]);
+ ctl.configure({preset:"phoenix-spectrum",intensity:1.6});
+ for(const p of pads){
+   const photonic=p.group.children.find(x=>x.name?.startsWith("TF_ORIGINAL_RING_PHOTONIC_AURA_"));
+   assert.equal(photonic.children.length,4);
+   assert.ok(photonic.children.every(x=>x.userData.tfDecorativeOnly&&x.castShadow===false));
+ }
  ctl.update(1400,0);
  for(const p of pads)assert.ok(p.group.children.length>=original[pads.indexOf(p)].length+1);
  ctl.update(1600,1);ctl.dispose();
