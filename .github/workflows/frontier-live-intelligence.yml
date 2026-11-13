@@ -34,6 +34,7 @@ jobs:
       - name: Static syntax
         run: |
           node --check integrations/agents/dual-agent-harness.cjs
+          node --check integrations/agents/agent-handler.cjs
           node --check integrations/agents/online-evidence-learner.cjs
           node --check tools/install-shared-world-from-git.mjs
           node --check tools/install-towerflow-aura-from-git.mjs
