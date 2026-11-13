@@ -18,7 +18,7 @@ const clientStart='// TF_AURA_ROOM_CLIENT_V1_BEGIN';
 const clientEnd='// TF_AURA_ROOM_CLIENT_V1_END';
 const moveMarker='// TF_DEV_ROOM_MOVE_SYNC_V1';
 const sha = s=>createHash('sha256').update(s).digest('hex');
-const gitBlob = s=>createHash('sha1').update('blob '+Buffer.byteLength(s,'utf8')+'\\0').update(s,'utf8').digest('hex');
+const gitBlob = s=>createHash('sha1').update('blob '+Buffer.byteLength(s,'utf8')+'\0').update(s,'utf8').digest('hex');
 const reviewedPriorAuraBlob='5186450266fc2fb631ebc6e3a291473d3febad38';
 function requireUnique(source,anchor) {
   const index=source.indexOf(anchor);
