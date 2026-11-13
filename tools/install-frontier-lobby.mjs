@@ -72,6 +72,9 @@ async function main() {
   const liveFile=paths[0],workspaceFile=paths[1];
   if(!existsSync(liveFile))throw Error('Authoritative live Towerflow room missing: '+liveFile);
   const before=await readFile(liveFile,'utf8');
+  // This release ONLY optimizes the already installed room. Never create a divergent room.
+  if(!before.includes(start)||!before.includes(end))
+    throw Error('Existing Frontier region not found; refusing to install a replacement room');
   assertKnownFrontierInstallation(before,addition,baseline);
   const after=patchRoom(before,addition);
   await checkSyntax(after);
