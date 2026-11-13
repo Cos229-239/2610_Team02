@@ -51,6 +51,7 @@ The current implementation uses an additive transparency halo, actual limited-ra
 - \`tfFrontier.setLighting("electric-dusk",1.0)\`
 - \`tfFrontier.setCinematicFidelity(true)\`
 - \`tfFrontier.toggleChat()\`
+- \`tfFrontier.performance\` returns observed p50/p95 frame intervals and current draw-call/triangle estimates; does not certify no regressions without a before baseline.
 - \`tfFrontier.bindTeamChatTransport(authenticatedExistingRoomChatAdapter) // optional replacement of the native in-room binding\`
 - \`tfFrontier.mountReviewedGLB({manifest,loader})\` with approved local asset + SHA-256.
 
