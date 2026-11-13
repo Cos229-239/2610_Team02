@@ -7,9 +7,9 @@
        trace=document.getElementById("tfAgentTrace");
  if(!inspect||!runInventory||!runMarket||!status||!trace)return;
  const $=id=>document.getElementById(id);
- const planButton=$("tfAgentPlan"),approveButton=$("tfAgentApprovePlan"),question=$("tfAgentQuestion");
+ const planButton=$("tfAgentPlan"),approveButton=$("tfAgentApprovePlan"),question=$("tfAgentQuestion"),companyBtn=$("tfAgentCompany");
  let proposed=null;
- const buttons=[inspect,runInventory,runMarket,planButton];
+ const buttons=[inspect,runInventory,runMarket,planButton,companyBtn].filter(Boolean);
  const print=data=>{trace.textContent=JSON.stringify(data,null,2).slice(0,18000);};
  const busy=b=>buttons.forEach(btn=>btn.disabled=b);
  async function request(url,body){
@@ -40,7 +40,7 @@
   try{
    const result=await request("/api/agents/plan",{question:text,itemsAvailable:true});
    if(result.executed!==false||result.approved!==false||
-      !["inventory.review","market.research"].includes(result.proposal?.skill))
+      !["inventory.review","market.research","company.research"].includes(result.proposal?.skill))
      throw Error("Unapproved or unsupported model tool proposal");
    proposed=result.proposal;
    approveButton.disabled=false;
@@ -53,7 +53,10 @@
  approveButton.addEventListener("click",()=>{
   const p=proposed;proposed=null;approveButton.disabled=true;
   if(!p)return;
-  if(p.skill==="market.research"){
+  if(p.skill==="company.research"){
+    if(!confirm("Approve FLOW SEC EDGAR company facts lookup for CIK "+p.cik+"? Official filing facts are periodic, not live sales."))return;
+    execute({skill:"company.research",cik:p.cik,idempotencyKey:taskKey()});
+  }else if(p.skill==="market.research"){
     if(!confirm("Approve FLOW market.quote for "+p.symbol+"? This performs one authenticated provider lookup, not a trade."))return;
     execute({skill:"market.research",symbol:p.symbol,idempotencyKey:taskKey()});
   }else if(p.skill==="inventory.review"){
@@ -77,6 +80,12 @@
   if(!Array.isArray(items)||items.length>250){status.textContent="Inventory skill supports 250 items per invocation.";return;}
   if(!confirm("Send "+items.length+" inventory records to the authenticated FLOW agent task runner? This includes SKU, product name, costs and recorded weekly sales."))return;
   execute({skill:"inventory.review",idempotencyKey:taskKey(),items});
+ });
+ companyBtn?.addEventListener("click",()=>{
+  const cik=$("tfCompanyCIK")?.value.trim();
+  if(!/^\\d{1,10}$/.test(cik||"")){status.textContent="Enter a valid SEC CIK (1 to 10 digits).";return;}
+  if(!confirm("Fetch real public-company SEC EDGAR financial filing facts for CIK "+cik+"? Figures are not streaming sales."))return;
+  execute({skill:"company.research",idempotencyKey:taskKey(),cik});
  });
  runMarket.addEventListener("click",()=>{
   const symbol=$("tfMarketTicker")?.value.trim().toUpperCase();
