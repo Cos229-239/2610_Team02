@@ -1,7 +1,8 @@
 "use strict";
 // GET-only authenticated market quote handler; app supplies auth+ensureMember.
-const {createQuotes,symbol}=require("./alpha-vantage.cjs");
-function createMarketHandler({quotes=createQuotes()}={}){
+const {symbol}=require("./alpha-vantage.cjs");
+const {createSourceAwareQuotes}=require("./alpaca-iex.cjs");
+function createMarketHandler({quotes=createSourceAwareQuotes()}={}){
  return async function marketHandler(req,res){
   res.set("Cache-Control","no-store");
   res.set("X-Content-Type-Options","nosniff");
