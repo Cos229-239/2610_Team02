@@ -76,6 +76,8 @@ test('cyber layer is optional, tied to original world scene and not a new dashbo
  assert.match(addon,/TowerflowTeamChatDock\?\.install/);
  assert.match(addon,/pedestalPick\(raycaster\)/);
  assert.match(addon,/bindTeamChatTransport/);
+ assert.match(addon,/get performance\(\)\{return frameTelemetry\(\);\}/);
+ assert.match(addon,/p95FrameMs/);
  assert.match(addon,/socket\?\.addEventListener\?\.\("message",onExistingChat\)/);
  assert.match(addon,/send\(\{type:"chat",text:outbound\}\)/);
  assert.match(addon,/setCyberAtmosphere/);
