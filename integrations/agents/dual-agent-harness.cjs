@@ -12,8 +12,8 @@ const CAPABILITIES=Object.freeze({
  }),
  FLOW:Object.freeze({
   surface:"towerflow",
-  installed:["inventory.review","market.research"],
-  candidates:["company.research","inventory.connector.inspect","business.product.swap.simulate","financial.report.compile"],
+  installed:["inventory.review","market.research","company.research"],
+  candidates:["inventory.connector.inspect","business.product.swap.simulate","financial.report.compile"],
   boundary:"Business/inventory/market TowerFlow application, not the Frontier room scene"
  })
 });
