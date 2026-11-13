@@ -28,12 +28,14 @@ jobs:
       - name: Parse original-world addons
         run: |
           node --check integrations/frontier/cyber-ambience.js
+          node --check integrations/frontier/cinematic-fidelity.js
           node --check integrations/frontier/frontier-lobby.js
           node --check tools/install-frontier-lobby.mjs
       - name: Test cyber geometry, projector, and existing room installer guards
         run: >
           node --test
           integrations/frontier/cyber-ambience.test.cjs
+          integrations/frontier/cinematic-fidelity.test.cjs
           integrations/frontier/projector-machine.test.cjs
           tools/install-frontier-lobby.test.mjs
       - name: Source-preservation assertions
