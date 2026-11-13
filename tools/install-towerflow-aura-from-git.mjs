@@ -108,15 +108,30 @@ async function main() {
   const kb=await readFile(join(repoRoot,'towerflow-knowledge','WORLD.md'),'utf8');
   const serverFile=join(liveRoot,'server.js'),roomFile=join(liveRoot,'public','room.js');
   const syncFile=join(workspaceRoot,'public','room.js');
-  for(const file of [serverFile,roomFile,syncFile]) if(!existsSync(file)) throw Error('Missing expected local file: '+file);
-  const originals=await Promise.all([serverFile,roomFile,syncFile].map(f=>readFile(f,'utf8')));
-  const newServer=patchServer(originals[0]);
-  const newRoom=patchRoom(originals[1],client);
-  const syncRoom=patchRoom(originals[2],client);
-  ensureExpected(originals[0],newServer,expectedServer,'live server.js');
-  ensureExpected(originals[1],newRoom,expectedRoom,'live public/room.js');
-  ensureExpected(originals[2],syncRoom,expectedRoom,'workspace public/room.js');
-  if(newRoom!==syncRoom) throw Error('Live and workspace room would diverge; refusing update');
+  // The real Windows host is authoritative. A fresh feature worktree does not
+  // contain an imported live-room snapshot, and must not manufacture one.
+  for(const file of [serverFile,roomFile]) if(!existsSync(file))
+    throw Error('Missing authoritative local file: '+file);
+  const [liveServer,liveRoom]=await Promise.all([serverFile,roomFile].map(f=>readFile(f,'utf8')));
+  const newServer=patchServer(liveServer);
+  const newRoom=patchRoom(liveRoom,client);
+  ensureExpected(liveServer,newServer,expectedServer,'live server.js');
+  ensureExpected(liveRoom,newRoom,expectedRoom,'live public/room.js');
+  // Only update an imported contributor copy if it matches live byte-for-byte.
+  // Divergent sources are never overwritten to force synchronization.
+  let syncRoom=null;
+  if(existsSync(syncFile)){
+    const current=await readFile(syncFile,'utf8');
+    if(current===liveRoom) {
+      syncRoom=patchRoom(current,client);
+      if(syncRoom!==newRoom) throw Error('Proposed workspace room differs from live; refusing patch');
+      console.log('WORKSPACE AURA: matching imported room; staged both copies.');
+    } else {
+      console.log('WORKSPACE AURA: divergent; untouched.');
+    }
+  } else {
+    console.log('WORKSPACE AURA: no imported live-room snapshot; skipped safely.');
+  }
   await Promise.all([
     checkSyntax(newServer,'commonjs'),
     checkSyntax(newRoom,'module'),
@@ -129,7 +144,7 @@ async function main() {
   const plan=[
     {file:serverFile,after:newServer},
     {file:roomFile,after:newRoom},
-    {file:syncFile,after:syncRoom},
+    ...(syncRoom===null?[]:[{file:syncFile,after:syncRoom}]),
     {file:kbFile,after:kb},
     {file:adapterFile,after:adapter},
     {file:harnessFile,after:harness},
