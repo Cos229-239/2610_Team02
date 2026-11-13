@@ -4,11 +4,13 @@ on:
     paths:
       - 'integrations/frontier/**'
       - 'tools/install-frontier-lobby*'
+      - 'tools/deploy-frontier-cinematic.ps1'
       - '.github/workflows/frontier-cyber-preservation.yml'
   pull_request:
     paths:
       - 'integrations/frontier/**'
       - 'tools/install-frontier-lobby*'
+      - 'tools/deploy-frontier-cinematic.ps1'
       - '.github/workflows/frontier-cyber-preservation.yml'
 permissions:
   contents: read
@@ -42,6 +44,14 @@ jobs:
           integrations/frontier/experience-upgrades.test.cjs
           integrations/frontier/projector-machine.test.cjs
           tools/install-frontier-lobby.test.mjs
+      - name: Parse original-room release PowerShell (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('tools/deploy-frontier-cinematic.ps1',[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ($errors | Out-String) }
       - name: Source-preservation assertions
         shell: bash
         run: |
