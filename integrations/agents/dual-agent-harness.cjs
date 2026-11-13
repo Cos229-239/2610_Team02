@@ -18,7 +18,7 @@ const CAPABILITIES=Object.freeze({
  })
 });
 function modelProfile(model){
- if(typeof model!=="string"||model.length<2||model.length>120||!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]+$/.test(model))throw Error("Invalid model identifier");
+ if(typeof model!=="string"||model.length<2||model.length>120||model.includes("://")||!/^[a-zA-Z0-9][a-zA-Z0-9._:/-]+$/.test(model))throw Error("Invalid model identifier");
  const id=model.toLowerCase();
  const family=/claude/.test(id)?"anthropic":/gpt|o[134]-/.test(id)?"openai":
  /gemma/.test(id)?"gemma":/hermes/.test(id)?"hermes":
@@ -85,7 +85,7 @@ function feedbackRecord({agent,model,taskId,revision,trial,reviewer,consent}={})
   !/^[A-Za-z0-9_-]{8,90}$/.test(taskId)||typeof revision!=="string"||revision.length<7)
    throw Error("Invalid feedback identity");
  if(consent!==true||typeof reviewer!=="string"||!/^[A-Za-z0-9_-]{2,80}$/.test(reviewer))
-   throw Error("Reviewed opt-in feedback required");
+   throw Error("Reviewed consent required for opt-in feedback");
  if(!trial||!["PASS","FAIL"].includes(trial.result)||!["CODE","PATTERN","PRESERVATION"].includes(trial.dimension)||
    typeof trial.evidenceRef!=="string"||!/^(test:|sha256:|review:|artifact:)/.test(trial.evidenceRef))
    throw Error("Independent trial evidence required");
