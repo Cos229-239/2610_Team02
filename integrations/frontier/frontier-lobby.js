@@ -201,13 +201,20 @@
 
   // Original retractable displays now support configurable geometry, kinetic patterns,
   // colors and reversible fracture effects. The lift owns platform position.
-  let kineticPedestals=null,neonLighting=null,teamChatDock=null;
+  let kineticPedestals=null,neonLighting=null,teamChatDock=null,environmentAudio=null;
   try {kineticPedestals=window.TowerflowKineticPedestals?.install({THREE,platforms})??null;}
   catch(error){console.warn("Optional kinetic pedestal controls unavailable:",error?.message);}
   try {neonLighting=window.TowerflowNeonLighting?.install({THREE,platforms})??null;}
   catch(error){console.warn("Optional photonic illumination unavailable:",error?.message);}
   try {teamChatDock=window.TowerflowTeamChatDock?.install({doc:document})??null;}
   catch(error){console.warn("Optional C-key team chat dock unavailable:",error?.message);}
+  // Existing Sound Garden's #stopMusic button is dynamic. Capture its click
+  // and stop ONLY explicitly tagged ambient sources, never teammates' voice.
+  // The original stopAmbience() handler remains in place. To guarantee silence,
+  // host Sound Garden source creation must be registered through trackAmbientAudio.
+  try {environmentAudio=window.TowerflowEnvironmentAudio?.create({doc:document})??null;}
+  catch(error){console.warn("Optional Sound Garden audio gate unavailable:",error?.message);}
+
   // Source-matched to the original uploaded live-room client contract:
   // original ws sends {type:'chat',text} and receives {type:'chat',id,text}.
   // Attach a SECOND listener to the EXISTING authenticated socket. Never create
@@ -969,6 +976,6 @@
     cone.visible=active;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader}),get performance(){return frameTelemetry();},get lighting(){return neonLighting?.stats()??null;},setLighting:(preset,intensity)=>neonLighting?.configure({preset,intensity}),get kineticPedestals(){return kineticPedestals?.stats()??null;},configurePedestal:(index,settings)=>kineticPedestals?.configure(index,settings),shatterPedestal:(index)=>kineticPedestals?.shatter(index,performance.now()),get chat(){return teamChatDock?.stats()??null;},toggleChat:()=>teamChatDock?.setOpen(!teamChatDock.open),bindTeamChatTransport:(adapter)=>teamChatDock?.attachTransport(adapter)});
+  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader}),get performance(){return frameTelemetry();},get lighting(){return neonLighting?.stats()??null;},setLighting:(preset,intensity)=>neonLighting?.configure({preset,intensity}),get kineticPedestals(){return kineticPedestals?.stats()??null;},configurePedestal:(index,settings)=>kineticPedestals?.configure(index,settings),shatterPedestal:(index)=>kineticPedestals?.shatter(index,performance.now()),get chat(){return teamChatDock?.stats()??null;},toggleChat:()=>teamChatDock?.setOpen(!teamChatDock.open),bindTeamChatTransport:(adapter)=>teamChatDock?.attachTransport(adapter),get ambientAudio(){return environmentAudio?.stats()??null;},trackAmbientAudio:(source)=>environmentAudio?.track(source),stopAmbientAudio:()=>environmentAudio?.stop(),armAmbientAudio:()=>environmentAudio?.arm()});
 }());
 // TF_FRONTIER_LOBBY_V1_END
