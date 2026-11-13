@@ -45,6 +45,16 @@ jobs:
           node --check integrations/market/sec-company-facts.cjs
           node --check integrations/contributions/object-contract.cjs
           node --check TowerFlow/flow-agent-ui.js
+      - name: Check guarded PowerShell launcher syntax
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens=$null
+          $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            'tools/launch-original-frontier.ps1',[ref]$tokens,[ref]$errors
+          ) | Out-Null
+          if($errors.Count -gt 0){ throw ($errors | Out-String) }
       - name: Source-aware market, company, intelligence and contributor tests
         run: >
           node --test
