@@ -230,10 +230,12 @@
           <button type="button" class="btn secondary" id="tfAgentInspect">Inspect connected agent skills</button>
           <button type="button" class="btn primary" id="tfAgentInventory">Run inventory.review</button>
           <button type="button" class="btn secondary" id="tfAgentMarket">Run market.research</button>
+          <button type="button" class="btn secondary" id="tfLiveQuoteToggle" aria-pressed="false">Start real quote feed</button>
           <label>SEC CIK <input id="tfCompanyCIK" type="text" inputmode="numeric" maxlength="10" value="0000320193" aria-label="Public company SEC CIK"></label>
           <button type="button" class="btn secondary" id="tfAgentCompany">Research SEC company facts</button>
         </div>
         <p>Each task requires an explicit click and remains subject to GitHub authentication. Sending an inventory task transmits up to 250 normalized product records; do not submit confidential catalog data without authorization.</p>
+        <p class="tf-source-badge" id="tfLiveQuoteStatus" role="status">Market feed offline · requires authorized server-side provider</p>
         <p role="status" id="tfAgentStatus">Agent status not yet checked.</p>
         <pre class="tf-agent-trace" id="tfAgentTrace" aria-live="polite">No tool calls executed.</pre>
       </section>
