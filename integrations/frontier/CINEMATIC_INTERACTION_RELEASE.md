@@ -26,7 +26,7 @@ The collaboration room must feel like a dramatic cybersecurity engineering headq
 
 **Object actions:** All four pre-existing floor platforms have a click/E customization panel while raised. Available geometry: original/icosahedron/dodecahedron/octahedron/sphere/cube/torus/torusKnot/cone. Patterns: spin/hover/orbit/figure8/pendulum/helix/static. Validated speed and intensity bounds. Shatter is an additive optical effect, not computational fracturing, and returns to original form. Settings persist *per browser*, not yet authoritative multiplayer state.
 
-**Chat:** \`C\` toggles the left dock if focus is not an editable text control. The dock refuses message input until it is bound to the existing authenticated room chat stream. \`tfFrontier.bindTeamChatTransport({subscribe,send,history?})\` supplies that adapter. Message authors and text render via safe \`textContent\`; no stored HTML. A team-shared chat claim requires a source-matched bridge to the **actual live room** WebSocket, which has not been imported into this branch.
+**Chat:** \`C\` toggles the left dock if focus is not an editable text control. The dock binds to the original uploaded chat protocol on the **existing WebSocket** (without opening another connection): \`{type:'chat',text}\` outbound and \`{type:'chat',id,text}\` inbound. The prior client explicitly enforced **140 characters**; preserve that cap. The implementation also exposes \`tfFrontier.bindTeamChatTransport({subscribe,send,history?})\` for a versioned future host adapter. Message authors and text use safe \`textContent\`. Original source was retrieved from a prior uploaded client bundle; the current SHA-256 live host must still be inspected and tested with two authenticated clients before cross-client delivery is claimed.
 
 **Debugger:** In-room editor remains a repository file editor, not an executable host terminal; a labeled Codespaces link accesses a **real** isolated debugger and terminal. VS Code \`.vscode/launch.json\` has two runnable isolated Node test/debug configurations; \`.vscode/tasks.json\` provides one-click graphics + interaction test task.
 
@@ -51,7 +51,7 @@ The current implementation uses an additive transparency halo, actual limited-ra
 - \`tfFrontier.setLighting("electric-dusk",1.0)\`
 - \`tfFrontier.setCinematicFidelity(true)\`
 - \`tfFrontier.toggleChat()\`
-- \`tfFrontier.bindTeamChatTransport(authenticatedExistingRoomChatAdapter)\`
+- \`tfFrontier.bindTeamChatTransport(authenticatedExistingRoomChatAdapter) // optional replacement of the native in-room binding\`
 - \`tfFrontier.mountReviewedGLB({manifest,loader})\` with approved local asset + SHA-256.
 
 **Host install candidate:** fetch into isolated Git worktree rather than checkout/force resetting \`Desktop/Towerflow_Upgraded\`. Run: \`node --test integrations/frontier/cinematic-fidelity.test.cjs integrations/frontier/experience-upgrades.test.cjs integrations/frontier/cyber-ambience.test.cjs integrations/frontier/projector-machine.test.cjs tools/install-frontier-lobby.test.mjs\`. Then \`node tools/install-frontier-lobby.mjs --dry-run\`; only if this passes proceed with \`--apply\`. Refresh the original authenticated room browser. No host Node restart is required for inlined, browser-only module changes. In-house host AI service staging remains separate.
