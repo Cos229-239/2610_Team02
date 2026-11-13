@@ -55,6 +55,16 @@ The actual Windows-hosted server.js and public/room.js are not fully accessible 
 
 Approved sequence: inspect authoritative live source → identify exact reviewed revision → execute suite → dry-run gated installers → targeted backup → stage → planned Node restart with teammates → verify /api/health, member permissions, AURA and FLOW, real provider timestamps, original room and real 2-client workflow → record rollback receipt. Never auto-replace the original room.
 
+## Original-room guarded one-command staging (Windows)
+From a local checkout containing this reviewed branch, with authorized credentials configured only in the host environment:
+    powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\launch-original-frontier.ps1 -ApplyCyber -StageIntelligence
+
+This command starts from the original live server.js/public/room.js (never creates a substitute); validates reviewed source; dry-runs all installers before staging; preserves unknown/diverged host source; avoids interrupting existing Node/Tailscale sessions; and opens the original room at http://127.0.0.1:4173/room/team02.
+
+Running this command is NOT implied by a GitHub commit or chat reply. If the original room or companion checkout is absent/diverged, it stops. If Node was already running, new server modules are STAGED only and require a separately coordinated restart; existing participants are not disconnected by the script. Source/pattern/preservation and real provider authorization remain independent gates.
+
+
+
 ## Authoritative sources
 - SEC EDGAR APIs: https://www.sec.gov/search-filings/edgar-application-programming-interfaces
 - Alpaca IEX coverage: https://docs.alpaca.markets/us/docs/about-market-data-api
