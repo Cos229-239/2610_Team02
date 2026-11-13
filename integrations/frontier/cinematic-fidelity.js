@@ -68,7 +68,7 @@
       throw Error("GLB v2 envelope required");
     const size=v.getUint32(12,true);
     if(size<2||size>1024*1024||20+size>data.byteLength)throw Error("GLB JSON chunk exceeds limit");
-    const meta=JSON.parse(new TextDecoder().decode(new Uint8Array(data,20,size)).trim());
+    const meta=JSON.parse(new TextDecoder().decode(new Uint8Array(data,20,size)).replace(/[\u0000\s]+$/g,""));
     for(const row of [...(meta.buffers||[]),...(meta.images||[])]){
       if(row.uri!==undefined)throw Error("External GLB resource URI prohibited");
     }
