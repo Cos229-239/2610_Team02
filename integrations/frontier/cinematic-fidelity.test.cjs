@@ -22,6 +22,7 @@ function sampleGLB(json={asset:{version:"2.0"},buffers:[{byteLength:0}]}) {
   const bytes=Buffer.from(JSON.stringify(json));
   const len=(bytes.length+3)&~3;
   const out=Buffer.alloc(20+len);
+  out.fill(0x20,20,20+len); // GLB 2.0 JSON chunk uses SPACE padding, not NUL.
   out.writeUInt32LE(0x46546c67,0);out.writeUInt32LE(2,4);
   out.writeUInt32LE(out.byteLength,8);out.writeUInt32LE(len,12);
   out.writeUInt32LE(0x4e4f534a,16);bytes.copy(out,20);
