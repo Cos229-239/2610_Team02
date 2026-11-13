@@ -26,7 +26,8 @@ export function checkMergedRoom(original,updated) {
     throw Error("Unrelated room source changed — refusing upgrade");
   const markers=["TF_PROJECTOR_MACHINE_V1","TF_FRONTIER_CYBER_AMBIENCE_V1",
     "TF_FRONTIER_CINEMATIC_FIDELITY_V1","TF_FRONTIER_KINETIC_PEDESTALS_V1",
-    "TF_FRONTIER_NEON_LIGHTING_V1","TF_FRONTIER_TEAM_CHAT_DOCK_V1"];
+    "TF_FRONTIER_NEON_LIGHTING_V1","TF_FRONTIER_TEAM_CHAT_DOCK_V1",
+    "TF_FRONTIER_ENVIRONMENT_AUDIO_V1"];
   for(const marker of markers) {
     // Some markers occur once in module comments and once in an error message;
     // unique strict marker counts are not a reliable identity test.
@@ -59,7 +60,7 @@ function construct() {
   const cyber=source("cyber-ambience.js");
   const modules=[
     project,cyber,source("cinematic-fidelity.js"),source("kinetic-pedestals.js"),
-    source("neon-lighting.js"),source("team-chat-dock.js")
+    source("neon-lighting.js"),source("team-chat-dock.js"),source("environment-audio.js")
   ];
   if(!lobby.startsWith(start)||!lobby.trimEnd().endsWith(end)||
     lobby.indexOf(start,start.length)!==-1)throw Error("Reviewed lobby markers invalid");
