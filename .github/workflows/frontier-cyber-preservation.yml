@@ -29,6 +29,9 @@ jobs:
         run: |
           node --check integrations/frontier/cyber-ambience.js
           node --check integrations/frontier/cinematic-fidelity.js
+          node --check integrations/frontier/kinetic-pedestals.js
+          node --check integrations/frontier/neon-lighting.js
+          node --check integrations/frontier/team-chat-dock.js
           node --check integrations/frontier/frontier-lobby.js
           node --check tools/install-frontier-lobby.mjs
       - name: Test cyber geometry, projector, and existing room installer guards
@@ -36,6 +39,7 @@ jobs:
           node --test
           integrations/frontier/cyber-ambience.test.cjs
           integrations/frontier/cinematic-fidelity.test.cjs
+          integrations/frontier/experience-upgrades.test.cjs
           integrations/frontier/projector-machine.test.cjs
           tools/install-frontier-lobby.test.mjs
       - name: Source-preservation assertions
