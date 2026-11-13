@@ -11,7 +11,9 @@
   const lobbyId="frontier";
   const projectorState=window.TowerflowProjectorMachine.create({clock:()=>performance.now()});
   // Additive photogenic cyber architecture. Decorative mesh never receives wall clicks.
-  const cyberAmbience=window.TowerflowCyberAmbience?.install({THREE,scene});
+  let cyberAmbience=null;
+  try {cyberAmbience=window.TowerflowCyberAmbience?.install({THREE,scene})??null;}
+  catch(error){console.warn("Optional Frontier cyber ambience failed; original room preserved:",error?.message);}
   // Physical fixtures from the ORIGINAL room; preserve each object's identity.
   const originalFixtures=scene.children.filter(obj=>{
     if(!obj.isMesh||!obj.geometry?.parameters)return false;
