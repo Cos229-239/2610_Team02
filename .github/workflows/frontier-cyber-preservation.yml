@@ -5,12 +5,14 @@ on:
       - 'integrations/frontier/**'
       - 'tools/install-frontier-lobby*'
       - 'tools/deploy-frontier-cinematic.ps1'
+      - 'tools/reconcile-frontier-cinematic*'
       - '.github/workflows/frontier-cyber-preservation.yml'
   pull_request:
     paths:
       - 'integrations/frontier/**'
       - 'tools/install-frontier-lobby*'
       - 'tools/deploy-frontier-cinematic.ps1'
+      - 'tools/reconcile-frontier-cinematic*'
       - '.github/workflows/frontier-cyber-preservation.yml'
 permissions:
   contents: read
