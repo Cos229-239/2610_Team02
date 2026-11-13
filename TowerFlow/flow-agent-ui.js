@@ -7,9 +7,9 @@
        trace=document.getElementById("tfAgentTrace");
  if(!inspect||!runInventory||!runMarket||!status||!trace)return;
  const $=id=>document.getElementById(id);
- const planButton=$("tfAgentPlan"),approveButton=$("tfAgentApprovePlan"),question=$("tfAgentQuestion");
+ const planButton=$("tfAgentPlan"),approveButton=$("tfAgentApprovePlan"),question=$("tfAgentQuestion"),companyBtn=$("tfAgentCompany");
  let proposed=null;
- const buttons=[inspect,runInventory,runMarket,planButton];
+ const buttons=[inspect,runInventory,runMarket,planButton,companyBtn].filter(Boolean);
  const print=data=>{trace.textContent=JSON.stringify(data,null,2).slice(0,18000);};
  const busy=b=>buttons.forEach(btn=>btn.disabled=b);
  async function request(url,body){
@@ -40,7 +40,7 @@
   try{
    const result=await request("/api/agents/plan",{question:text,itemsAvailable:true});
    if(result.executed!==false||result.approved!==false||
-      !["inventory.review","market.research"].includes(result.proposal?.skill))
+      !["inventory.review","market.research","company.research"].includes(result.proposal?.skill))
      throw Error("Unapproved or unsupported model tool proposal");
    proposed=result.proposal;
    approveButton.disabled=false;
@@ -53,7 +53,10 @@
  approveButton.addEventListener("click",()=>{
   const p=proposed;proposed=null;approveButton.disabled=true;
   if(!p)return;
-  if(p.skill==="market.research"){
+  if(p.skill==="company.research"){
+    if(!confirm("Approve FLOW SEC EDGAR company facts lookup for CIK "+p.cik+"? Official filing facts are periodic, not live sales."))return;
+    execute({skill:"company.research",cik:p.cik,idempotencyKey:taskKey()});
+  }else if(p.skill==="market.research"){
     if(!confirm("Approve FLOW market.quote for "+p.symbol+"? This performs one authenticated provider lookup, not a trade."))return;
     execute({skill:"market.research",symbol:p.symbol,idempotencyKey:taskKey()});
   }else if(p.skill==="inventory.review"){
@@ -78,6 +81,52 @@
   if(!confirm("Send "+items.length+" inventory records to the authenticated FLOW agent task runner? This includes SKU, product name, costs and recorded weekly sales."))return;
   execute({skill:"inventory.review",idempotencyKey:taskKey(),items});
  });
+ companyBtn?.addEventListener("click",()=>{
+  const cik=$("tfCompanyCIK")?.value.trim();
+  if(!/^\d{1,10}$/.test(cik||"")){status.textContent="Enter a valid SEC CIK (1 to 10 digits).";return;}
+  if(!confirm("Fetch real public-company SEC EDGAR financial filing facts for CIK "+cik+"? Figures are not streaming sales."))return;
+  execute({skill:"company.research",idempotencyKey:taskKey(),cik});
+ });
+ // Opt-in, same-origin, read-only polling of actual provider trades. No invented quotes.
+ const liveToggle=$("tfLiveQuoteToggle"),liveStatus=$("tfLiveQuoteStatus");
+ let liveTimer=null,liveInFlight=false;
+ async function liveQuote(){
+  if(liveInFlight||document.visibilityState==="hidden")return;
+  const ticker=$("tfMarketTicker")?.value.trim().toUpperCase();
+  if(!/^[A-Z][A-Z0-9.-]{0,13}$/.test(ticker||"")){
+   liveStatus.textContent="Enter a valid ticker for the real market feed.";stopLive();return;
+  }
+  liveInFlight=true;
+  try{
+   const response=await fetch("/api/market/quote?symbol="+encodeURIComponent(ticker),{
+    credentials:"same-origin",cache:"no-store",headers:{Accept:"application/json"}
+   });
+   const payload=await response.json().catch(()=>null);
+   if(!response.ok||payload?.status!=="PROVIDER_DATA")throw Error(payload?.message||"Provider unavailable");
+   const q=payload.quote;
+   if(!q||!Number.isFinite(q.price)||!Number.isFinite(Date.parse(q.asOf))||
+     typeof q.source!=="string")throw Error("Provider evidence is incomplete");
+   liveStatus.textContent=ticker+" · "+q.price.toFixed(2)+" USD · "+q.source+" · "+q.asOf+
+     " · "+(q.coverage||"provider-specific coverage")+" · "+q.freshness+
+     (q.cache==="HIT"?" · cached":"");
+  }catch(error){
+   liveStatus.textContent="FEED DISCONNECTED: "+String(error.message).slice(0,180)+". No fallback prices shown.";
+   stopLive();
+  }finally{liveInFlight=false;}
+ }
+ function stopLive(){
+  if(liveTimer!==null)clearInterval(liveTimer);
+  liveTimer=null;
+  if(liveToggle){liveToggle.setAttribute("aria-pressed","false");liveToggle.textContent="Start real quote feed";}
+ }
+ liveToggle?.addEventListener("click",()=>{
+  if(liveTimer!==null){stopLive();liveStatus.textContent="Market feed paused by user.";return;}
+  liveToggle.setAttribute("aria-pressed","true");
+  liveToggle.textContent="Stop quote feed";
+  liveStatus.textContent="Connecting to authenticated real-data provider…";
+  liveQuote();liveTimer=setInterval(liveQuote,12000);
+ });
+ window.addEventListener("pagehide",stopLive);
  runMarket.addEventListener("click",()=>{
   const symbol=$("tfMarketTicker")?.value.trim().toUpperCase();
   if(!/^[A-Z][A-Z0-9.-]{0,13}$/.test(symbol||"")){status.textContent="Enter a valid ticker.";return;}

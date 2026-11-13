@@ -1,0 +1,76 @@
+name: Frontier AURA FLOW Live Intelligence / Preservation
+on:
+  push:
+    paths:
+      - 'integrations/agents/**'
+      - 'integrations/aura/**'
+      - 'integrations/market/**'
+      - 'integrations/contributions/**'
+      - 'TowerFlow/**'
+      - '.github/workflows/frontier-live-intelligence.yml'
+  pull_request:
+    paths:
+      - 'integrations/agents/**'
+      - 'integrations/aura/**'
+      - 'integrations/market/**'
+      - 'integrations/contributions/**'
+      - 'TowerFlow/**'
+      - '.github/workflows/frontier-live-intelligence.yml'
+permissions:
+  contents: read
+jobs:
+  agent-data-contracts:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static syntax
+        run: |
+          node --check integrations/agents/dual-agent-harness.cjs
+          node --check integrations/agents/agent-handler.cjs
+          node --check integrations/agents/online-evidence-learner.cjs
+          node --check tools/install-shared-world-from-git.mjs
+          node --check tools/install-towerflow-aura-from-git.mjs
+          node --check integrations/aura/aura-service.cjs
+          node --check integrations/agents/flow-planner.cjs
+          node --check integrations/agents/towerflow-agent.cjs
+          node --check integrations/market/alpaca-iex.cjs
+          node --check integrations/market/sec-company-facts.cjs
+          node --check integrations/contributions/object-contract.cjs
+          node --check TowerFlow/flow-agent-ui.js
+      - name: Check guarded PowerShell launcher syntax
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens=$null
+          $errors=$null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            'tools/launch-original-frontier.ps1',[ref]$tokens,[ref]$errors
+          ) | Out-Null
+          if($errors.Count -gt 0){ throw ($errors | Out-String) }
+      - name: Source-aware market, company, intelligence and contributor tests
+        run: >
+          node --test
+          integrations/agents/dual-agent-harness.test.cjs
+          integrations/agents/online-evidence-learner.test.cjs
+          tools/install-shared-world-from-git.test.mjs
+          tools/install-towerflow-aura-from-git.test.mjs
+          integrations/agents/flow-planner.test.cjs
+          integrations/agents/towerflow-agent.test.cjs
+          integrations/agents/agent-handler.test.cjs
+          integrations/aura/aura-service.test.cjs
+          integrations/market/alpaca-iex.test.cjs
+          integrations/market/sec-company-facts.test.cjs
+          integrations/market/alpha-vantage.test.cjs
+          integrations/market/market-handler.test.cjs
+          integrations/contributions/object-contract.test.cjs
+          integrations/frontier/projector-machine.test.cjs
+          integrations/frontier/cyber-ambience.test.cjs
+          tools/install-frontier-lobby.test.mjs
