@@ -214,6 +214,13 @@
   // host Sound Garden source creation must be registered through trackAmbientAudio.
   try {environmentAudio=window.TowerflowEnvironmentAudio?.create({doc:document})??null;}
   catch(error){console.warn("Optional Sound Garden audio gate unavailable:",error?.message);}
+  // Explicit Sound Garden integration contract. Call trackAmbientAudio(source)
+  // at each environmental source creation site, not for voice, speech or editor audio.
+  // Expose the stop and resume operations to the original environment UI.
+  const trackAmbientAudio=(source)=>environmentAudio?.track(source,{role:"environment"});
+  const stopEnvironmentAudio=()=>environmentAudio?.stop();
+  const resumeEnvironmentAudio=()=>environmentAudio?.arm();
+
 
   // Source-matched to the original uploaded live-room client contract:
   // original ws sends {type:'chat',text} and receives {type:'chat',id,text}.
@@ -976,6 +983,6 @@
     cone.visible=active;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader}),get performance(){return frameTelemetry();},get lighting(){return neonLighting?.stats()??null;},setLighting:(preset,intensity)=>neonLighting?.configure({preset,intensity}),get kineticPedestals(){return kineticPedestals?.stats()??null;},configurePedestal:(index,settings)=>kineticPedestals?.configure(index,settings),shatterPedestal:(index)=>kineticPedestals?.shatter(index,performance.now()),get chat(){return teamChatDock?.stats()??null;},toggleChat:()=>teamChatDock?.setOpen(!teamChatDock.open),bindTeamChatTransport:(adapter)=>teamChatDock?.attachTransport(adapter),get ambientAudio(){return environmentAudio?.stats()??null;},trackAmbientAudio:(source)=>environmentAudio?.track(source),stopAmbientAudio:()=>environmentAudio?.stop(),armAmbientAudio:()=>environmentAudio?.arm()});
+  window.tfFrontier=Object.freeze({trackAmbientAudio,stopEnvironmentAudio,resumeEnvironmentAudio,get environmentAudio(){return environmentAudio?.stats()??null;},openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader}),get performance(){return frameTelemetry();},get lighting(){return neonLighting?.stats()??null;},setLighting:(preset,intensity)=>neonLighting?.configure({preset,intensity}),get kineticPedestals(){return kineticPedestals?.stats()??null;},configurePedestal:(index,settings)=>kineticPedestals?.configure(index,settings),shatterPedestal:(index)=>kineticPedestals?.shatter(index,performance.now()),get chat(){return teamChatDock?.stats()??null;},toggleChat:()=>teamChatDock?.setOpen(!teamChatDock.open),bindTeamChatTransport:(adapter)=>teamChatDock?.attachTransport(adapter),get ambientAudio(){return environmentAudio?.stats()??null;},trackAmbientAudio:(source)=>environmentAudio?.track(source),stopAmbientAudio:()=>environmentAudio?.stop(),armAmbientAudio:()=>environmentAudio?.arm()});
 }());
 // TF_FRONTIER_LOBBY_V1_END
