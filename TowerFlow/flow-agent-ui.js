@@ -87,6 +87,46 @@
   if(!confirm("Fetch real public-company SEC EDGAR financial filing facts for CIK "+cik+"? Figures are not streaming sales."))return;
   execute({skill:"company.research",idempotencyKey:taskKey(),cik});
  });
+ // Opt-in, same-origin, read-only polling of actual provider trades. No invented quotes.
+ const liveToggle=$("tfLiveQuoteToggle"),liveStatus=$("tfLiveQuoteStatus");
+ let liveTimer=null,liveInFlight=false;
+ async function liveQuote(){
+  if(liveInFlight||document.visibilityState==="hidden")return;
+  const ticker=$("tfMarketTicker")?.value.trim().toUpperCase();
+  if(!/^[A-Z][A-Z0-9.-]{0,13}$/.test(ticker||"")){
+   liveStatus.textContent="Enter a valid ticker for the real market feed.";stopLive();return;
+  }
+  liveInFlight=true;
+  try{
+   const response=await fetch("/api/market/quote?symbol="+encodeURIComponent(ticker),{
+    credentials:"same-origin",cache:"no-store",headers:{Accept:"application/json"}
+   });
+   const payload=await response.json().catch(()=>null);
+   if(!response.ok||payload?.status!=="PROVIDER_DATA")throw Error(payload?.message||"Provider unavailable");
+   const q=payload.quote;
+   if(!q||!Number.isFinite(q.price)||!Number.isFinite(Date.parse(q.asOf))||
+     typeof q.source!=="string")throw Error("Provider evidence is incomplete");
+   liveStatus.textContent=ticker+" · "+q.price.toFixed(2)+" USD · "+q.source+" · "+q.asOf+
+     " · "+(q.coverage||"provider-specific coverage")+" · "+q.freshness+
+     (q.cache==="HIT"?" · cached":"");
+  }catch(error){
+   liveStatus.textContent="FEED DISCONNECTED: "+String(error.message).slice(0,180)+". No fallback prices shown.";
+   stopLive();
+  }finally{liveInFlight=false;}
+ }
+ function stopLive(){
+  if(liveTimer!==null)clearInterval(liveTimer);
+  liveTimer=null;
+  if(liveToggle){liveToggle.setAttribute("aria-pressed","false");liveToggle.textContent="Start real quote feed";}
+ }
+ liveToggle?.addEventListener("click",()=>{
+  if(liveTimer!==null){stopLive();liveStatus.textContent="Market feed paused by user.";return;}
+  liveToggle.setAttribute("aria-pressed","true");
+  liveToggle.textContent="Stop quote feed";
+  liveStatus.textContent="Connecting to authenticated real-data provider…";
+  liveQuote();liveTimer=setInterval(liveQuote,12000);
+ });
+ window.addEventListener("pagehide",stopLive);
  runMarket.addEventListener("click",()=>{
   const symbol=$("tfMarketTicker")?.value.trim().toUpperCase();
   if(!/^[A-Z][A-Z0-9.-]{0,13}$/.test(symbol||"")){status.textContent="Enter a valid ticker.";return;}
