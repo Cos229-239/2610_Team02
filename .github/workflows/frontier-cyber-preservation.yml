@@ -6,6 +6,7 @@ on:
       - 'tools/install-frontier-lobby*'
       - 'tools/deploy-frontier-cinematic.ps1'
       - 'tools/reconcile-frontier-cinematic*'
+      - 'tools/install-frontier-source-matched-20261112.mjs'
       - '.github/workflows/frontier-cyber-preservation.yml'
   pull_request:
     paths:
@@ -13,6 +14,7 @@ on:
       - 'tools/install-frontier-lobby*'
       - 'tools/deploy-frontier-cinematic.ps1'
       - 'tools/reconcile-frontier-cinematic*'
+      - 'tools/install-frontier-source-matched-20261112.mjs'
       - '.github/workflows/frontier-cyber-preservation.yml'
 permissions:
   contents: read
@@ -40,6 +42,7 @@ jobs:
           node --check integrations/frontier/frontier-lobby.js
           node --check tools/install-frontier-lobby.mjs
           node --check tools/reconcile-frontier-cinematic.mjs
+          node --check tools/install-frontier-source-matched-20261112.mjs
       - name: Test cyber geometry, projector, and existing room installer guards
         run: >
           node --test
