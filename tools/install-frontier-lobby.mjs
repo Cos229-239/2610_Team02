@@ -67,13 +67,15 @@ async function main() {
   const kinetic=await readFile(join(root,'integrations','frontier','kinetic-pedestals.js'),'utf8');
   const neon=await readFile(join(root,'integrations','frontier','neon-lighting.js'),'utf8');
   const chat=await readFile(join(root,'integrations','frontier','team-chat-dock.js'),'utf8');
+  const ambient=await readFile(join(root,'integrations','frontier','environment-audio.js'),'utf8');
   for(const [value,marker] of [[kinetic,'TF_FRONTIER_KINETIC_PEDESTALS_V1'],
-    [neon,'TF_FRONTIER_NEON_LIGHTING_V1'],[chat,'TF_FRONTIER_TEAM_CHAT_DOCK_V1']]){
+    [neon,'TF_FRONTIER_NEON_LIGHTING_V1'],[chat,'TF_FRONTIER_TEAM_CHAT_DOCK_V1'],
+    [ambient,'TF_FRONTIER_ENVIRONMENT_AUDIO_V1']]){
     if(!value.includes(marker))throw Error('Required reviewed Frontier module missing: '+marker);
   }
   // The room is a classic browser script, not a module; embed its reviewed
   // state engine inside the existing versioned Frontier region for safe updates.
-  const addition=addon.replace(start,start+'\n'+projectorMachine+'\n'+cyber+'\n'+cinematic+'\n'+kinetic+'\n'+neon+'\n'+chat);
+  const addition=addon.replace(start,start+'\n'+projectorMachine+'\n'+cyber+'\n'+cinematic+'\n'+kinetic+'\n'+neon+'\n'+chat+'\n'+ambient);
   // Exact previous installed Frontier version (ancestor Git blob), not a fuzzy search.
   // A local edit to the old Frontier region is never overwritten automatically.
   const baselineAddon=execFileSync('git',['-C',root,'show','56e5b94e14fff22a23dcec64a735ddb2e839cab8'],{encoding:'utf8',timeout:10000});
