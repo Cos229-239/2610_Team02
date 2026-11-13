@@ -66,3 +66,21 @@ Because the host cannot be inspected through GitHub alone, **source staging and 
 - WebGLRenderer performance info: https://threejs.org/docs/#api/en/renderers/WebGLRenderer
 - Yjs awareness is ephemeral; document updates need persistence: https://docs.yjs.dev/getting-started/adding-awareness
 - OWASP WebSocket handshake origin and message validation: https://cheatsheetseries.owasp.org/cheatsheets/WebSocket_Security_Cheat_Sheet.html
+
+
+## 2026-11-12 — Original-room luminous ring art direction (candidate, not live certified)
+
+**Transcription:** Make existing room circuitry, descending floor platforms and floating exhibits radiate vibrant light comparable in intensity and contrast to ILLENIUM's music artwork. Preserve the cyber/computer-science facility and its original interactive geometry; do not import or replicate an artist's album artwork.
+
+**Code Correlation:** `dark graphite + saturated electric blue/orange/violet + luminous circular portals + soft scattering + reflective highlights + controlled motion` maps to:
+- Four original ring platforms: two tight photonic cores, additive soft aura, broad haze envelope, and moving bright arc; each ring can be themed.
+- Existing cyber lines: instanced azure/violet emissive conduits plus enlarged additive halos.
+- Physical illumination: only two short-range, shadowless point lights on opposing platforms. Existing renderer, exposure, antialiasing, projector, and base scene lights untouched.
+- Named palettes: `electric-dusk`, `ember-portal`, `prismatic`, `spectral-blue`, and `phoenix-spectrum`. The last emphasizes amber/gold against electric cyan/violet.
+- Reduced-motion and 0–1.6 intensity constraints; suppress illuminated props while projector lowers them.
+- 16 estimated luminous ring mesh draws and two local lights, not a measured frame-time result.
+- Three independent acceptance gates: CODE (source tests), PATTERN (same-angle visual comparison and actual lighting perception), PRESERVATION (FPS/p95, interaction, visibility, browser session, authorized two-user chat).
+
+**Design reference evidence:** ILLENIUM's *Awake* cover art uses luminous orange ring portals, dark atmospheric staging, reflective ground, and a central light-driven subject. Artistic influence only: https://www.beatport.com/release/awake/2117466 ; public artist profile: https://www.illenium.com/about-illenium/ . No album assets or artist branding are stored, distributed, or rendered.
+
+**Release caveat:** A public GitHub branch cannot reveal the current host's exact `public/room.js`. Do not remove the exact-version installer check. The candidate can be safely promoted to the live Windows room only after the currently running version is source-matched and backed up, and all three gates pass. No actual volumetric GI or globally configured postprocess bloom is claimed.

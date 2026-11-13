@@ -14,6 +14,10 @@
   let cyberAmbience=null;
   try {cyberAmbience=window.TowerflowCyberAmbience?.install({THREE,scene})??null;}
   catch(error){console.warn("Optional Frontier cyber ambience failed; original room preserved:",error?.message);}
+  // Versioned, non-interactive 3D PBR rack details and rights-checked GLB fixture support.
+  let cinematicFidelity=null;
+  try {cinematicFidelity=window.TowerflowCinematicFidelity?.install({THREE,scene,renderer})??null;}
+  catch(error){console.warn("Optional Frontier cinematic fidelity failed; original scene preserved:",error?.message);}
   // Physical fixtures from the ORIGINAL room; preserve each object's identity.
   const originalFixtures=scene.children.filter(obj=>{
     if(!obj.isMesh||!obj.geometry?.parameters)return false;
@@ -193,6 +197,79 @@
     }
     pad.add(holo);scene.add(pad);
     platforms.push({group:pad,holo,baseY:0,homeX:x});
+  }
+
+  // Original retractable displays now support configurable geometry, kinetic patterns,
+  // colors and reversible fracture effects. The lift owns platform position.
+  let kineticPedestals=null,neonLighting=null,teamChatDock=null,environmentAudio=null;
+  try {kineticPedestals=window.TowerflowKineticPedestals?.install({THREE,platforms})??null;}
+  catch(error){console.warn("Optional kinetic pedestal controls unavailable:",error?.message);}
+  try {neonLighting=window.TowerflowNeonLighting?.install({THREE,platforms})??null;}
+  catch(error){console.warn("Optional photonic illumination unavailable:",error?.message);}
+  try {teamChatDock=window.TowerflowTeamChatDock?.install({doc:document})??null;}
+  catch(error){console.warn("Optional C-key team chat dock unavailable:",error?.message);}
+  // Existing Sound Garden's #stopMusic button is dynamic. Capture its click
+  // and stop ONLY explicitly tagged ambient sources, never teammates' voice.
+  // The original stopAmbience() handler remains in place. To guarantee silence,
+  // host Sound Garden source creation must be registered through trackAmbientAudio.
+  try {environmentAudio=window.TowerflowEnvironmentAudio?.create({doc:document})??null;}
+  catch(error){console.warn("Optional Sound Garden audio gate unavailable:",error?.message);}
+  // Explicit Sound Garden integration contract. Call trackAmbientAudio(source)
+  // at each environmental source creation site, not for voice, speech or editor audio.
+  // Expose the stop and resume operations to the original environment UI.
+  const trackAmbientAudio=(source)=>environmentAudio?.track(source,{role:"environment"});
+  const stopEnvironmentAudio=()=>environmentAudio?.stop();
+  const resumeEnvironmentAudio=()=>environmentAudio?.arm();
+
+
+  // Source-matched to the original uploaded live-room client contract:
+  // original ws sends {type:'chat',text} and receives {type:'chat',id,text}.
+  // Attach a SECOND listener to the EXISTING authenticated socket. Never create
+  // another WebSocket, override ws.onmessage, or bypass member authorization.
+  if(teamChatDock&&typeof send==="function"&&typeof ws!=="undefined"&&
+     typeof remote!=="undefined"){
+    const subscribers=new Set();
+    let socket=null,checkTimer=null;
+    const onExistingChat=(event)=>{
+      let data;try{data=JSON.parse(event.data);}catch{return;}
+      if(data?.type!=="chat"||typeof data.text!=="string")return;
+      const author=remote.get(data.id)?.user?.login||"Teammate";
+      for(const fn of subscribers)fn({author,text:data.text,time:Date.now()});
+    };
+    const observeSocket=()=>{
+      if(typeof ws==="undefined"||ws===socket)return;
+      socket?.removeEventListener?.("message",onExistingChat);
+      socket=ws;
+      socket?.addEventListener?.("message",onExistingChat);
+    };
+    teamChatDock.attachTransport({
+      subscribe(fn){
+        subscribers.add(fn);observeSocket();
+        if(!checkTimer)checkTimer=setInterval(observeSocket,800);
+        return ()=>{
+          subscribers.delete(fn);
+          if(!subscribers.size){
+            clearInterval(checkTimer);checkTimer=null;
+            socket?.removeEventListener?.("message",onExistingChat);
+            socket=null;
+          }
+        };
+      },
+      async send(text){
+        observeSocket();
+        if(!localUser?.login||!socket||socket.readyState!==WebSocket.OPEN)
+          throw Error("Sign in and reconnect to the original team room");
+        if(typeof text!=="string"||text.trim().length>140)
+          throw Error("Original room chat limit is 140 characters");
+        const outbound=text.trim();
+        send({type:"chat",text:outbound});
+        // The original protocol has no delivery receipt; mark the local echo
+        // as submitted, NOT verified delivered or acknowledged by teammates.
+        for(const fn of subscribers)fn({
+          author:localUser.login+" • submitted",text:outbound,self:true,time:Date.now()
+        });
+      }
+    });
   }
   function setOrbAgent(agent){
     if(agent!=="AURA"&&agent!=="FLOW")return false;
@@ -436,6 +513,92 @@
     panel.style.maxWidth="96vw";
     renderDashboard();
   }
+  // Every exhibit has its own maintained preset; shattering is purely visual.
+  // Settings use the original world UI; user-local until trusted shared-world sync is wired.
+  function openPedestalSettings(index){
+    if(!kineticPedestals||!Number.isInteger(index)||index<0||index>=4)return false;
+    if(projectorState.tick(performance.now()).cleared>.02)return false;
+    isPanel=true;openPanel("frontier-pedestal");
+    document.getElementById("panelTag").textContent="FRONTIER / COMPUTATIONAL EXHIBITS";
+    document.getElementById("panelTitle").textContent="KINETIC MATRIX • "+String(index+1).padStart(2,"0");
+    const root=document.getElementById("panelContent");root.replaceChildren();
+    const intro=makeEl("p","Customizable 3D geometry, motion and illumination. Changes persist on this browser; authenticated shared-room replication requires a reviewed backend event.");
+    root.append(intro);
+    const current=kineticPedestals.get(index);
+    for(const [field,values] of [
+      ["shape",window.TowerflowKineticPedestals.SHAPES],
+      ["pattern",window.TowerflowKineticPedestals.PATTERNS],
+      ["color",Object.keys(window.TowerflowKineticPedestals.COLORS)]
+    ]){
+      const wrap=makeEl("label",field.toUpperCase()+" ");
+      const select=makeEl("select");select.setAttribute("aria-label","Pedestal "+field);
+      for(const value of values){
+        const opt=makeEl("option",value);opt.value=value;opt.selected=current[field]===value;
+        select.append(opt);
+      }
+      select.onchange=()=>{kineticPedestals.configure(index,{[field]:select.value});};
+      wrap.append(select);wrap.style.cssText="display:inline-flex;flex-direction:column;gap:5px;margin:10px";
+      root.append(wrap);
+    }
+    for(const [field,min,max,step] of [["speed",.1,2,.1],["intensity",0,2,.1]]){
+      const wrap=makeEl("label",field.toUpperCase()+" ");
+      const slider=makeEl("input");slider.type="range";slider.min=String(min);slider.max=String(max);
+      slider.step=String(step);slider.value=String(current[field]);slider.setAttribute("aria-label","Pedestal "+field);
+      const value=makeEl("span",String(current[field]));
+      slider.oninput=()=>{value.textContent=slider.value;kineticPedestals.configure(index,{[field]:Number(slider.value)});};
+      wrap.append(slider,value);wrap.style.cssText="display:inline-flex;flex-direction:column;gap:5px;margin:10px";
+      root.append(wrap);
+    }
+    const row=makeEl("div");row.style.cssText="display:flex;flex-wrap:wrap;gap:10px;margin-top:15px";
+    const fragment=makeEl("button","FRACTURE / REFORM");
+    fragment.onclick=()=>{kineticPedestals.shatter(index,performance.now());closePanel();showToast("Kinetic exhibit "+(index+1)+" • reversible fracture");};
+    const reset=makeEl("button","RESTORE DEFAULT GEOMETRY");
+    reset.onclick=()=>{kineticPedestals.reset(index);openPedestalSettings(index);};
+    const light=makeEl("button","PHOTONIC LIGHTING");
+    light.onclick=()=>{
+      if(!neonLighting)return;
+      const presets=Object.keys(window.TowerflowNeonLighting.PRESETS);
+      const now=neonLighting.stats().preset,idx=presets.indexOf(now);
+      const next=presets[(idx+1)%presets.length];
+      neonLighting.configure({preset:next});
+      showToast("Illumination • "+next);
+    };
+    row.append(fragment,reset,light);root.append(row);
+    // Separate opt-in visual controls; does not alter projector, ceiling, browser
+    // renderer exposure, scene materials outside these two decorative layers.
+    for(const [title,layer,maximum] of [
+      ["RING LUMINANCE",neonLighting,1.6],
+      ["CIRCUIT LUMINANCE",cyberAmbience,1.6]
+    ]){
+      if(!layer)continue;
+      const available=layer.stats(),valueNow=title==="RING LUMINANCE"?available.intensity:available.glowIntensity;
+      if(!Number.isFinite(valueNow))continue;
+      const label=makeEl("label",title+" ");
+      label.style.cssText="display:flex;align-items:center;gap:12px;margin:10px 0;color:#d5f6ff";
+      const slider=makeEl("input");slider.type="range";slider.min="0";slider.max=String(maximum);
+      slider.step=".05";slider.value=String(valueNow);slider.setAttribute("aria-label",title);
+      const amount=makeEl("span",Number(valueNow).toFixed(2));
+      slider.oninput=()=>{
+        const next=Number(slider.value);amount.textContent=next.toFixed(2);
+        if(title==="RING LUMINANCE")layer.configure({intensity:next});
+        else layer.setGlowIntensity(next);
+      };
+      label.append(slider,amount);root.append(label);
+    }
+    return true;
+  }
+  function pedestalPick(ray){
+    if(!kineticPedestals||projectorState.tick(performance.now()).cleared>.02)return false;
+    const hits=ray.intersectObjects(platforms.map(p=>p.group),true);
+    const nearest=hits.find(hit=>hit.distance<=13&&hit.object?.visible!==false);
+    if(!nearest)return false;
+    const index=platforms.findIndex(p=>{
+      let parent=nearest.object;
+      while(parent){if(parent===p.group)return true;parent=parent.parent;}
+      return false;
+    });
+    return index>=0&&openPedestalSettings(index);
+  }
   let filePaths=[],chosenFile=null,originalCode="",editingDirty=false;
   function openFrontierIDE(){
     isPanel=true;openPanel("ide");
@@ -452,7 +615,15 @@
     links.append(link);
     const other=makeEl("a","Review PRs and commits ↗");
     other.href="https://github.com/Cos229-239/2610_Team02/pulls";other.target="_blank";other.rel="noopener noreferrer";
-    links.append(other);top.append(links);
+    links.append(other);
+    // github.dev edits code but cannot run/debug. Codespaces has an isolated
+    // runtime + real debugger. Never execute teammate code on the production host.
+    const debug=makeEl("a","RUN + DEBUG IN CODESPACES ↗");
+    debug.href="https://codespaces.new/Cos229-239/2610_Team02";
+    debug.target="_blank";debug.rel="noopener noreferrer";
+    debug.setAttribute("aria-label","Open isolated GitHub Codespaces debugger");
+    links.append(debug);
+    top.append(links,makeEl("p","DEBUG CONTRACT: Source editor = authenticated review and save. Codespaces = actual breakpoints, stack traces, watches, tests and terminal. No guest host-process execution."));
     const tool=makeEl("div");tool.style.cssText="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:12px 0";
     const status=makeEl("span","Loading repository permissions and files…");
     status.setAttribute("role","status");
@@ -600,7 +771,7 @@
       (e.clientX-bounds.left)/bounds.width*2-1,
       -(e.clientY-bounds.top)/bounds.height*2+1);
     raycaster.setFromCamera(pointer,camera);
-    if(projectorPick(raycaster))e.stopImmediatePropagation();
+    if(pedestalPick(raycaster)||projectorPick(raycaster))e.stopImmediatePropagation();
   },true);
   window.addEventListener("keydown",e=>{
     if(e.code!=="KeyE"||e.repeat||e.altKey||e.ctrlKey||e.metaKey||
@@ -608,6 +779,7 @@
     // Aimed interaction (screen center) is deliberately limited to wall
     // and projector targets. Do not hijack E on a workstation or Dev portal.
     raycaster.setFromCamera(new THREE.Vector2(0,0),camera);
+    if(pedestalPick(raycaster)){e.preventDefault();e.stopImmediatePropagation();return;}
     const state=projectorState.tick(performance.now());
     const nearest=raycaster.intersectObjects([
       ...wallTargets,...(state.portalEnabled?[screen]:[])
@@ -721,10 +893,28 @@
     ctx.fillText("Click the projection to enter within Frontier",w/2,730);
     texture.needsUpdate=true;
   }
+  // Passive frame telemetry piggybacks on the existing projector loop.
+  // It is after-version observation only, not pre-upgrade proof of no degradation.
+  const frameSamples=[];let previousFrame=0;
+  function frameTelemetry(){
+    const arr=[...frameSamples].sort((a,b)=>a-b),p=x=>arr.length?arr[Math.min(arr.length-1,Math.floor((arr.length-1)*x))]:null;
+    const median=p(.5),p95=p(.95);
+    return Object.freeze({samples:arr.length,p50FrameMs:median,p95FrameMs:p95,
+      estimatedMedianFps:median>0?Math.round(1000/median):null,
+      drawCalls:Number.isFinite(renderer.info?.render?.calls)?renderer.info.render.calls:null,
+      triangles:Number.isFinite(renderer.info?.render?.triangles)?renderer.info.render.triangles:null,
+      beforeBaselineRecorded:false,frameRateRegressionVerified:false});
+  }
   function animateProjector(){
     requestAnimationFrame(animateProjector);
     const now=performance.now();
+    if(previousFrame){
+      const dt=now-previousFrame;
+      if(dt>0&&dt<300){frameSamples.push(dt);if(frameSamples.length>240)frameSamples.shift();}
+    }
+    previousFrame=now;
     cyberAmbience?.update(now);
+    cinematicFidelity?.update(now);
     const state=projectorState.tick(now);
     const active=state.lightOn;
     const descended=state.descended;
@@ -760,8 +950,10 @@
     for(const pad of platforms){
       pad.group.position.y=pad.baseY-clearing*4.6;
       pad.group.visible=clearing<.999;
-      pad.holo.rotation.y=now*.00035;
+      if(!kineticPedestals)pad.holo.rotation.y=now*.00035;
     }
+    kineticPedestals?.update(now,clearing);
+    neonLighting?.update(now,clearing);
     orbHalo.rotation.y=now*.0006;
     const opening=clearing;
     aperture.scale.setScalar(Math.max(.001,opening));
@@ -791,6 +983,6 @@
     cone.visible=active;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled)});
+  window.tfFrontier=Object.freeze({trackAmbientAudio,stopEnvironmentAudio,resumeEnvironmentAudio,get environmentAudio(){return environmentAudio?.stats()??null;},openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader}),get performance(){return frameTelemetry();},get lighting(){return neonLighting?.stats()??null;},setLighting:(preset,intensity)=>neonLighting?.configure({preset,intensity}),get kineticPedestals(){return kineticPedestals?.stats()??null;},configurePedestal:(index,settings)=>kineticPedestals?.configure(index,settings),shatterPedestal:(index)=>kineticPedestals?.shatter(index,performance.now()),get chat(){return teamChatDock?.stats()??null;},toggleChat:()=>teamChatDock?.setOpen(!teamChatDock.open),bindTeamChatTransport:(adapter)=>teamChatDock?.attachTransport(adapter),get ambientAudio(){return environmentAudio?.stats()??null;},trackAmbientAudio:(source)=>environmentAudio?.track(source),stopAmbientAudio:()=>environmentAudio?.stop(),armAmbientAudio:()=>environmentAudio?.arm()});
 }());
 // TF_FRONTIER_LOBBY_V1_END

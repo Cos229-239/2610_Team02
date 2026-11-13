@@ -36,7 +36,7 @@ function synopsis(changes,commits){
 }
 function approvedBase(base){
  // Allow exactly one reviewed stacked-PR integration base; no arbitrary branches.
- return /^(dev|main|master|feature\/frontier-execution-evidence-20261111|feature\/frontier-cyber-preserve-20261112)$/.test(base);
+ return /^(dev|main|master|feature\/frontier-execution-evidence-20261111|feature\/frontier-cyber-preserve-20261112|feature\/frontier-live-intelligence-20261112)$/.test(base);
 }
 function run(){
  const base=(process.env.GITHUB_BASE_REF||process.argv[2]||"dev");

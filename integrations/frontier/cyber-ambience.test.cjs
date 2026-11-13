@@ -19,7 +19,7 @@ class InstancedMesh{
   constructor(geo,material,count){this.geometry=geo;this.material=material;this.count=count;this.name="";this.userData={};this.instanceMatrix={needsUpdate:false};this.matrices=[]}
   setMatrixAt(index,matrix){this.matrices[index]={p:{...matrix.p},s:{...matrix.s}}}
 }
-const THREE={BoxGeometry:Geometry,MeshStandardMaterial:Material,Object3D,Group,InstancedMesh};
+const THREE={BoxGeometry:Geometry,MeshStandardMaterial:Material,MeshBasicMaterial:Material,Object3D,Group,InstancedMesh,AdditiveBlending:2};
 const createScene=()=>({
   children:[{name:"original-projector"},{name:"original-DevRoom"},{name:"original-AURA"},{name:"original-globe"}],
   add(o){this.children.push(o)},
@@ -28,7 +28,7 @@ const createScene=()=>({
 test("cyber layout occupies perimeter and never covers any wall projector screen",()=>{
   const p=layout();
   assert.ok(p.instances>50 && p.instances<=160);
-  assert.equal(p.drawCallBudget,3);
+  assert.equal(p.drawCallBudget,5);
   for(const row of [...p.chrome,...p.azure,...p.violet]){
     assert.ok(row.x>=-20.58&&row.x<=20.58&&row.z>=-15.28&&row.z<=15.28);
     // Main wall display center and side-wall screen areas remain clear.
@@ -37,13 +37,13 @@ test("cyber layout occupies perimeter and never covers any wall projector screen
     assert.ok(Math.hypot(row.x-16.9,row.z-12.4)>2,"AURA orb zone obstructed");
   }
 });
-test("installation adds three no-shadow instanced 3D meshes, no input or network effects",()=>{
+test("installation adds five no-shadow instanced 3D meshes with optical halos, no input or network effects",()=>{
   const scene=createScene(); const original=scene.children.slice();
   const addon=install({THREE,scene});
   assert.equal(scene.children.length,original.length+1);
   original.forEach((v,i)=>assert.strictEqual(scene.children[i],v));
   const group=scene.children.at(-1);
-  assert.equal(group.children.length,3);
+  assert.equal(group.children.length,5);
   for(const instanced of group.children){
     assert.equal(instanced.castShadow,false);
     assert.equal(instanced.receiveShadow,false);
@@ -52,6 +52,7 @@ test("installation adds three no-shadow instanced 3D meshes, no input or network
     assert.equal(instanced.matrices.length,instanced.count);
   }
   assert.equal(addon.stats().lightsAdded,0);
+  assert.equal(addon.stats().estimatedExtraDrawCalls,5);
   assert.equal(addon.stats().clickTargetsAdded,0);
   assert.equal(addon.stats().newAnimationLoops,0);
   assert.strictEqual(install({THREE,scene}),addon);

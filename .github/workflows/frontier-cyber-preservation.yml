@@ -4,11 +4,17 @@ on:
     paths:
       - 'integrations/frontier/**'
       - 'tools/install-frontier-lobby*'
+      - 'tools/deploy-frontier-cinematic.ps1'
+      - 'tools/reconcile-frontier-cinematic*'
+      - 'tools/install-frontier-source-matched-20261112.mjs'
       - '.github/workflows/frontier-cyber-preservation.yml'
   pull_request:
     paths:
       - 'integrations/frontier/**'
       - 'tools/install-frontier-lobby*'
+      - 'tools/deploy-frontier-cinematic.ps1'
+      - 'tools/reconcile-frontier-cinematic*'
+      - 'tools/install-frontier-source-matched-20261112.mjs'
       - '.github/workflows/frontier-cyber-preservation.yml'
 permissions:
   contents: read
@@ -28,14 +34,33 @@ jobs:
       - name: Parse original-world addons
         run: |
           node --check integrations/frontier/cyber-ambience.js
+          node --check integrations/frontier/cinematic-fidelity.js
+          node --check integrations/frontier/kinetic-pedestals.js
+          node --check integrations/frontier/neon-lighting.js
+          node --check integrations/frontier/team-chat-dock.js
+          node --check integrations/frontier/environment-audio.js
           node --check integrations/frontier/frontier-lobby.js
           node --check tools/install-frontier-lobby.mjs
+          node --check tools/reconcile-frontier-cinematic.mjs
+          node --check tools/install-frontier-source-matched-20261112.mjs
       - name: Test cyber geometry, projector, and existing room installer guards
         run: >
           node --test
           integrations/frontier/cyber-ambience.test.cjs
+          integrations/frontier/cinematic-fidelity.test.cjs
+          integrations/frontier/experience-upgrades.test.cjs
+          integrations/frontier/environment-audio.test.cjs
           integrations/frontier/projector-machine.test.cjs
           tools/install-frontier-lobby.test.mjs
+          tools/reconcile-frontier-cinematic.test.mjs
+      - name: Parse original-room release PowerShell (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('tools/deploy-frontier-cinematic.ps1',[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ($errors | Out-String) }
       - name: Source-preservation assertions
         shell: bash
         run: |

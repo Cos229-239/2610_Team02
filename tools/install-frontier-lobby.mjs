@@ -41,7 +41,8 @@ export function assertKnownFrontierInstallation(source,next,previous){
   if(i===-1&&j===-1)return true;
   if((i<0)!==(j<0)||j<i)throw Error('Partial Frontier install detected');
   const observed=source.slice(i,j+end.length).trim();
-  if(observed!==next.trim()&&observed!==previous.trim())
+  const known=[next,...(Array.isArray(previous)?previous:[previous])].map(v=>v.trim());
+  if(!known.includes(observed))
     throw Error('Existing Frontier module has unreviewed local changes; refusing replacement to preserve work');
   return true;
 }
@@ -61,13 +62,30 @@ async function main() {
   const addon=await readFile(additionFile,'utf8');
   const cyber=await readFile(cyberFile,'utf8');
   if(!cyber.includes('TF_FRONTIER_CYBER_AMBIENCE_V1'))throw Error('Reviewed cyber ambience module missing');
+  const cinematic=await readFile(join(root,'integrations','frontier','cinematic-fidelity.js'),'utf8');
+  if(!cinematic.includes('TF_FRONTIER_CINEMATIC_FIDELITY_V1'))throw Error('Reviewed cinematic fidelity module missing');
+  const kinetic=await readFile(join(root,'integrations','frontier','kinetic-pedestals.js'),'utf8');
+  const neon=await readFile(join(root,'integrations','frontier','neon-lighting.js'),'utf8');
+  const chat=await readFile(join(root,'integrations','frontier','team-chat-dock.js'),'utf8');
+  const ambient=await readFile(join(root,'integrations','frontier','environment-audio.js'),'utf8');
+  for(const [value,marker] of [[kinetic,'TF_FRONTIER_KINETIC_PEDESTALS_V1'],
+    [neon,'TF_FRONTIER_NEON_LIGHTING_V1'],[chat,'TF_FRONTIER_TEAM_CHAT_DOCK_V1'],
+    [ambient,'TF_FRONTIER_ENVIRONMENT_AUDIO_V1']]){
+    if(!value.includes(marker))throw Error('Required reviewed Frontier module missing: '+marker);
+  }
   // The room is a classic browser script, not a module; embed its reviewed
   // state engine inside the existing versioned Frontier region for safe updates.
-  const addition=addon.replace(start,start+'\n'+projectorMachine+'\n'+cyber);
+  const addition=addon.replace(start,start+'\n'+projectorMachine+'\n'+cyber+'\n'+cinematic+'\n'+kinetic+'\n'+neon+'\n'+chat+'\n'+ambient);
   // Exact previous installed Frontier version (ancestor Git blob), not a fuzzy search.
   // A local edit to the old Frontier region is never overwritten automatically.
   const baselineAddon=execFileSync('git',['-C',root,'show','56e5b94e14fff22a23dcec64a735ddb2e839cab8'],{encoding:'utf8',timeout:10000});
   const baseline=baselineAddon.replace(start,start+'\n'+projectorMachine);
+  // The last shipped cyber version is pinned byte-for-byte, not accepted by a fuzzy marker.
+  // A locally edited renderer, projector or interaction handler is never overwritten.
+  const installedLobby=execFileSync('git',['-C',root,'show','57ee110174d975a4b5fd6a1b01350022418d45ea'],{encoding:'utf8',timeout:10000});
+  const installedCyber=execFileSync('git',['-C',root,'show','117760ad9355e29ba010c4a9e58380256c66d285'],{encoding:'utf8',timeout:10000});
+  const installedMachine=execFileSync('git',['-C',root,'show','b6e3a894af660bbbe58054e3eae86d1f8df05308'],{encoding:'utf8',timeout:10000});
+  const lastReviewed=installedLobby.replace(start,start+'\n'+installedMachine+'\n'+installedCyber);
 
   const liveFile=paths[0],workspaceFile=paths[1];
   if(!existsSync(liveFile))throw Error('Authoritative live Towerflow room missing: '+liveFile);
@@ -75,7 +93,7 @@ async function main() {
   // This release ONLY optimizes the already installed room. Never create a divergent room.
   if(!before.includes(start)||!before.includes(end))
     throw Error('Existing Frontier region not found; refusing to install a replacement room');
-  assertKnownFrontierInstallation(before,addition,baseline);
+  assertKnownFrontierInstallation(before,addition,[baseline,lastReviewed]);
   const after=patchRoom(before,addition);
   await checkSyntax(after);
   const plan=[{file:liveFile,before,after}];
@@ -93,6 +111,8 @@ async function main() {
   console.log('=== FRONTIER PROJECTOR / IN-ROOM IDE: '+(apply?'APPLY':'DRY RUN')+' ===');
   for(const row of plan)console.log((row.before===row.after?'UNCHANGED':'CHANGE')+' '+row.file+' SHA256 '+hash(row.after).slice(0,16));
   console.log('3 SECTIONS: Dashboard / Development / World Studio');
+  console.log('CINEMATIC PBR: scoped racks, photonic terminals and hash-checked same-origin GLB support.');
+  console.log('EXPERIENCE: C-key chat dock (host transport required), four kinetic shapes, colored photon halos, isolated IDE debugger entry.');
   console.log('SAFETY: Original camera controls preserved, no Node restart, no Git push');
   if(!apply)return;
   const backupRoot=join(homedir(),'Desktop','Towerflow_Frontier_Backups',new Date().toISOString().replace(/[.:]/g,'-'));
