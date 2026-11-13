@@ -25,6 +25,9 @@
   function create({doc=typeof document!=="undefined"?document:null}={}){
     const tracked=new Map();
     let muted=false,disposed=false,stops=0,domBound=false;
+    const STORAGE_KEY="towerflow.frontier.environment-muted.v1";
+    try{muted=globalThis.localStorage?.getItem(STORAGE_KEY)==="1";}catch{}
+    function persist(){try{globalThis.localStorage?.setItem(STORAGE_KEY,muted?"1":"0");}catch{}}
     function stopOne(entry){
       const {source,kind}=entry;
       try{
@@ -58,7 +61,7 @@
     function untrack(source){return tracked.delete(source);}
     function stop(){
       if(disposed)return Object.freeze({stopped:0,errors:0,remaining:0});
-      muted=true;let completed=0,errors=0;
+      muted=true;persist();let completed=0,errors=0;
       for(const entry of tracked.values()){
         if(stopOne(entry))completed++;else errors++;
       }
@@ -75,7 +78,7 @@
     }
     function arm(){
       if(disposed)throw Error("Environment audio controller disposed");
-      muted=false;
+      muted=false;persist();
       for(const entry of tracked.values()){
         entry.stopped=false;
         if(typeof entry.originalLevel==="number"&&Number.isFinite(entry.originalLevel)){
@@ -106,7 +109,7 @@
         browserAudioGraphUntouched:true,teamVoiceTracksUntouched:true,
         guaranteedSilenceOnlyForRegisteredSources:true})
     });
-    bindButtons();return ctl;
+    bindButtons();if(muted)stop();return ctl;
   }
   return Object.freeze({AUDIO_SELECTOR,BUTTON_SELECTOR,classify,create});
 });
