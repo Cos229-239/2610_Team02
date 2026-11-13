@@ -14,6 +14,10 @@
   let cyberAmbience=null;
   try {cyberAmbience=window.TowerflowCyberAmbience?.install({THREE,scene})??null;}
   catch(error){console.warn("Optional Frontier cyber ambience failed; original room preserved:",error?.message);}
+  // Versioned, non-interactive 3D PBR rack details and rights-checked GLB fixture support.
+  let cinematicFidelity=null;
+  try {cinematicFidelity=window.TowerflowCinematicFidelity?.install({THREE,scene,renderer})??null;}
+  catch(error){console.warn("Optional Frontier cinematic fidelity failed; original scene preserved:",error?.message);}
   // Physical fixtures from the ORIGINAL room; preserve each object's identity.
   const originalFixtures=scene.children.filter(obj=>{
     if(!obj.isMesh||!obj.geometry?.parameters)return false;
@@ -725,6 +729,7 @@
     requestAnimationFrame(animateProjector);
     const now=performance.now();
     cyberAmbience?.update(now);
+    cinematicFidelity?.update(now);
     const state=projectorState.tick(now);
     const active=state.lightOn;
     const descended=state.descended;
@@ -791,6 +796,6 @@
     cone.visible=active;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled)});
+  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader})});
 }());
 // TF_FRONTIER_LOBBY_V1_END
