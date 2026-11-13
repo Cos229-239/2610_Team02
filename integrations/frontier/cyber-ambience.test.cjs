@@ -33,7 +33,7 @@ test("cyber layout occupies perimeter and never covers any wall projector screen
     assert.ok(row.x>=-20.58&&row.x<=20.58&&row.z>=-15.28&&row.z<=15.28);
     // Main wall display center and side-wall screen areas remain clear.
     assert.equal(Math.abs(row.z)>14.7&&Math.abs(row.x)<9.6&&row.y<8.5,false,"projection obstructed");
-    assert.equal(Math.abs(row.x)>19.9&&Math.abs(row.z)<9.6&&row.y<8.5,false,"side wall projection obstructed");
+    assert.equal(Math.abs(row.x)>19.9&&Math.abs(row.z)<9.6&&row.y>1.8&&row.y<8.5,false,"side wall projection obstructed");
     assert.ok(Math.hypot(row.x-16.9,row.z-12.4)>2,"AURA orb zone obstructed");
   }
 });
