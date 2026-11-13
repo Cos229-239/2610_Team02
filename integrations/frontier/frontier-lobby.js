@@ -208,6 +208,55 @@
   catch(error){console.warn("Optional photonic illumination unavailable:",error?.message);}
   try {teamChatDock=window.TowerflowTeamChatDock?.install({doc:document})??null;}
   catch(error){console.warn("Optional C-key team chat dock unavailable:",error?.message);}
+  // Source-matched to the original uploaded live-room client contract:
+  // original ws sends {type:'chat',text} and receives {type:'chat',id,text}.
+  // Attach a SECOND listener to the EXISTING authenticated socket. Never create
+  // another WebSocket, override ws.onmessage, or bypass member authorization.
+  if(teamChatDock&&typeof send==="function"&&typeof ws!=="undefined"&&
+     typeof remote!=="undefined"){
+    const subscribers=new Set();
+    let socket=null,checkTimer=null;
+    const onExistingChat=(event)=>{
+      let data;try{data=JSON.parse(event.data);}catch{return;}
+      if(data?.type!=="chat"||typeof data.text!=="string")return;
+      const author=remote.get(data.id)?.user?.login||"Teammate";
+      for(const fn of subscribers)fn({author,text:data.text,time:Date.now()});
+    };
+    const observeSocket=()=>{
+      if(typeof ws==="undefined"||ws===socket)return;
+      socket?.removeEventListener?.("message",onExistingChat);
+      socket=ws;
+      socket?.addEventListener?.("message",onExistingChat);
+    };
+    teamChatDock.attachTransport({
+      subscribe(fn){
+        subscribers.add(fn);observeSocket();
+        if(!checkTimer)checkTimer=setInterval(observeSocket,800);
+        return ()=>{
+          subscribers.delete(fn);
+          if(!subscribers.size){
+            clearInterval(checkTimer);checkTimer=null;
+            socket?.removeEventListener?.("message",onExistingChat);
+            socket=null;
+          }
+        };
+      },
+      async send(text){
+        observeSocket();
+        if(!localUser?.login||!socket||socket.readyState!==WebSocket.OPEN)
+          throw Error("Sign in and reconnect to the original team room");
+        if(typeof text!=="string"||text.trim().length>140)
+          throw Error("Original room chat limit is 140 characters");
+        const outbound=text.trim();
+        send({type:"chat",text:outbound});
+        // The original protocol has no delivery receipt; mark the local echo
+        // as submitted, NOT verified delivered or acknowledged by teammates.
+        for(const fn of subscribers)fn({
+          author:localUser.login+" • submitted",text:outbound,self:true,time:Date.now()
+        });
+      }
+    });
+  }
   function setOrbAgent(agent){
     if(agent!=="AURA"&&agent!=="FLOW")return false;
     orbAgent=agent;labelOrb(agent);return true;
