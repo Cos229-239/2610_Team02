@@ -10,6 +10,7 @@ import {createHash,randomUUID} from 'node:crypto';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const additionFile=join(root,'integrations','frontier','frontier-lobby.js');
+const cyberFile=join(root,'integrations','frontier','cyber-ambience.js');
 const paths=[
   join(homedir(),'Desktop','Towerflow_Team02_Private_Invite_Room','Towerflow_Collaboration_Room','public','room.js'),
   join(root,'collaboration-room','live-room','public','room.js')
@@ -49,9 +50,11 @@ async function main() {
   const projectorMachine=await readFile(join(root,'integrations','frontier','projector-machine.js'),'utf8');
   if(!projectorMachine.includes('TF_PROJECTOR_MACHINE_V1'))throw Error('Missing reviewed projector state engine');
   const addon=await readFile(additionFile,'utf8');
+  const cyber=await readFile(cyberFile,'utf8');
+  if(!cyber.includes('TF_FRONTIER_CYBER_AMBIENCE_V1'))throw Error('Reviewed cyber ambience module missing');
   // The room is a classic browser script, not a module; embed its reviewed
   // state engine inside the existing versioned Frontier region for safe updates.
-  const addition=addon.replace(start,start+'\n'+projectorMachine);
+  const addition=addon.replace(start,start+'\n'+projectorMachine+'\n'+cyber);
   const liveFile=paths[0],workspaceFile=paths[1];
   if(!existsSync(liveFile))throw Error('Authoritative live Towerflow room missing: '+liveFile);
   const before=await readFile(liveFile,'utf8');
