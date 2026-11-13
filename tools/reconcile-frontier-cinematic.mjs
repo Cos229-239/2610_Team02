@@ -46,8 +46,12 @@ export function mergeThreeWay(local,base,target,executable="git") {
       "-L","original-live","-L","reviewed-ancestor","-L","cinematic-release",...paths],
       {encoding:"utf8",maxBuffer:32*1024*1024,timeout:15000,windowsHide:true});
     if(run.error)throw run.error;
-    if(run.status===null||run.status>1)throw Error("Git merge-file failed: "+String(run.stderr).slice(0,300));
-    return Object.freeze({clean:run.status===0,merged:run.stdout});
+    // git merge-file exits with the NUMBER OF CONFLICTS (0..127), not a boolean.
+    // A conflict count greater than one is not a Git invocation error.
+    // Preserve source whenever conflicts are nonzero; never auto-select ours/theirs.
+    if(run.status===null||run.signal||run.status>=128)
+      throw Error("Git merge-file execution error (exit "+run.status+"): "+String(run.stderr).slice(0,300));
+    return Object.freeze({clean:run.status===0,conflicts:run.status,merged:run.stdout});
   } finally {rmSync(temp,{recursive:true,force:true});}
 }
 function blob(ref) {
@@ -77,10 +81,11 @@ export function reconcile(original,{next,ancestors}) {
   const old=zone(original),target=zone(next).module;
   if(normalized(old.module).trim()===normalized(target).trim())
     return Object.freeze({kind:"already-current",updated:original,ancestor:null});
-  const found=new Map();
+  const found=new Map(),conflicts=[];
   for(const ancestor of ancestors){
     const base=zone(ancestor.text).module;
     const result=mergeThreeWay(old.module,base,target);
+    if(!result.clean)conflicts.push(ancestor.name+": "+result.conflicts+" overlapping hunks");
     if(result.clean){
       // Reconcile line ending convention of original module on Windows.
       let merged=result.merged.trimEnd();
@@ -93,7 +98,7 @@ export function reconcile(original,{next,ancestors}) {
       }
     }
   }
-  if(found.size===0)throw Error("No conflict-free reviewed ancestor. Keep live code; exact host diff needed.");
+  if(found.size===0)throw Error("No conflict-free reviewed ancestor ("+conflicts.join("; ")+"). Live room unchanged. Source-specific integration is required.");
   if(found.size>1)throw Error("Ambiguous three-way outputs. Keep live code; manual source review required.");
   const selected=[...found.values()][0];
   return Object.freeze({kind:"merged",updated:selected.after,ancestor:selected.name});
