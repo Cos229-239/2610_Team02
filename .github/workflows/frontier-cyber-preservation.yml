@@ -1,0 +1,47 @@
+name: Frontier Cyber Atmosphere / No Regression
+on:
+  push:
+    paths:
+      - 'integrations/frontier/**'
+      - 'tools/install-frontier-lobby*'
+      - '.github/workflows/frontier-cyber-preservation.yml'
+  pull_request:
+    paths:
+      - 'integrations/frontier/**'
+      - 'tools/install-frontier-lobby*'
+      - '.github/workflows/frontier-cyber-preservation.yml'
+permissions:
+  contents: read
+jobs:
+  code-pattern-preservation:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Parse original-world addons
+        run: |
+          node --check integrations/frontier/cyber-ambience.js
+          node --check integrations/frontier/frontier-lobby.js
+          node --check tools/install-frontier-lobby.mjs
+      - name: Test cyber geometry, projector, and existing room installer guards
+        run: >
+          node --test
+          integrations/frontier/cyber-ambience.test.cjs
+          integrations/frontier/projector-machine.test.cjs
+          tools/install-frontier-lobby.test.mjs
+      - name: Source-preservation assertions
+        shell: bash
+        run: |
+          test -f integrations/world/world-state.cjs
+          test -f integrations/world/world-sync-client.js
+          test -f TowerFlow/sales-globe-realistic.js
+          test -f TowerFlow/inventory-core.js
+          test -f TowerFlow/flow-core.js
+          test -f integrations/frontier/FRONTIER_ARCHITECTURE.md
