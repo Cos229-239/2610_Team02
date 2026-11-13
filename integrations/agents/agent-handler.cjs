@@ -4,7 +4,14 @@
 const {createAgent}=require("./towerflow-agent.cjs");
 const {createFlowPlanner}=require("./flow-planner.cjs");
 function createAgentHandler({agent=createAgent(),planner=null,origin,getTrustedContext=null}={}){
- const activePlanner=planner||createFlowPlanner({getTrustedContext});
+ const providerContext=getTrustedContext||async()=>{
+   const status=agent.status();
+   return {attested:true,revision:0,state:{
+    dataProvider:status.marketFeed||"UNKNOWN",
+    dataStatus:status.externallyConnected?.market?"PROVIDER_CONFIGURED_QUOTE_NOT_FETCHED":"MARKET_PROVIDER_NOT_CONNECTED"
+   }};
+ };
+ const activePlanner=planner||createFlowPlanner({getTrustedContext:providerContext});
  if(typeof origin!=="string"||!/^https:\/\//.test(origin))throw Error("Reviewed public origin required");
  const quotas=new Map();
  return async function handler(req,res){
@@ -15,7 +22,7 @@ function createAgentHandler({agent=createAgent(),planner=null,origin,getTrustedC
   const role=["admin","maintain"].includes(req.permission)?"maintainer":"contributor";
   if(req.method==="GET"){
    if(req.path!=="/api/agents/status")return res.status(404).json({error:"Not found"});
-   return res.json({agent:"FLOW",...agent.status(),planner:{model:activePlanner.model,mode:activePlanner.mode,requiresExplicitExecution:true,surface:"towerflow",trustedState:typeof getTrustedContext==="function"?"HOST_ADAPTER_CONFIGURED":"UNKNOWN"}});
+   return res.json({agent:"FLOW",...agent.status(),planner:{model:activePlanner.model,mode:activePlanner.mode,requiresExplicitExecution:true,surface:"towerflow",trustedState:typeof getTrustedContext==="function"?"HOST_ADAPTER_CONFIGURED":"SERVER_PROVIDER_CONFIGURATION_ONLY"}});
   }
   if(req.method!=="POST"||!["/api/agents/run","/api/agents/plan"].includes(req.path))
     return res.status(405).json({error:"Method not allowed"});
