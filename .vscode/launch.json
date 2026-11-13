@@ -8,6 +8,44 @@
       "url": "http://127.0.0.1:4173",
       "webRoot": "${workspaceFolder}/TowerFlow",
       "preLaunchTask": "TowerFlow: Start local server"
+    },
+    {
+      "name": "Frontier — Debug graphics + interaction contracts (isolated)",
+      "type": "pwa-node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--test"
+      ],
+      "program": "${workspaceFolder}/integrations/frontier/experience-upgrades.test.cjs",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    {
+      "name": "Frontier — Debug cinematic GLB pipeline (isolated)",
+      "type": "pwa-node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--test"
+      ],
+      "program": "${workspaceFolder}/integrations/frontier/cinematic-fidelity.test.cjs",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "env": {
+        "NODE_ENV": "test"
+      }
     }
   ]
 }
