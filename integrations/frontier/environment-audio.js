@@ -23,7 +23,7 @@
     throw Error("Unsupported environment audio source");
   }
   function create({doc=typeof document!=="undefined"?document:null}={}){
-    const tracked=new Map(),known=new WeakSet();
+    const tracked=new Map();
     let muted=false,disposed=false,stops=0,domBound=false;
     function stopOne(entry){
       const {source,kind}=entry;
@@ -48,8 +48,10 @@
       if(role!=="environment")throw Error("Only explicitly identified environmental sources may be tracked");
       const kind=classify(source);
       if(tracked.has(source))return source;
-      const entry={source,kind,stopped:false,error:null};
-      tracked.set(source,entry);known.add(source);
+      const entry={source,kind,stopped:false,error:null,
+        originalLevel:kind==="gain"?source.gain.value:
+          kind==="three"&&typeof source.getVolume==="function"?source.getVolume():undefined};
+      tracked.set(source,entry);
       if(muted)stopOne(entry);
       return source;
     }
@@ -63,7 +65,7 @@
       if(doc?.querySelectorAll){
         for(const source of doc.querySelectorAll(AUDIO_SELECTOR)){
           if(source?.srcObject)continue; // Never touch WebRTC voice <audio>.
-          if(known.has(source))continue;
+          if(tracked.has(source))continue;
           try{source.pause?.();if("currentTime" in source)source.currentTime=0;completed++;}
           catch{errors++;}
         }
@@ -73,7 +75,14 @@
     }
     function arm(){
       if(disposed)throw Error("Environment audio controller disposed");
-      muted=false;for(const entry of tracked.values())entry.stopped=false;
+      muted=false;
+      for(const entry of tracked.values()){
+        entry.stopped=false;
+        if(typeof entry.originalLevel==="number"&&Number.isFinite(entry.originalLevel)){
+          if(entry.kind==="gain")entry.source.gain.setValueAtTime(entry.originalLevel,entry.source.context?.currentTime??0);
+          if(entry.kind==="three")entry.source.setVolume?.(entry.originalLevel);
+        }
+      }
       return true;
     }
     const onClick=e=>{
