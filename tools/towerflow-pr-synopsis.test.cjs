@@ -15,7 +15,7 @@ test("classifies product, room, mediator and tests without inventing execution",
 });
 
 test("stacked Frontier PR uses only reviewed integration branch, never untrusted targets",()=>{
-  for(const base of ["dev","main","master","feature/frontier-execution-evidence-20261111"])
+  for(const base of ["dev","main","master","feature/frontier-execution-evidence-20261111","feature/frontier-live-intelligence-20261112"])
     assert.equal(approvedBase(base),true);
   for(const base of ["feature/unreviewed","refs/heads/dev","dev..main","../../main","feature/photo-grounded-3d-studio-20261112"])
     assert.equal(approvedBase(base),false);
