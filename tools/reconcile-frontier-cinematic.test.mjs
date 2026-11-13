@@ -61,3 +61,13 @@ test("ambiguous ancestors cannot silently promote one competing merge",()=>{
    assert.ok(checkMergedRoom(all,out.updated));
  }catch(e){assert.match(e.message,/conflict-free|Ambiguous/);}
 });
+
+test("Git merge-file counts multiple conflicts as preservation blocks rather than execution errors",()=>{
+ const baseText=Array.from({length:45},(_,i)=>"line="+i+";");
+ const local=baseText.slice(),target=baseText.slice();
+ for(const i of [3,39]){local[i]="local="+i+";";target[i]="release="+i+";";}
+ const out=mergeThreeWay(local.join("\n"),baseText.join("\n"),target.join("\n"));
+ assert.equal(out.clean,false);
+ assert.ok(out.conflicts>=2,"expected Git to report at least two conflicts");
+ assert.match(out.merged,/<<<<<<< original-live/);
+});
