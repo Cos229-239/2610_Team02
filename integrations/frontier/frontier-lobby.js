@@ -858,9 +858,26 @@
     ctx.fillText("Click the projection to enter within Frontier",w/2,730);
     texture.needsUpdate=true;
   }
+  // Passive frame telemetry piggybacks on the existing projector loop.
+  // It is after-version observation only, not pre-upgrade proof of no degradation.
+  const frameSamples=[];let previousFrame=0;
+  function frameTelemetry(){
+    const arr=[...frameSamples].sort((a,b)=>a-b),p=x=>arr.length?arr[Math.min(arr.length-1,Math.floor((arr.length-1)*x))]:null;
+    const median=p(.5),p95=p(.95);
+    return Object.freeze({samples:arr.length,p50FrameMs:median,p95FrameMs:p95,
+      estimatedMedianFps:median>0?Math.round(1000/median):null,
+      drawCalls:Number.isFinite(renderer.info?.render?.calls)?renderer.info.render.calls:null,
+      triangles:Number.isFinite(renderer.info?.render?.triangles)?renderer.info.render.triangles:null,
+      beforeBaselineRecorded:false,frameRateRegressionVerified:false});
+  }
   function animateProjector(){
     requestAnimationFrame(animateProjector);
     const now=performance.now();
+    if(previousFrame){
+      const dt=now-previousFrame;
+      if(dt>0&&dt<300){frameSamples.push(dt);if(frameSamples.length>240)frameSamples.shift();}
+    }
+    previousFrame=now;
     cyberAmbience?.update(now);
     cinematicFidelity?.update(now);
     const state=projectorState.tick(now);
@@ -931,6 +948,6 @@
     cone.visible=active;
   }
   animateProjector();
-  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader}),get lighting(){return neonLighting?.stats()??null;},setLighting:(preset,intensity)=>neonLighting?.configure({preset,intensity}),get kineticPedestals(){return kineticPedestals?.stats()??null;},configurePedestal:(index,settings)=>kineticPedestals?.configure(index,settings),shatterPedestal:(index)=>kineticPedestals?.shatter(index,performance.now()),get chat(){return teamChatDock?.stats()??null;},toggleChat:()=>teamChatDock?.setOpen(!teamChatDock.open),bindTeamChatTransport:(adapter)=>teamChatDock?.attachTransport(adapter)});
+  window.tfFrontier=Object.freeze({openDashboard,openBusiness:openBusinessPanel,openIDE:openFrontierIDE,refresh:updateMetrics,setOrbAgent,activateWall:startWallProjection,powerOff:()=>projectorState.powerOff(),get projector(){return projectorState.snapshot();},get orbAgent(){return orbAgent;},get cyberAtmosphere(){return cyberAmbience?.stats()??null;},setCyberAtmosphere:(enabled)=>cyberAmbience?.setEnabled(enabled),get cinematicFidelity(){return cinematicFidelity?.stats()??null;},setCinematicFidelity:(enabled)=>cinematicFidelity?.setEnabled(enabled),mountReviewedGLB:({manifest,loader})=>cinematicFidelity?.mountGLB({manifest,loader}),get performance(){return frameTelemetry();},get lighting(){return neonLighting?.stats()??null;},setLighting:(preset,intensity)=>neonLighting?.configure({preset,intensity}),get kineticPedestals(){return kineticPedestals?.stats()??null;},configurePedestal:(index,settings)=>kineticPedestals?.configure(index,settings),shatterPedestal:(index)=>kineticPedestals?.shatter(index,performance.now()),get chat(){return teamChatDock?.stats()??null;},toggleChat:()=>teamChatDock?.setOpen(!teamChatDock.open),bindTeamChatTransport:(adapter)=>teamChatDock?.attachTransport(adapter)});
 }());
 // TF_FRONTIER_LOBBY_V1_END
