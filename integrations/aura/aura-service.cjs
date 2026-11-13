@@ -68,6 +68,20 @@ function createAuraHandler(options={}) {
   if(url.protocol!=="http:" || !["127.0.0.1","localhost","[::1]"].includes(url.hostname) || url.username || url.password || url.pathname!=="/")
     throw new Error("Ollama must be loopback HTTP only");
   const memoryDir=options.memoryDir || path.join(os.homedir(),".towerflow","aura-users");
+  // Server-private world state is authoritative only for configuration facts
+  // it actually stores. Projector/player positions remain UNKNOWN unless host
+  // supplies a stronger verified getTrustedContext(req,user) adapter.
+  const privateWorld=path.join(path.dirname(kbFile),"data","towerflow-world-state.json");
+  const loadTrustedContext=typeof options.getTrustedContext==="function"?options.getTrustedContext:async()=>{
+    try{
+      const world=JSON.parse(await fs.readFile(privateWorld,"utf8"));
+      if(world.version!==1||!Number.isSafeInteger(world.revision)||world.revision<0) return null;
+      return {attested:true,revision:world.revision,state:{
+        roomName:"Frontier",sceneMode:typeof world.scene?.mode==="string"?world.scene.mode:"unset",
+        dataStatus:"ROOM_CONFIGURATION_ONLY_NO_PROJECTOR_TELEMETRY"
+      }};
+    }catch{return null;}
+  };
   const rate=new Map();
   let inflight=0;
   return async function auraHandler(req,res) {
@@ -82,7 +96,7 @@ function createAuraHandler(options={}) {
     const userId=user.userId;
     if(req.method==="OPTIONS") return send(res,405,{error:"Unavailable"}),true;
     if(pathname==="/api/aura/status" && req.method==="GET") {
-      send(res,200,{agent:"AURA",model,mode:"read-only",memory:"opt-in",tools:["knowledge-search"],desktopIDEBridge:false,harness:"SOURCE_AWARE_V1",surface:"frontier",hostContextStatus:typeof options.getTrustedContext==="function"?"HOST_ADAPTER_CONFIGURED":"UNKNOWN"});
+      send(res,200,{agent:"AURA",model,mode:"read-only",memory:"opt-in",tools:["knowledge-search"],desktopIDEBridge:false,harness:"SOURCE_AWARE_V1",surface:"frontier",hostContextStatus:typeof options.getTrustedContext==="function"?"HOST_ADAPTER_CONFIGURED":"PRIVATE_WORLD_STATE_IF_PRESENT"});
       return true;
     }
     if(!["POST","GET","DELETE"].includes(req.method)) return send(res,405,{error:"Method not allowed"}),true;
@@ -128,7 +142,7 @@ function createAuraHandler(options={}) {
     try {
       const kb=(await fs.readFile(kbFile,"utf8")).slice(0,25000);
       const memories=(await memoryRead(memFile)).map(x=>x.fact).join("\n").slice(0,5000);
-      const trusted=typeof options.getTrustedContext==="function"?await options.getTrustedContext(req,user):null;
+      const trusted=await loadTrustedContext(req,user);
       const harness=configure({agent:"AURA",model,surface:"frontier",task:data.question.trim(),
         hostContext:trusted?.state,hostRevision:trusted?.revision,hostSource:trusted?.attested===true?"trusted-host":"unknown",
         roles:[["viewer","contributor","maintainer"].includes(user.role)?user.role:"viewer"],configuration:{scope:"user"}});
