@@ -4,6 +4,7 @@
 [CmdletBinding()]
 param(
   [switch]$ApplyCyber,
+  [switch]$StageIntelligence,
   [switch]$NoBrowser,
   [string]$LiveRoom = (Join-Path $env:USERPROFILE 'Desktop\Towerflow_Team02_Private_Invite_Room\Towerflow_Collaboration_Room')
 )
@@ -37,6 +38,36 @@ try {
   & $node --test @tests
   if($LASTEXITCODE -ne 0){throw 'Regression tests failed; original room unchanged'}
   Write-Host 'CODE / SOURCE TESTS: PASS' -ForegroundColor Green
+  if($StageIntelligence){
+    $intelligenceTests=@(
+      'integrations/agents/dual-agent-harness.test.cjs',
+      'integrations/agents/online-evidence-learner.test.cjs',
+      'integrations/agents/towerflow-agent.test.cjs',
+      'integrations/agents/flow-planner.test.cjs',
+      'integrations/agents/agent-handler.test.cjs',
+      'integrations/aura/aura-service.test.cjs',
+      'integrations/market/alpaca-iex.test.cjs',
+      'integrations/market/sec-company-facts.test.cjs',
+      'integrations/contributions/object-contract.test.cjs'
+    )
+    & $node --test @intelligenceTests
+    if($LASTEXITCODE -ne 0){throw 'AURA/FLOW intelligence regression gate failed; no host services staged'}
+    $installers=@(
+      'tools/install-towerflow-business-product.mjs',
+      'tools/install-towerflow-aura-from-git.mjs',
+      'tools/install-shared-world-from-git.mjs'
+    )
+    foreach($installer in $installers){
+      & $node $installer --dry-run
+      if($LASTEXITCODE -ne 0){throw "Preservation dry-run failed: $installer"}
+    }
+    foreach($installer in $installers){
+      & $node $installer --apply
+      if($LASTEXITCODE -ne 0){throw "Staging stopped: $installer. Inspect installer rollback receipt."}
+    }
+    Write-Host 'INTELLIGENCE: original business/room services staged with tested dependencies' -ForegroundColor Green
+    Write-Host 'RUNTIME: an already-running server is NOT restarted; newly staged backend activates only after a planned restart' -ForegroundColor Yellow
+  }
   if($ApplyCyber){
     $source=[System.IO.File]::ReadAllText($room)
     if(-not $source.Contains('// TF_FRONTIER_LOBBY_V1_BEGIN') -or
