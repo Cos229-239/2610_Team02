@@ -131,7 +131,7 @@ function createAuraHandler(options={}) {
       const trusted=typeof options.getTrustedContext==="function"?await options.getTrustedContext(req,user):null;
       const harness=configure({agent:"AURA",model,surface:"frontier",task:data.question.trim(),
         hostContext:trusted?.state,hostRevision:trusted?.revision,hostSource:trusted?.attested===true?"trusted-host":"unknown",
-        roles:[user.role||"viewer"],configuration:{scope:"user"}});
+        roles:[["viewer","contributor","maintainer"].includes(user.role)?user.role:"viewer"],configuration:{scope:"user"}});
       const controller=new AbortController();
       const timeout=setTimeout(()=>controller.abort(),45000);
       try {
