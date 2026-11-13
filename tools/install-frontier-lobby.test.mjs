@@ -71,6 +71,11 @@ test('cyber layer is optional, tied to original world scene and not a new dashbo
  assert.match(addon,/TowerflowCinematicFidelity\?\.install/);
  assert.match(addon,/cinematicFidelity\?\.update\(now\)/);
  assert.match(addon,/mountReviewedGLB/);
+ assert.match(addon,/TowerflowKineticPedestals\?\.install/);
+ assert.match(addon,/TowerflowNeonLighting\?\.install/);
+ assert.match(addon,/TowerflowTeamChatDock\?\.install/);
+ assert.match(addon,/pedestalPick\(raycaster\)/);
+ assert.match(addon,/bindTeamChatTransport/);
  assert.match(addon,/setCyberAtmosphere/);
  assert.match(addon,/Optional Frontier cyber ambience failed/);
  assert.doesNotMatch(addon,/window\.open\(['"]\/photo-studio/);
