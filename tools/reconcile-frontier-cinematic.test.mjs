@@ -5,12 +5,17 @@ const begin="// TF_FRONTIER_LOBBY_V1_BEGIN",end="// TF_FRONTIER_LOBBY_V1_END";
 const flags=[
 "TF_PROJECTOR_MACHINE_V1","TF_FRONTIER_CYBER_AMBIENCE_V1",
 "TF_FRONTIER_CINEMATIC_FIDELITY_V1","TF_FRONTIER_KINETIC_PEDESTALS_V1",
-"TF_FRONTIER_NEON_LIGHTING_V1","TF_FRONTIER_TEAM_CHAT_DOCK_V1"
+"TF_FRONTIER_NEON_LIGHTING_V1","TF_FRONTIER_TEAM_CHAT_DOCK_V1",
+"TF_FRONTIER_ENVIRONMENT_AUDIO_V1"
 ];
-const base=[begin,"(function(){","const shared=42;","const preserved=10;","window.tfFrontier=shared;","})();",end].join("\n");
-const incoming=[begin, ...flags.map(m=>"// "+m),
-"(function(){","const shared=42;","const preserved=10;","const extra=99;",
-"window.tfFrontier=shared+extra;","})();",end].join("\n");
+// Realistic spacing ensures that independent local and incoming edits are
+// separated by multiple unchanged context lines. Adjacent edits conflict in Git.
+const stableLines=Array.from({length:36},(_,i)=>"const preservedPart"+i+"="+i+";");
+const base=[begin,"(function(){","const shared=42;","const preserved=10;",
+  ...stableLines,"window.tfFrontier=shared;","})();",end].join("\n");
+const incoming=[begin,"(function(){","const shared=42;","const preserved=10;",
+  ...stableLines,...flags.map(m=>"// "+m),"const extra=99;",
+  "window.tfFrontier=shared+extra;","})();",end].join("\n");
 const wrap=m=>"// ORIGINAL PRIVATE SETTINGS\n// environment unchanged\n"+m+"\n// AUTH BOUNDARY\n";
 test("no original room replacement: only source inside exact markers may differ",()=>{
  const a=wrap(base),b=wrap(incoming);
