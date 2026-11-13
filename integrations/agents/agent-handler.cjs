@@ -3,7 +3,8 @@
 // auth + ensureMember; origin, identity, request bounds also checked here.
 const {createAgent}=require("./towerflow-agent.cjs");
 const {createFlowPlanner}=require("./flow-planner.cjs");
-function createAgentHandler({agent=createAgent(),planner=createFlowPlanner(),origin}={}){
+function createAgentHandler({agent=createAgent(),planner=null,origin,getTrustedContext=null}={}){
+ const activePlanner=planner||createFlowPlanner({getTrustedContext});
  if(typeof origin!=="string"||!/^https:\/\//.test(origin))throw Error("Reviewed public origin required");
  const quotas=new Map();
  return async function handler(req,res){
@@ -14,7 +15,7 @@ function createAgentHandler({agent=createAgent(),planner=createFlowPlanner(),ori
   const role=["admin","maintain"].includes(req.permission)?"maintainer":"contributor";
   if(req.method==="GET"){
    if(req.path!=="/api/agents/status")return res.status(404).json({error:"Not found"});
-   return res.json({agent:"FLOW",...agent.status(),planner:{model:planner.model,mode:planner.mode,requiresExplicitExecution:true}});
+   return res.json({agent:"FLOW",...agent.status(),planner:{model:activePlanner.model,mode:activePlanner.mode,requiresExplicitExecution:true,surface:"towerflow",trustedState:typeof getTrustedContext==="function"?"HOST_ADAPTER_CONFIGURED":"UNKNOWN"}});
   }
   if(req.method!=="POST"||!["/api/agents/run","/api/agents/plan"].includes(req.path))
     return res.status(405).json({error:"Method not allowed"});
@@ -33,7 +34,7 @@ function createAgentHandler({agent=createAgent(),planner=createFlowPlanner(),ori
     return res.status(413).json({error:"Invalid or oversized task"});
   try{
    const result=req.path==="/api/agents/plan"?
-     await planner.plan({question:body.question,itemsAvailable:body.itemsAvailable===true}):
+     await activePlanner.plan({question:body.question,itemsAvailable:body.itemsAvailable===true}):
      await agent.run(body,{userId:"github_"+String(id).toLowerCase(),role});
    return res.status(200).json(result);
   }catch(e){
