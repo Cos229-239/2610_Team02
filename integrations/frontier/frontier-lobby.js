@@ -550,6 +550,27 @@
       showToast("Illumination • "+next);
     };
     row.append(fragment,reset,light);root.append(row);
+    // Separate opt-in visual controls; does not alter projector, ceiling, browser
+    // renderer exposure, scene materials outside these two decorative layers.
+    for(const [title,layer,maximum] of [
+      ["RING LUMINANCE",neonLighting,1.6],
+      ["CIRCUIT LUMINANCE",cyberAmbience,1.6]
+    ]){
+      if(!layer)continue;
+      const available=layer.stats(),valueNow=title==="RING LUMINANCE"?available.intensity:available.glowIntensity;
+      if(!Number.isFinite(valueNow))continue;
+      const label=makeEl("label",title+" ");
+      label.style.cssText="display:flex;align-items:center;gap:12px;margin:10px 0;color:#d5f6ff";
+      const slider=makeEl("input");slider.type="range";slider.min="0";slider.max=String(maximum);
+      slider.step=".05";slider.value=String(valueNow);slider.setAttribute("aria-label",title);
+      const amount=makeEl("span",Number(valueNow).toFixed(2));
+      slider.oninput=()=>{
+        const next=Number(slider.value);amount.textContent=next.toFixed(2);
+        if(title==="RING LUMINANCE")layer.configure({intensity:next});
+        else layer.setGlowIntensity(next);
+      };
+      label.append(slider,amount);root.append(label);
+    }
     return true;
   }
   function pedestalPick(ray){
