@@ -44,7 +44,13 @@ void Intro() {
 	Divider();
 	std::cout << "15. Create Sale" << std::endl;
 	Divider();
-	std::cout << "16. Quit" << std::endl;
+#ifdef _WIN32
+    std::cout << "16. Open inventory window" << std::endl;
+    Divider();
+    std::cout << "17. Quit" << std::endl;
+#else
+    std::cout << "16. Quit" << std::endl;
+#endif
 	Divider();
 	// MODIFIED BY MALIK BROWN: Added options 8, 9, 16 for Bulk Inventory Management, and closing of program | END //
 }

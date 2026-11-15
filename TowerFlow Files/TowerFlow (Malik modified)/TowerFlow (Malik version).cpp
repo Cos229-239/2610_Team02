@@ -9,6 +9,9 @@
 #include "BulkConsole.h"
 #include "OperationsConsole.h"
 #include "OptionInput.h"
+#ifdef _WIN32
+#include "TowerFlowGUI.h"
+#endif
 
 
 //TowerFlow is going to be a shell of an inventory to grow
@@ -93,7 +96,12 @@ int main() {
             OperationsMenu.createSale();
             break;
         // MODIFIED BY MALIK BROWN: Connected work order, purchase, and sale options 10-15 | END //
-		case(QUIT): // enter 16 to quit, currently on the enum list
+#ifdef _WIN32
+        case VIEW_INVENTORY_WINDOW:
+            ShowInventoryWindow(Operations);
+            break;
+#endif
+		case(QUIT):
 			PowerOn = false;
 			break;
 

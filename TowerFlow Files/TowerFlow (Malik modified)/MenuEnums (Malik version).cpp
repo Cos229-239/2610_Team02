@@ -16,5 +16,8 @@ enum MenuOptions {
 	PURCHASE_PART,
 	PURCHASE_ORDER,
 	CREATE_SALE,
-	QUIT
+#ifdef _WIN32
+    VIEW_INVENTORY_WINDOW,
+#endif
+    QUIT
 };

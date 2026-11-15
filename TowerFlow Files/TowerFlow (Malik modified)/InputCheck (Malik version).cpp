@@ -28,14 +28,15 @@ bool Input(int& UserInput) {
     std::string line;
     // Keep the prompt in the loop so every retry uses the same wording.
     while (true) {
-        std::cout << "Please enter your selection (1-16): ";
+        constexpr int lastOption = QUIT;
+        std::cout << "Please enter your selection (1-" << lastOption << "): ";
         if (!std::getline(std::cin, line)) return false;
         int selection = 0;
-        if (TryParseInt(line, selection) && selection >= TOTAL_STOCK && selection <= QUIT) {
+        if (TryParseInt(line, selection) && selection >= TOTAL_STOCK && selection <= lastOption) {
             UserInput = selection;
             return true;
         }
-        std::cout << "Please choose a number from 1 to 16.\n";
+        std::cout << "Please choose a number from 1 to " << lastOption << ".\n";
     }
 }
 // MODIFIED BY MALIK BROWN: Modified InputCheck to validate user input for integers. Updated input validation to reject non-integer values. | END //

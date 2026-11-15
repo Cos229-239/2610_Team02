@@ -8,7 +8,7 @@ if not defined towerflowVS exit /b 1
 call "%towerflowVS%\VC\Auxiliary\Build\vcvars64.bat" >nul
 if errorlevel 1 exit /b 1
 if not exist build mkdir build
-cl /nologo /EHsc /std:c++17 /W4 /Zi /Od "TowerFlow (Malik version).cpp" /Fe:build\TowerFlow.exe /Fo:build\TowerFlow.obj /Fd:build\TowerFlow-compile.pdb /link /DEBUG /PDB:build\TowerFlow.pdb
+cl /nologo /EHsc /std:c++17 /W4 /Zi /Od "TowerFlow (Malik version).cpp" TowerFlowGUI.cpp /Fe:build\TowerFlow.exe /Fo:build\ /Fd:build\TowerFlow-compile.pdb /link comctl32.lib user32.lib gdi32.lib /DEBUG /PDB:build\TowerFlow.pdb
 if errorlevel 1 exit /b 1
 cl /nologo /EHsc /std:c++17 /W4 /Zi /Od tests\CurrentPartTests.cpp /Fe:build\PartTests.exe /Fo:build\PartTests.obj /Fd:build\PartTests-compile.pdb /link /DEBUG /PDB:build\PartTests.pdb
 if errorlevel 1 exit /b 1
