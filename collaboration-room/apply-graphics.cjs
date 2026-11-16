@@ -195,8 +195,13 @@ function install(room, rollback = false) {
     }
     const enhanced = promotedSource(baseline);
     const beforeHash = hash(before);
-    if (beforeHash !== recoveredHash && beforeHash !== hash(enhanced) &&
-        beforeHash !== hash(promotedSource(baseline, true))) {
+    // Git attributes and Windows checkout settings can only affect serialized addon functions.
+    const sameGraphics = candidate =>
+        before.subarray(0, baseline.length).equals(baseline) &&
+        before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
+        candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
+    if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, true))) {
         throw Error('Live room has other edits. Current SHA256: ' + beforeHash);
     }
 
