@@ -18,11 +18,58 @@ for(let z of [-10,0,10]){box(.12,9,.12,-20.5,5.5,z,neon);box(.12,9,.12,20.5,5.5,
 for(let i=0;i<30;i++){const h=2.1+(Math.sin(i*12.989)*.5+.5)*4.9;box(.72,h,.2,-19.3+i*1.3,h/2,-15.45,mat('#263e58',.7,.28));}
 function textTexture(text,subtitle='',width=900){let c=document.createElement('canvas');c.width=width;c.height=220;let g=c.getContext('2d');g.fillStyle='#071523';g.fillRect(0,0,c.width,c.height);g.strokeStyle='#36a8d9';g.lineWidth=7;g.strokeRect(7,7,c.width-14,c.height-14);g.fillStyle='#7ceaff';g.textAlign='center';g.font='bold 69px Segoe UI, sans-serif';g.fillText(text,c.width/2,112);g.fillStyle='#a6bacb';g.font='29px Segoe UI, sans-serif';g.fillText(subtitle,c.width/2,164);return new THREE.CanvasTexture(c);}
 function sign(name,sub,x,y,z,w=5,h=1.3,rot=0){let mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:textTexture(name,sub),side:THREE.DoubleSide}));mesh.position.set(x,y,z);mesh.rotation.y=rot;scene.add(mesh);return mesh;}
-const stations=[];function station(id,label,desc,x,z,color=neon){stations.push({id,label,x,z});box(5,.38,2.65,x,1.25,z,dark);box(4.5,.08,2.3,x,1.48,z,color);box(.45,1.1,.45,x-2,0.65,z,silver);box(.45,1.1,.45,x+2,0.65,z,silver);box(.18,3,.18,x,3,z-.6,color);sign(label,desc,x,4.5,z-.6,4.7,1.25);}
+// TF_PHYSICAL_WORKSTATIONS_V1_BEGIN
+const stations=[];
+function station(id,label,desc,x,z,color=neon){
+  stations.push({id,label,x,z}); // Keep existing E interaction IDs and coordinates.
+  const chassis=mat('#101923',.43,.54),edge=mat('#34495b',.68,.31);
+  const display=mat('#071a2a',.12,.2,'#06334c',.7);
+  const screenFrame=mat('#060b12',.45,.35);
+  // Solid ergonomic console; no freestanding billboard or luminous platform.
+  box(4.5,.16,1.8,x,1.25,z,chassis);
+  for(const dx of [-1.88,1.88])box(.13,1.14,1.35,x+dx,.62,z,edge);
+  box(4.2,.035,.06,x,1.34,z+.83,color);
+  box(2.55,1.25,.11,x,2.15,z-.53,screenFrame);
+  box(2.37,1.07,.018,x,2.15,z-.455,display);
+  box(2.2,.045,.06,x,1.62,z-.43,color);
+  box(1.15,.045,.36,x,1.36,z+.34,edge);
+  box(.42,.055,.27,x+1.1,1.36,z+.35,edge);
+  sign(label,desc,x,3.28,z-.55,3.9,.8);
+}
+// TF_PHYSICAL_WORKSTATIONS_V1_END
 station('ide','CODE NEXUS','Repository IDE / Git Console',0,-9);station('ai','AI STUDIO','Prompt → Preview → Keep / Discard',-12,-7,violet);station('work','TACTICAL BOARD','Milestones / Tasks / Goals',12,-7,neon);station('team','TEAM PORTAL','GitHub members / Invites / Voice',-13,7,violet);station('music','SOUND GARDEN','Ambient / Focus / Jukebox',13,7,gold);station('links','LINK HUB','Trello / Full Sail / Discord',0,10,neon);
 sign('TOWERFLOW','ENTER WORLD    •    FEATURE LAB    •    SHARED DEV',0,8.5,-15.56,10,1.9);
-// Core translucent hologram.
-const core=new THREE.Group();core.position.set(0,3.2,-2);scene.add(core);let coreRing=new THREE.Mesh(new THREE.TorusGeometry(1.5,.045,12,90),neon);core.add(coreRing);let coreRing2=new THREE.Mesh(new THREE.TorusGeometry(1.1,.025,12,80),violet);coreRing2.rotation.y=1.1;core.add(coreRing2);let sphere=new THREE.Mesh(new THREE.IcosahedronGeometry(.75,2),new THREE.MeshPhysicalMaterial({color:0x38b9df,transparent:true,opacity:.54,metalness:.65,roughness:.1,emissive:0x138bb5,emissiveIntensity:.6}));core.add(sphere);stations.push({id:'ide',label:'Holographic computer',x:0,z:-2});
+// TF_EARTH_HOLOGRAM_V1_BEGIN
+// Self-contained, offline-safe geographic illustration. No live sales claims.
+const core=new THREE.Group();core.name='TF_EARTH_HOLOGRAM_V1';core.position.set(0,3.2,-2);scene.add(core);
+const earthCanvas=document.createElement('canvas');earthCanvas.width=1024;earthCanvas.height=512;
+const ec=earthCanvas.getContext('2d');
+ec.fillStyle='#092a4d';ec.fillRect(0,0,1024,512);
+const ocean=ec.createLinearGradient(0,0,0,512);ocean.addColorStop(0,'#123e65');ocean.addColorStop(.5,'#0a2847');ocean.addColorStop(1,'#153d63');ec.fillStyle=ocean;ec.fillRect(0,0,1024,512);
+const landPaths=[
+ [[.06,.21],[.12,.14],[.19,.17],[.24,.25],[.22,.35],[.18,.39],[.17,.47],[.13,.43],[.10,.34],[.06,.32]],
+ [[.19,.48],[.25,.49],[.29,.59],[.27,.75],[.24,.89],[.21,.78],[.20,.63]],
+ [[.40,.19],[.47,.16],[.50,.23],[.48,.33],[.45,.36],[.43,.30]],
+ [[.44,.37],[.52,.35],[.56,.47],[.54,.68],[.50,.81],[.46,.72],[.44,.56]],
+ [[.49,.19],[.61,.12],[.72,.17],[.80,.24],[.87,.18],[.94,.28],[.90,.42],[.83,.45],[.78,.39],[.71,.44],[.67,.55],[.60,.47],[.56,.34],[.51,.35]],
+ [[.70,.50],[.75,.48],[.77,.59],[.74,.70],[.71,.63]],
+ [[.82,.65],[.89,.64],[.93,.72],[.89,.81],[.83,.78]],
+ [[.0,.91],[.22,.89],[.48,.93],[.75,.89],[1,.92],[1,1],[0,1]]
+];
+ec.fillStyle='#3e907c';ec.strokeStyle='#8acbb0';ec.lineWidth=1.6;
+for(const poly of landPaths){ec.beginPath();poly.forEach(([x,y],i)=>i?ec.lineTo(x*1024,y*512):ec.moveTo(x*1024,y*512));ec.closePath();ec.fill();ec.stroke();}
+ec.strokeStyle='rgba(110,204,238,.18)';ec.lineWidth=1;
+for(let x=0;x<=1024;x+=64){ec.beginPath();ec.moveTo(x,0);ec.lineTo(x,512);ec.stroke();}
+for(let y=0;y<=512;y+=64){ec.beginPath();ec.moveTo(0,y);ec.lineTo(1024,y);ec.stroke();}
+const earthTexture=new THREE.CanvasTexture(earthCanvas);earthTexture.colorSpace=THREE.SRGBColorSpace;
+const sphere=new THREE.Mesh(new THREE.SphereGeometry(1.04,64,40),new THREE.MeshStandardMaterial({map:earthTexture,metalness:.05,roughness:.83,emissive:0x052038,emissiveIntensity:.28}));core.add(sphere);
+const ringMaterial=new THREE.MeshBasicMaterial({color:0x55dfff,transparent:true,opacity:.7,depthWrite:false});
+const coreRing=new THREE.Mesh(new THREE.TorusGeometry(1.53,.022,8,112),ringMaterial);coreRing.rotation.x=.35;core.add(coreRing);
+const coreRing2=new THREE.Mesh(new THREE.TorusGeometry(1.37,.018,8,112),new THREE.MeshBasicMaterial({color:0x78b9ff,transparent:true,opacity:.53,depthWrite:false}));coreRing2.rotation.y=1.1;core.add(coreRing2);
+const earthStatus=sign('EARTH • VISUAL PROTOTYPE','ILLUSTRATIVE GEOGRAPHY • NO LIVE SALES FEED',0,5.55,-2,5.4,.72);
+earthStatus.userData.tfEarthStatus=true;
+stations.push({id:'ide',label:'Holographic computer',x:0,z:-2});
+// TF_EARTH_HOLOGRAM_V1_END
 // Station AI chaperone in left corner.
 const guide=new THREE.Group();guide.position.set(-17,0,-12);scene.add(guide);let guideHead=new THREE.Mesh(new THREE.SphereGeometry(.62,24,24),violet);guideHead.position.y=2.8;guide.add(guideHead);let guideTorso=new THREE.Mesh(new THREE.CylinderGeometry(.65,.9,1.9,16),dark);guideTorso.position.y=1.35;guide.add(guideTorso);guide.add(new THREE.PointLight(0xb8a1ff,40,6));stations.push({id:'help',label:'AURA • AI Chaperone',x:-17,z:-12});sign('AURA','Can I assist you? Pun intended.',-17,4.9,-15.4,5,1.1);
 // Animated avatar markers; their color/image comes from GitHub sign-in.
