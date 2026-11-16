@@ -408,7 +408,240 @@ function applyCityInterior({ THREE, scene, core, earthStatus, stations }) {
     console.info('TowerFlow city interior applied', { buildings: 33, windows: lamps.length, desks: deskReplacements.length });
 }
 
-function promotedSource(original, revision = 3) {
+function applyMaterialPolish({ THREE, scene, renderer }) {
+    const interior = scene.getObjectByName('TF_NIGHT_CITY_INTERIOR');
+    const skyline = scene.getObjectByName('TF_CITY_SKYLINE');
+    const floor = scene.getObjectByName('TF_FLOW_RESIN_FLOOR');
+    if (!interior || !skyline || !floor) throw Error('City and resin baseline was not initialized.');
+
+    // Preserve the resin texture and its branching pattern. Restrict diffuse fill on black stone.
+    floor.material.color.set(0x667185);
+    floor.material.emissiveIntensity = 0.34;
+    floor.material.roughness = 0.19;
+    floor.material.metalness = 0.08;
+
+    const glass = interior.children.find(object => object.position.x === -20.69 && object.material?.transparent);
+    if (glass) {
+        glass.material.color.set(0x7c8fa7);
+        glass.material.opacity = 0.023;
+    }
+    interior.children.filter(object => object.isPointLight).forEach(light => {
+        light.intensity *= light.position.x === 17 ? .57 : .78;
+    });
+
+    const sky = skyline.children.find(object => object.position.x === -96);
+    if (sky) {
+        sky.material = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec2 tfUv;
+                void main() {
+                    tfUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }`,
+            fragmentShader: `
+                varying vec2 tfUv;
+                void main() {
+                    float altitude = clamp(tfUv.y, 0.0, 1.0);
+                    float horizon = exp(-pow((altitude - .42) * 4.7, 2.0));
+                    float cloud = .5 + .5 * sin(tfUv.x * 15.0 + sin(tfUv.x * 23.0) + altitude * 13.0);
+                    float band = exp(-pow((altitude - .57 - .015 * sin(tfUv.x * 22.0)) * 21.0, 2.0));
+                    vec3 color = mix(vec3(.012,.020,.035),vec3(.002,.006,.019),altitude);
+                    color += horizon * vec3(.058,.044,.066);
+                    color += cloud * band * vec3(.017,.019,.033);
+                    gl_FragColor = vec4(color, 1.0);
+                    #include <tonemapping_fragment>
+                    #include <colorspace_fragment>
+                }`
+        });
+    }
+    // Thin, progressively denser atmospheric scatter in the distant tower materials.
+    for (const object of skyline.children) {
+        const distance = Math.abs(object.position.x);
+        if (!object.isMesh || object === sky || distance < 28 || !object.material.color) continue;
+        const finish = object.material.clone();
+        finish.color.lerp(new THREE.Color(0x33405c), Math.min(.4, Math.max(0, (distance - 30) / 105)));
+        object.material = finish;
+    }
+    const windows = scene.getObjectByName('TF_CITY_OCCUPANCY_WINDOWS');
+    if (windows) windows.material.color.set(0xb4b1ae);
+
+    const fixtures = new THREE.Group();
+    fixtures.name = 'TF_HOURGLASS_WALL_LIGHTS';
+    const metal = new THREE.MeshStandardMaterial({ color: 0x2b323e, metalness: .58, roughness: .38 });
+    const diffuser = new THREE.MeshStandardMaterial({
+        color: 0xffeee0, emissive: 0xffcf9e, emissiveIntensity: 2.3, roughness: .48,
+        side: THREE.DoubleSide
+    });
+    const shape = new THREE.Shape();
+    shape.moveTo(-.28, -1.22);
+    shape.bezierCurveTo(-.25, -.61, -.075, -.29, -.075, 0);
+    shape.bezierCurveTo(-.075, .31, -.26, .62, -.28, 1.22);
+    shape.lineTo(.28, 1.22);
+    shape.bezierCurveTo(.26, .62, .075, .31, .075, 0);
+    shape.bezierCurveTo(.075, -.29, .25, -.61, .28, -1.22);
+    shape.closePath();
+    const channel = new THREE.ExtrudeGeometry(shape, {
+        depth: .09, bevelThickness: .027, bevelSize: .024, bevelSegments: 2, curveSegments: 16
+    });
+    const aperture = new THREE.ShapeGeometry(shape, 20);
+    const softWash = new THREE.PlaneGeometry(3.2, 5.5);
+    const glow = new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        vertexShader: `
+            varying vec2 tfUv;
+            void main() {
+                tfUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }`,
+        fragmentShader: `
+            varying vec2 tfUv;
+            void main() {
+                vec2 p = tfUv - .5;
+                float flare = abs(p.y) * .36 + .045;
+                float spread = exp(-pow(p.x / flare, 2.0) * 1.25);
+                float edge = pow(max(0.0, 1.0 - abs(p.y) * 2.0), 1.75);
+                gl_FragColor = vec4(.92,.48,.22,spread * edge * .20);
+            }`
+    });
+    const placements = [
+        [-16.2, -15.62, 0], [16.2, -15.62, 0],
+        [-16.2, 15.62, Math.PI], [16.2, 15.62, Math.PI],
+        [20.63, -11.95, -Math.PI / 2], [20.63, 11.95, -Math.PI / 2]
+    ];
+    for (const [x, z, rotation] of placements) {
+        const fixture = new THREE.Group();
+        fixture.position.set(x, 5.1, z);
+        fixture.rotation.y = rotation;
+        fixtures.add(fixture);
+        const housing = new THREE.Mesh(channel, metal);
+        housing.scale.set(1.21, 1.037, 1);
+        const lamp = new THREE.Mesh(aperture, diffuser);
+        lamp.position.z = .122;
+        const wash = new THREE.Mesh(softWash, glow);
+        wash.position.z = .008;
+        for (const object of [housing, lamp, wash]) {
+            object.raycast = () => {};
+            fixture.add(object);
+        }
+    }
+    // Only the two front fixtures contribute actual local light. The other sconces use wall wash.
+    for (const x of [-16.2, 16.2]) {
+        const light = new THREE.PointLight(0xffc99e, 17, 8.2, 2);
+        light.position.set(x, 5.1, -15.15);
+        fixtures.add(light);
+    }
+    scene.add(fixtures);
+
+    // Low-resolution planar reflection. Retain the resin material as the fallback.
+    const target = new THREE.WebGLRenderTarget(640, 360, { type: THREE.HalfFloatType });
+    const mirrorCamera = new THREE.PerspectiveCamera();
+    const textureMatrix = new THREE.Matrix4();
+    const position = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+    const up = new THREE.Vector3();
+    const quaternion = new THREE.Quaternion();
+    const targetPoint = new THREE.Vector3();
+    const surfaceNormal = new THREE.Vector3(0, 1, 0);
+    const surfacePosition = new THREE.Vector3(0, floor.position.y + .003, 0);
+    const plane = new THREE.Plane();
+    const clip = new THREE.Vector4();
+    const corner = new THREE.Vector4();
+    const mirrorMaterial = new THREE.ShaderMaterial({
+        transparent: true, depthWrite: false,
+        uniforms: { mirrorMap: { value: target.texture }, textureMatrix: { value: textureMatrix },
+            active: { value: 0 }, texel: { value: new THREE.Vector2(1 / 640, 1 / 360) } },
+        vertexShader: `
+            uniform mat4 textureMatrix;
+            varying vec4 mirrorUv;
+            varying vec3 tfPosition;
+            void main() {
+                mirrorUv = textureMatrix * vec4(position, 1.0);
+                tfPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }`,
+        fragmentShader: `
+            uniform sampler2D mirrorMap;
+            uniform vec2 texel;
+            uniform float active;
+            varying vec4 mirrorUv;
+            varying vec3 tfPosition;
+            void main() {
+                vec2 uv = mirrorUv.xy / mirrorUv.w;
+                vec3 reflected = texture2D(mirrorMap, uv).rgb * .60;
+                reflected += .10 * texture2D(mirrorMap, uv + vec2(texel.x, 0.0)).rgb;
+                reflected += .10 * texture2D(mirrorMap, uv - vec2(texel.x, 0.0)).rgb;
+                reflected += .10 * texture2D(mirrorMap, uv + vec2(0.0, texel.y)).rgb;
+                reflected += .10 * texture2D(mirrorMap, uv - vec2(0.0, texel.y)).rgb;
+                float grazing = pow(1.0 - abs(normalize(cameraPosition - tfPosition).y), 3.0);
+                gl_FragColor = vec4(reflected, active * (.095 + .46 * grazing));
+                #include <tonemapping_fragment>
+                #include <colorspace_fragment>
+            }`
+    });
+    const mirror = new THREE.Mesh(floor.geometry, mirrorMaterial);
+    mirror.name = 'TF_POLISHED_MARBLE_REFLECTION';
+    mirror.position.copy(surfacePosition);
+    mirror.rotation.copy(floor.rotation);
+    mirror.raycast = () => {};
+    let last = -Infinity;
+    mirror.onBeforeRender = (draw, world, camera) => {
+        if (!camera.isPerspectiveCamera || draw.getRenderTarget() || performance.now() - last < 42) return;
+        camera.getWorldPosition(position);
+        if (position.y <= surfacePosition.y) return;
+        camera.getWorldQuaternion(quaternion);
+        camera.getWorldDirection(direction).reflect(surfaceNormal);
+        up.copy(camera.up).applyQuaternion(quaternion).reflect(surfaceNormal);
+        mirrorCamera.position.copy(position);
+        mirrorCamera.position.y = 2 * surfacePosition.y - position.y;
+        mirrorCamera.up.copy(up);
+        targetPoint.copy(mirrorCamera.position).add(direction);
+        mirrorCamera.lookAt(targetPoint);
+        mirrorCamera.far = camera.far;
+        mirrorCamera.layers.mask = camera.layers.mask;
+        mirrorCamera.updateMatrixWorld();
+        mirrorCamera.projectionMatrix.copy(camera.projectionMatrix);
+        textureMatrix.set(.5,0,0,.5, 0,.5,0,.5, 0,0,.5,.5, 0,0,0,1)
+            .multiply(mirrorCamera.projectionMatrix).multiply(mirrorCamera.matrixWorldInverse).multiply(mirror.matrixWorld);
+
+        // Oblique clip plane prevents the inverted camera from drawing objects below the stone.
+        plane.setFromNormalAndCoplanarPoint(surfaceNormal, surfacePosition).applyMatrix4(mirrorCamera.matrixWorldInverse);
+        clip.set(plane.normal.x, plane.normal.y, plane.normal.z, plane.constant);
+        const p = mirrorCamera.projectionMatrix.elements;
+        corner.set((Math.sign(clip.x) + p[8]) / p[0], (Math.sign(clip.y) + p[9]) / p[5], -1, (1 + p[10]) / p[14]);
+        const divisor = clip.dot(corner);
+        if (Math.abs(divisor) < 1e-6) return;
+        clip.multiplyScalar(2 / divisor);
+        p[2] = clip.x; p[6] = clip.y; p[10] = clip.z + .998; p[14] = clip.w;
+
+        const previousTarget = draw.getRenderTarget();
+        const xr = draw.xr.enabled;
+        const shadows = draw.shadowMap.autoUpdate;
+        try {
+            mirror.visible = false;
+            draw.xr.enabled = false;
+            draw.shadowMap.autoUpdate = false;
+            draw.setRenderTarget(target);
+            draw.state.buffers.depth.setMask(true);
+            draw.clear();
+            draw.render(world, mirrorCamera);
+            mirrorMaterial.uniforms.active.value = 1;
+            last = performance.now();
+        } catch (error) {
+            mirrorMaterial.uniforms.active.value = 0;
+            mirror.removeFromParent();
+            console.warn('TowerFlow planar reflection unavailable; using resin finish.', error);
+        } finally {
+            draw.setRenderTarget(previousTarget);
+            draw.shadowMap.autoUpdate = shadows;
+            draw.xr.enabled = xr;
+            mirror.visible = true;
+        }
+    };
+    scene.add(mirror);
+    console.info('TowerFlow polished materials applied', { sconces: placements.length, reflection: '640x360 planar' });
+}
+
+function promotedSource(original, revision = 4) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -444,7 +677,13 @@ function promotedSource(original, revision = 3) {
         applyCityInterior.toString() + ')({ THREE, scene, core, earthStatus, stations }); }' +
         ' catch (error) { console.error("TowerFlow city interior failed", error); }' +
         '\n// TF_LIVE_CITY_INTERIOR_END\n';
-    return Buffer.concat([surfaces, Buffer.from(cityPass)]);
+    const city = Buffer.concat([surfaces, Buffer.from(cityPass)]);
+    if (revision === 3) return city;
+    const polishPass = '\n// TF_LIVE_MATERIAL_POLISH_BEGIN\ntry { (' +
+        applyMaterialPolish.toString() + ')({ THREE, scene, renderer }); }' +
+        ' catch (error) { console.error("TowerFlow material polish failed", error); }' +
+        '\n// TF_LIVE_MATERIAL_POLISH_END\n';
+    return Buffer.concat([city, Buffer.from(polishPass)]);
 }
 
 function install(room, rollback = false) {
@@ -464,6 +703,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 3)) &&
         !sameGraphics(promotedSource(baseline, 2)) && !sameGraphics(promotedSource(baseline, 1))) {
         throw Error('Live room has other edits. Current SHA256: ' + beforeHash);
     }
