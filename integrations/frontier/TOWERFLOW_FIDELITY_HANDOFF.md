@@ -34,7 +34,7 @@ User supplied a live-room screenshot after removing Sound Studio. **OBSERVED:** 
 
 **Critical repository finding:** shared GitHub branch contains `TowerFlow/index.html` (portfolio dashboard), but not the live `public/room.js` or `server.js`. Never substitute the portfolio dashboard for the live room. The live renderer and server exist only in the user's local working tree based on current available evidence. GitHub-only edits cannot claim to alter the live scene.
 
-### Mandatory implementation order for Codex running in authoritative local workspace
+### Mandatory implementation order for engineering in the authoritative workspace
 1. Inspect all relevant existing *.md (especially architecture, specs, preservation, handoff), live `public/room.js`, room HTML, server routes, original MUSIC handler and package metadata. Build a dependency map and inventory renderer scene nodes; no speculative removal based on screenshot alone.
 2. Identify foreground slab and central pillar by mesh creation, transforms and camera ray; determine intended geometry and collision. Correct camera clipping/obstruction with minimal surgical change, preserve walkability, E interaction and fixed-world WASD. Capture before/after screenshot at identical camera pose.
 3. Upgrade actual mesh surfaces using PBR textures with known licensing and local caching, physically coherent color space and tone mapping, lights and real shadows; keep performance acceptable on RTX 2060 SUPER 8 GB. Replace low-fidelity decorative objects selectively; do not destroy interactables or add UI panels. The first visual deliverable must look materially different.
@@ -45,3 +45,46 @@ User supplied a live-room screenshot after removing Sound Studio. **OBSERVED:** 
 
 ### Current execution gate
 **NOT DEPLOYED / NOT VERIFIED:** no connected tool can currently inspect or mutate the local live renderer. The standalone audio profile contract on GitHub is not wired to MUSIC. Visual improvement remains pending local execution. Avoid repeating configuration-only work as a substitute for visible changes.
+
+## 2026-11-15 continuity correction — authoritative handoff (latest)
+
+### Original intent and preserved architecture
+This is the continuation of **Git Collaboration Room Setup**, not a greenfield application. TowerFlow is a GitHub-authenticated, remotely accessible, 3D team collaboration room, integrating projectors/walls, shared whiteboard, IDE access, GitHub contributions, agents, and real-time WebSocket state. Earlier reports describe OAuth success, working room HTTP endpoints, and an active Node service on port 4173; these are historical observations, not current live checks.
+
+The user requires **a full-scale, perceptible upgrade of the existing room**, not isolated UI additions, config scaffolding, unrelated portfolio dashboards, ZIPs, new environments, or delegated Codex instructions. The user wants the assistant to implement through connected GitHub tools wherever possible, and only request a minimal local command when necessary to expose/sync otherwise inaccessible local source. Do not claim local execution or deployment from a GitHub commit.
+
+### Authoritative paths and repository topology
+- Local development: `C:\Users\dulsk\Desktop\Towerflow_Upgraded`; has important uncommitted modifications.
+- Running live room: `C:\Users\dulsk\Desktop\Towerflow_Team02_Private_Invite_Room\Towerflow_Collaboration_Room`; key source `public\room.js`, `server.js`, room HTML and MUSIC control.
+- Team GitHub: `Cos229-239/2610_Team02`, integration branch `dev`; `main` reserved for build-master review. Current assistant feature branch: `feature/towerflow-fidelity-integration-20261115`.
+- Original collaboration plan designated `collaboration-room/live-room/` as a proposed tracked source location. **Its implementation/completeness has NOT been verified**. Do not assume this folder exists or that live and development trees synchronize automatically.
+- Shared GitHub `dev` and the current feature branch were checked for root `public/room.js`; not found. `TowerFlow/index.html` is an unrelated portfolio dashboard and must not replace the 3D room.
+
+### Executed, observed, and not verified
+**COMMITTED (GitHub, feature branch):**
+- `integrations/audio/acoustic-profiles.cjs` — four acoustic profile configurations and safe greeting asset selection.
+- `integrations/audio/acoustic-profiles.test.cjs` — five Node tests **written, not run**.
+- This existing `integrations/frontier/TOWERFLOW_FIDELITY_HANDOFF.md`, subsequently updated with visual acceptance evidence.
+- Earlier handoff review commit `ea66e42208a59afd11daf8635dd2189aad780c29`.
+**USER-REPORTED EXECUTED:** PowerShell removed the isolated `public/towerflow-sound-studio.js` and its HTML script tags. User reported success.
+**VISUALLY OBSERVED IN SUBSEQUENT USER SCREENSHOT:** Sound Studio panel gone; main toolbar (IDE/BOARD/AI/TEAM/MUSIC/HELP), authenticated room status and Link Hub remain visible. Oversized foreground horizontal slab and vertical pillar obstruct camera. Existing neon primitive architecture and decorative geometry remain visually low-fidelity.
+**NOT VERIFIED:** actual current filesystem state, live sound playback, neural/recorded greeting, PBR asset rendering, browser frame timing, team synchronization, regression tests, or production deployment.
+**FAILED ACCEPTANCE:** V2 lighting and Tier4 atmosphere did not achieve user-requested photorealism. The synthesized hums and Microsoft Zira greeting were rejected. Do not restore Sound Studio.
+
+### Non-negotiable execution constraints
+1. **No more ZIP archives**. No repeated collection or diagnostic scripts when a direct connected-source read can answer the question.
+2. **No Codex delegation**. The user explicitly rejected it. Assistant owns implementation, evidence and handoff.
+3. Preserve uncommitted work, projectors, E interactions, fixed-world WASD, GitHub OAuth/session authorization, websocket state, navigation, and team workflows. No destructive reset/clean/force-pull.
+4. No extra sound panels. Use the existing MUSIC control. Recorded licensed soundscapes and an approved natural female greeting only; if assets are unavailable, report rather than invent results.
+5. The first graphics milestone must be a visible improvement to **real room geometry and materials**, including camera obstruction, with before/after evidence and RTX 2060 SUPER 8 GB performance consideration.
+6. Keep this **existing handoff file** current with exact action, file/commit, executed tests, observed results, blocker and next action. Never multiply handoff files.
+
+### Single highest-value next action
+**Resolve the existing live-room-to-GitHub source-of-truth link without destroying local changes.** First inspect the tracked repository for the original `collaboration-room/live-room/` import and related Markdown specifications. If live renderer/server are not present in connected GitHub, use one targeted, non-destructive Git workflow to publish only relevant source to a private or restricted feature branch, excluding secrets, dependencies, databases and runtime state. Confirm actual files and content before editing. Then implement and commit integrated room graphics/audio changes and keep this handoff updated. Avoid claiming that GitHub commits alone update the live service.
+
+### Explicitly prohibited dead ends
+- Treating standalone audio configuration or test creation as an audible upgrade.
+- Updating the unrelated portfolio dashboard to represent a 3D room change.
+- Asking for ZIP uploads or switching to Codex.
+- Repeating a full-scale plan instead of inspecting/implementing the authoritative room.
+- Claiming a screenshot proves audio, WebSocket, or functional correctness.
