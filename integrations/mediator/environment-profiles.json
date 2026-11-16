@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "profiles": [
+    {
+      "id": "node-web",
+      "ide": "vscode",
+      "platform": "linux-container",
+      "languages": [
+        "javascript",
+        "typescript"
+      ],
+      "configuration": ".devcontainer/devcontainer.json",
+      "execution": "external-consent-required",
+      "supportedTasks": [
+        "lint",
+        "test",
+        "preview"
+      ]
+    },
+    {
+      "id": "visual-studio-community",
+      "ide": "visual-studio-community",
+      "platform": "windows-local",
+      "languages": [
+        "csharp",
+        "cpp"
+      ],
+      "configuration": ".vsconfig",
+      "execution": "local-consent-required",
+      "supportedTasks": [
+        "build",
+        "test",
+        "debug"
+      ]
+    },
+    {
+      "id": "custom-toolchain",
+      "ide": "user-selected",
+      "platform": "user-managed",
+      "languages": [
+        "python",
+        "java",
+        "go",
+        "rust",
+        "c",
+        "cpp",
+        "csharp",
+        "javascript",
+        "typescript",
+        "other"
+      ],
+      "configuration": null,
+      "execution": "not-connected",
+      "supportedTasks": [
+        "inspect",
+        "propose"
+      ]
+    }
+  ],
+  "notes": [
+    "Profiles are declared capabilities, not evidence of installed compilers or debuggers.",
+    "Do not mount the live Towerflow host, tokens, SSH agent, or production directory into untrusted workspaces.",
+    "No arbitrary command execution endpoint is enabled."
+  ]
+}

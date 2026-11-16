@@ -1,0 +1,30 @@
+{
+  "name": "Towerflow — Universal multi-language development (isolated)",
+  "image": "mcr.microsoft.com/devcontainers/universal:linux",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [
+    5187
+  ],
+  "portsAttributes": {
+    "5187": {
+      "label": "TowerFlow business live preview",
+      "onAutoForward": "notify",
+      "visibility": "private"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-dotnettools.csharp",
+        "ms-python.python",
+        "golang.go",
+        "rust-lang.rust-analyzer",
+        "redhat.java",
+        "dbaeumer.vscode-eslint",
+        "eamodio.gitlens"
+      ]
+    }
+  },
+  "postCreateCommand": "bash -lc 'for tool in node python3 gcc g++ dotnet java go rustc; do printf \"%s: \" \"$tool\"; command -v \"$tool\" || printf \"not installed\\n\"; done'"
+}

@@ -1,0 +1,31 @@
+{
+  "folders": [
+    {
+      "name": "Team 02 repository",
+      "path": "."
+    },
+    {
+      "name": "Towerflow browser room (imported)",
+      "path": "collaboration-room/live-room"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.env": true,
+      "**/logs": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/logs": true
+    },
+    "git.autofetch": true
+  },
+  "extensions": {
+    "recommendations": [
+      "eamodio.gitlens",
+      "ms-vscode.powershell",
+      "dbaeumer.vscode-eslint"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+name: Towerflow Configuration Agent
+on:
+  pull_request:
+    paths:
+      - 'tools/towerflow-config-agent.mjs'
+      - 'tools/towerflow-config-agent.test.mjs'
+      - 'tools/towerflow-config.json'
+      - '.github/workflows/towerflow-config-agent.yml'
+  push:
+    branches: [dev]
+    paths:
+      - 'tools/towerflow-config-agent.mjs'
+      - 'tools/towerflow-config-agent.test.mjs'
+      - 'tools/towerflow-config.json'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check tools/towerflow-config-agent.mjs
+      - run: node --test tools/towerflow-config-agent.test.mjs

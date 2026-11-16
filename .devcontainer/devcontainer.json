@@ -1,0 +1,35 @@
+{
+  "name": "Towerflow Team 02 — Isolated Development (JS/TS + build tools)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "eamodio.gitlens",
+        "ms-vscode.powershell",
+        "ms-vscode.cpptools",
+        "ms-dotnettools.csharp",
+        "ms-python.python"
+      ]
+    }
+  },
+  "forwardPorts": [
+    5187
+  ],
+  "portsAttributes": {
+    "5187": {
+      "label": "TowerFlow Portfolio local preview",
+      "onAutoForward": "notify",
+      "visibility": "private"
+    }
+  },
+  "remoteUser": "node",
+  "postCreateCommand": "node --version && git --version",
+  "features": {},
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb",
+    "storage": "16gb"
+  }
+}
