@@ -3373,3 +3373,58 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
   window.tfTier4Atmosphere = Object.freeze({ configure, get settings() { return { ...settings }; }, dispose });
 }());
 // TF_TIER4_ATMOSPHERE_V1_END
+
+// TF_FRONTIER_MATERIAL_REALISM_V1_BEGIN
+// Reversible, asset-free surface upgrade; preserves navigation, panels, geometry and world state.
+(function(){
+  "use strict";
+  if(window.tfFrontierMaterialRealism)return;
+  const previous={floorMap:floor.map,wallMap:wall.map,floorColor:floor.color.clone(),wallColor:wall.color.clone(),
+    floorRoughness:floor.roughness,wallRoughness:wall.roughness,exposure:renderer.toneMappingExposure};
+  const generated=[];
+  function surface(kind){
+    const canvas=document.createElement("canvas");canvas.width=canvas.height=512;
+    const ctx=canvas.getContext("2d");if(!ctx)return null;
+    const image=ctx.createImageData(512,512);
+    // Seeded fine-grain mineral plaster / stone: stable across refreshes, no network assets.
+    let seed=kind==="floor"?92173:37199;
+    function rand(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
+    for(let y=0;y<512;y++)for(let x=0;x<512;x++){
+      const i=(y*512+x)*4;
+      const grain=(rand()-.5)*23;
+      const vein=Math.sin(x*.028+y*.014+Math.sin(y*.032)*2.3)*3;
+      const base=kind==="floor"?[77,83,87]:[89,94,96];
+      for(let k=0;k<3;k++)image.data[i+k]=Math.max(0,Math.min(255,base[k]+grain+vein));
+      image.data[i+3]=255;
+    }
+    ctx.putImageData(image,0,0);
+    ctx.strokeStyle=kind==="floor"?"rgba(25,29,32,.34)":"rgba(34,37,39,.19)";
+    ctx.lineWidth=2;
+    if(kind==="floor"){
+      for(let x=0;x<=512;x+=128){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,512);ctx.stroke();}
+      for(let y=0;y<=512;y+=128){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(512,y);ctx.stroke();}
+    }else{
+      for(let y=0;y<=512;y+=256){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(512,y);ctx.stroke();}
+    }
+    const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
+    tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+    tex.repeat.set(kind==="floor"?6:3,kind==="floor"?5:2);
+    generated.push(tex);return tex;
+  }
+  function apply(){
+    floor.map=surface("floor");wall.map=surface("wall");
+    floor.color.set("#ffffff");wall.color.set("#ffffff");
+    floor.roughness=.86;wall.roughness=.92;
+    floor.metalness=.06;wall.metalness=.04;
+    floor.needsUpdate=true;wall.needsUpdate=true;
+  }
+  try{apply();}catch(error){console.warn("Frontier material upgrade unavailable",error);}
+  window.tfFrontierMaterialRealism=Object.freeze({dispose(){
+    floor.map=previous.floorMap;wall.map=previous.wallMap;
+    floor.color.copy(previous.floorColor);wall.color.copy(previous.wallColor);
+    floor.roughness=previous.floorRoughness;wall.roughness=previous.wallRoughness;
+    floor.needsUpdate=true;wall.needsUpdate=true;
+    generated.forEach(t=>t.dispose());delete window.tfFrontierMaterialRealism;
+  }});
+}());
+// TF_FRONTIER_MATERIAL_REALISM_V1_END
