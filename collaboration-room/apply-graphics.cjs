@@ -10,7 +10,148 @@ const recoveredHash = 'c749c90bbc6de485b4d2a4b823d84e7faccae8aceb2ef2691908cdb4d
 const publicModule = 'https://dulsky.tail0ef7c0.ts.net/room.js';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
-function promotedSource(original) {
+function applyReferenceSurfacePass({ THREE, scene }) {
+    const interior = scene.getObjectByName('TF_REFERENCE_INTERIOR');
+    const floor = scene.getObjectByName('TF_FLOW_RESIN_FLOOR');
+    if (!interior || !floor) throw Error('Reference floor and wall baseline is missing.');
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1536;
+    canvas.height = 1152;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw Error('Resin texture canvas is unavailable.');
+
+    let state = 213905;
+    const random = () => {
+        state = (Math.imul(1664525, state) + 1013904223) >>> 0;
+        return state / 4294967296;
+    };
+    ctx.fillStyle = '#040713';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const roots = [
+        [[-70, 720], [280, 465], [205, 294], [455, 150], [611, -45]],
+        [[18, 1150], [273, 898], [509, 820], [661, 582], [1000, 575], [1590, 152]],
+        [[559, 1210], [677, 867], [914, 820], [1150, 943], [1450, 780], [1600, 486]],
+        [[1137, -70], [947, 171], [1087, 309], [1271, 400], [1460, 344], [1598, 442]]
+    ];
+    const vein = (points, hue, weight) => {
+        const curve = new THREE.SplineCurve(points.map(([x, y]) => new THREE.Vector2(x, y)));
+        const steps = 170;
+        const nodes = curve.getPoints(steps);
+        ctx.lineCap = 'round';
+        for (const [layer, opacity] of [[18, .045], [10, .085], [4.5, .16], [1.45, .52], [.43, .78]]) {
+            for (let i = 1; i < nodes.length; i += 3) {
+                const t = i / steps;
+                const width = Math.max(.28, .64 + Math.sin(t * 18 + hue) * .27 + Math.sin(t * 52) * .13);
+                ctx.strokeStyle = `hsla(${hue + 21 * Math.sin(19 * t)}, 92%, ${layer < 1 ? 76 : 53}%, ${opacity})`;
+                ctx.lineWidth = weight * width * layer;
+                ctx.beginPath();
+                ctx.moveTo(nodes[i - 1].x, nodes[i - 1].y);
+                for (let j = i; j <= Math.min(i + 2, steps); j++) ctx.lineTo(nodes[j].x, nodes[j].y);
+                ctx.stroke();
+            }
+        }
+        for (let i = 0; i < steps * 3; i++) {
+            const point = nodes[Math.floor(random() * nodes.length)];
+            const spread = weight * (random() + random());
+            const size = .4 + random() * 2;
+            ctx.fillStyle = `rgba(255, ${Math.round(154 + 57 * random())}, 92, ${.12 + random() * .48})`;
+            ctx.fillRect(point.x + (random() - .5) * spread * 5, point.y + (random() - .5) * spread * 4, size, size);
+        }
+    };
+    roots.forEach((root, index) => {
+        const hue = [216, 228, 268, 202][index];
+        vein(root, hue, [5, 8.5, 6, 5.5][index]);
+        for (let k = 1; k < root.length - 1; k++) {
+            const [x, y] = root[k];
+            const sign = k % 2 ? -1 : 1;
+            vein([[x, y], [x + sign * 61, y - 26], [x + sign * 113, y - 95],
+                [x + sign * (158 + 31 * random()), y - 68 - 68 * random()]], hue + 13, 2.2);
+        }
+    });
+
+    const resin = new THREE.CanvasTexture(canvas);
+    resin.colorSpace = THREE.SRGBColorSpace;
+    const oldResin = floor.material.map;
+    const reflections = scene.getObjectByName('TF_TIER4_STUDIO_ARCHITECTURE')?.getObjectByName('steel')
+        ?.material.envMap;
+    floor.material.map = resin;
+    floor.material.emissiveMap = resin;
+    floor.material.color.set(0xbac9e1);
+    floor.material.emissive.set(0xafc7ff);
+    floor.material.emissiveIntensity = 0.43;
+    floor.material.roughness = 0.24;
+    floor.material.metalness = 0.16;
+    if (reflections) {
+        floor.material.envMap = reflections;
+        floor.material.envMapIntensity = 0.6;
+    }
+    floor.material.needsUpdate = true;
+    oldResin?.dispose();
+
+    const shell = new THREE.Group();
+    shell.name = 'TF_CURVED_ATRIUM_PANELS';
+    const body = new THREE.MeshStandardMaterial({
+        color: 0x202b40, roughness: 0.31, metalness: 0.34, envMap: reflections ?? null,
+        envMapIntensity: 0.72, side: THREE.DoubleSide
+    });
+    const infill = new THREE.MeshStandardMaterial({
+        color: 0x152134, roughness: 0.68, metalness: 0.12, side: THREE.DoubleSide
+    });
+    const rail = new THREE.MeshBasicMaterial({ color: 0x91b0da });
+    const wallSpans = [
+        [0, -15.66, 0, 39.6], [0, 15.66, Math.PI, 39.6],
+        [-20.66, 0, Math.PI / 2, 29.4], [20.66, 0, -Math.PI / 2, 29.4]
+    ];
+    function wallMesh(geometry, material, parent) {
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.raycast = () => {};
+        parent.add(mesh);
+        return mesh;
+    }
+    for (const [x, z, rotation, width] of wallSpans) {
+        const face = new THREE.Group();
+        face.position.set(x, 0, z);
+        face.rotation.y = rotation;
+        shell.add(face);
+        const n = 5;
+        const span = width / n;
+        // Curved sections and trim stay behind the existing projector screen and targets.
+        for (let i = 0; i < n; i++) {
+            const center = -width / 2 + span * (i + 0.5);
+            const geometry = new THREE.PlaneGeometry(span - .085, 10.25, 12, 16);
+            const points = geometry.attributes.position;
+            for (let j = 0; j < points.count; j++) {
+                const u = points.getX(j) / (span / 2);
+                const v = points.getY(j) / 5.125;
+                points.setZ(j, .016 + .044 * (1 - u * u) * (.35 + .65 * Math.abs(v) ** 3));
+            }
+            geometry.computeVertexNormals();
+            wallMesh(geometry, i % 2 ? infill : body, face).position.set(center, 5.28, 0);
+        }
+        for (const y of [0.45, 10.34]) {
+            const curve = new THREE.CatmullRomCurve3([-0.5, -0.3, 0, .3, .5].map(t =>
+                new THREE.Vector3(width * t, y + .18 * Math.cos(t * Math.PI * 2), .046)));
+            wallMesh(new THREE.TubeGeometry(curve, 36, .012, 5, false), rail, face);
+        }
+    }
+    scene.add(shell);
+
+    // Refine the display frame under the same reflective material without altering the interaction target.
+    for (const desk of interior.children.filter(mesh => mesh.name.startsWith('TF_REFERENCE_DESK_'))) {
+        const bezel = desk.children.find(mesh => mesh.geometry?.parameters?.width === 2.73);
+        if (!bezel) continue;
+        bezel.material = bezel.material.clone();
+        bezel.material.roughness = .37;
+        bezel.material.metalness = .48;
+        bezel.material.envMap = reflections ?? null;
+        bezel.material.envMapIntensity = .55;
+        bezel.material.needsUpdate = true;
+    }
+    console.info('TowerFlow surface pass applied', { walls: wallSpans.length, veins: roots.length });
+}
+
+function promotedSource(original, legacy = false) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -34,7 +175,13 @@ function promotedSource(original) {
         '// TF_LIVE_REFERENCE_GRAPHICS_END',
         ''
     ].join('\n');
-    return Buffer.concat([original, Buffer.from(extension)]);
+    const prior = Buffer.concat([original, Buffer.from(extension)]);
+    if (legacy) return prior;
+    const surfacePass = '\n// TF_LIVE_REFERENCE_SURFACES_BEGIN\ntry { (' +
+        applyReferenceSurfacePass.toString() + ')({ THREE, scene }); }' +
+        ' catch (error) { console.error("TowerFlow surface pass failed", error); }' +
+        '\n// TF_LIVE_REFERENCE_SURFACES_END\n';
+    return Buffer.concat([prior, Buffer.from(surfacePass)]);
 }
 
 function install(room, rollback = false) {
@@ -48,7 +195,8 @@ function install(room, rollback = false) {
     }
     const enhanced = promotedSource(baseline);
     const beforeHash = hash(before);
-    if (beforeHash !== recoveredHash && beforeHash !== hash(enhanced)) {
+    if (beforeHash !== recoveredHash && beforeHash !== hash(enhanced) &&
+        beforeHash !== hash(promotedSource(baseline, true))) {
         throw Error('Live room has other edits. Current SHA256: ' + beforeHash);
     }
 
