@@ -88,3 +88,10 @@ The user requires **a full-scale, perceptible upgrade of the existing room**, no
 - Asking for ZIP uploads or switching to Codex.
 - Repeating a full-scale plan instead of inspecting/implementing the authoritative room.
 - Claiming a screenshot proves audio, WebSocket, or functional correctness.
+
+## 2026-11-15 direct repository verification — Foundry
+**FETCHED AND READ:** `collaboration-room/FOUNDRY.md` (GitHub blob `9d15f89c3f72cff8e1d4a052c5786a41b8696840`), `collaboration-room/preview-server.cjs`, and `.github/workflows/towerflow-foundry.yml` on this feature branch. The Foundry MD explicitly states the collaboration-room starter was **not committed** and browser integration was **not deployed**. It provides fixed-world WASD semantics and a one-time import requirement. The preview server only serves a preview at port 4174, not the live authenticated 4173 application. Workflow tests movement controller only. These are verified source facts, not inferred runtime status.
+
+**UPDATED DIAGNOSIS:** The authoritative room import was never completed according to the existing Foundry handoff. This is the root reason GitHub-only configuration edits did not affect the live room. Before building graphics, obtain the real live source in version control using a **single non-destructive, secrets-excluding import** on a feature branch; preserve existing local Git modifications. Do not run `git switch` against a dirty tree, force push, or create ZIPs. Do not copy credentials, `.env`, session data, database, node_modules or tokens. Inspect actual live `server.js` and `public/room.js` after the import; then engineer and commit the visual and audio fixes. No current tool can perform this local-to-GitHub import by itself.
+
+**NEXT ACTION:** Provide one safe local command that exposes the live room source through GitHub while preserving user modifications; verify resulting paths on GitHub before editing. Do not repeat investigation, and do not present the unexecuted import as completion.
