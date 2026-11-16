@@ -3428,3 +3428,33 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
   }});
 }());
 // TF_FRONTIER_MATERIAL_REALISM_V1_END
+
+// TF_REFERENCE_STUDIO_V1_BEGIN
+(function(){
+"use strict";
+if(window.tfReferenceStudio)return;
+const group=new THREE.Group();group.name="TF_REFERENCE_STUDIO_V1";
+const materials=[];
+function mat(color,metalness,roughness,emissive=0,intensity=0){const m=new THREE.MeshStandardMaterial({color,metalness,roughness,emissive,emissiveIntensity:intensity});materials.push(m);return m;}
+const graphite=mat(0x171b21,.12,.83),black=mat(0x090d12,.07,.91),steel=mat(0x687781,.62,.28),cyan=mat(0x12d4ed,.05,.38,0x00b9ee,1.9),green=mat(0x3af557,.05,.39,0x14dc34,1.6),upholstery=mat(0x11161a,.02,.98),monitor=mat(0x112c3d,.05,.22,0x065b8d,.36);
+function cube(w,h,d,x,y,z,m){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);}
+for(const z of [-14.7,14.7])cube(37,.065,.075,0,10.7,z,cyan);
+for(const x of [-19.6,19.6])cube(.075,.065,27,x,10.7,0,cyan);
+for(const x of [-18.6,-18.25,-17.9,-17.55,17.55,17.9,18.25,18.6])cube(.16,5.4,.18,x,6.5,-15.35,black);
+for(const x of [-16.9,16.9]){
+ const z=11.8;
+ cube(3.1,.13,1.4,x,1.23,z,graphite);
+ for(const dx of [-1.35,1.35])for(const dz of [-.52,.52])cube(.09,1.15,.09,x+dx,.58,z+dz,steel);
+ cube(1.45,.87,.075,x,2.03,z-.43,black);
+ cube(1.32,.72,.012,x,2.03,z-.38,monitor);
+ cube(.075,.42,.075,x,1.49,z-.43,steel);
+ cube(.5,.055,.37,x,1.35,z+.35,black);
+ cube(1.35,.22,.64,x,.48,z+1.65,upholstery);
+ cube(1.35,.72,.18,x,.84,z+1.95,upholstery);
+ cube(2.8,.045,.07,x,.12,z+1.15,green);
+}
+for(const z of [-12.5,-12.15,-11.8,-11.45,11.45,11.8,12.15,12.5])cube(.14,4.4,.14,-20.42,6.5,z,black);
+scene.add(group);
+window.tfReferenceStudio=Object.freeze({dispose(){scene.remove(group);group.traverse(o=>{if(o.geometry)o.geometry.dispose();});materials.forEach(m=>m.dispose());delete window.tfReferenceStudio;}});
+}());
+// TF_REFERENCE_STUDIO_V1_END
