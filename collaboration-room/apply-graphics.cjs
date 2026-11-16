@@ -151,7 +151,264 @@ function applyReferenceSurfacePass({ THREE, scene }) {
     console.info('TowerFlow surface pass applied', { walls: wallSpans.length, veins: roots.length });
 }
 
-function promotedSource(original, legacy = false) {
+function applyCityInterior({ THREE, scene, core, earthStatus, stations }) {
+    const cityRoom = new THREE.Group();
+    cityRoom.name = 'TF_NIGHT_CITY_INTERIOR';
+    const material = (color, roughness = .55, metalness = 0) =>
+        new THREE.MeshStandardMaterial({ color, roughness, metalness });
+    const dark = material(0x121924, .42, .45);
+    const wallPaint = material(0x313746, .78);
+    const deskPaint = material(0xcad1da, .35, .08);
+    const chrome = material(0x8295ab, .23, .78);
+    const cyan = new THREE.MeshBasicMaterial({ color: 0x85e6ff, toneMapped: false });
+    const rose = new THREE.MeshBasicMaterial({ color: 0xf889e7, toneMapped: false });
+    const amber = new THREE.MeshBasicMaterial({ color: 0xffc482, toneMapped: false });
+    const block = new THREE.BoxGeometry(1, 1, 1);
+    function mesh(geometry, finish, x, y, z, parent = cityRoom) {
+        const object = new THREE.Mesh(geometry, finish);
+        object.position.set(x, y, z);
+        object.raycast = () => {};
+        parent.add(object);
+        return object;
+    }
+    function box(finish, x, y, z, w, h, d, parent = cityRoom) {
+        const object = mesh(block, finish, x, y, z, parent);
+        object.scale.set(w, h, d);
+        return object;
+    }
+    const atrium = scene.getObjectByName('TF_REFERENCE_ATRIUM_V2');
+    const interior = scene.getObjectByName('TF_REFERENCE_INTERIOR');
+    const walls = scene.children.filter(object => {
+        const p = object.geometry?.parameters;
+        return Math.abs(object.position.x) <= 21 && object.position.y === 5.5 && p?.height === 11 &&
+            (p.width === 42 || p.width === .6);
+    });
+    const glassWall = walls.find(object => object.position.x === -21);
+    const ship = scene.children.find(object => object.isGroup && object.position.x === 0 &&
+        object.position.z === -1.5 && object.children.some(child =>
+            child.geometry?.parameters?.width === 1.65 && child.geometry.parameters.height === .58));
+    if (!atrium || !interior || !glassWall || !ship || walls.length !== 4) {
+        throw Error('Could not identify the atrium, window wall, and projector.');
+    }
+
+    // An actual sightline through the wall, with several depths of 3D towers.
+    const skyline = new THREE.Group();
+    skyline.name = 'TF_CITY_SKYLINE';
+    cityRoom.add(skyline);
+    const sky = new THREE.MeshBasicMaterial({ color: 0x101b39, fog: false });
+    box(sky, -96, 7, 0, .05, 93, 155, skyline);
+    const towers = [0x11192d, 0x1a2236, 0x20263d, 0x182744].map(color =>
+        new THREE.MeshBasicMaterial({ color, fog: false }));
+    const lamps = [];
+    let state = 5203;
+    function random() {
+        state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+        return state / 4294967296;
+    }
+    for (let row = 0; row < 3; row++) {
+        for (let column = -5; column <= 5; column++) {
+            const width = 2.9 + random() * 3.1;
+            const height = 9 + random() * 26;
+            const x = -(35 + row * 15 + random() * 6);
+            const z = column * (7.9 + row * 2.5) + (random() - .5) * 3.9;
+            const bottom = -15 - row * 2;
+            const depth = 2.8 + random() * 3;
+            box(towers[column < 0 ? -column % 4 : (row + column) % 4], x, bottom + height / 2, z,
+                depth, height, width, skyline);
+            if (height > 27) box(towers[1], x, bottom + height + .6, z, depth * .68, 1.2, width * .52, skyline);
+            for (let y = bottom + .75; y < bottom + height - .5; y += .85) {
+                for (let offset = -width / 2 + .36; offset < width / 2 - .2; offset += .66) {
+                    lamps.push([x + depth / 2 + .012, y, z + offset, random()]);
+                }
+            }
+        }
+    }
+    const windowPane = new THREE.PlaneGeometry(1, 1).rotateY(Math.PI / 2);
+    const pixels = new THREE.InstancedMesh(windowPane, new THREE.MeshBasicMaterial({ fog: false }), lamps.length);
+    pixels.name = 'TF_CITY_OCCUPANCY_WINDOWS';
+    pixels.raycast = () => {};
+    const pose = new THREE.Object3D();
+    const lightColors = [0xffc584, 0xf4e3c4, 0x8bc7f7, 0x79a4cb].map(color => new THREE.Color(color));
+    const off = new THREE.Color(0x0a1223);
+    lamps.forEach(([x, y, z, seed], i) => {
+        pose.position.set(x, y, z);
+        pose.scale.set(1, .30, .33);
+        pose.updateMatrix();
+        pixels.setMatrixAt(i, pose.matrix);
+        pixels.setColorAt(i, seed < .57 ? lightColors[i % 4] : off);
+    });
+    pixels.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    skyline.add(pixels);
+    const airplane = new THREE.Group();
+    airplane.name = 'TF_CITY_AIRCRAFT';
+    skyline.add(airplane);
+    const aircraftMetal = new THREE.MeshBasicMaterial({ color: 0xced7ea, fog: false });
+    box(aircraftMetal, 0, 0, 0, .18, .14, 1.5, airplane);
+    box(aircraftMetal, 0, -.03, .12, 1.65, .05, .24, airplane);
+    const beacon = new THREE.MeshBasicMaterial({ color: 0xff5357, fog: false });
+    box(beacon, -.81, 0, .12, .10, .085, .10, airplane);
+    box(new THREE.MeshBasicMaterial({ color: 0x72ffd6, fog: false }), .81, 0, .12, .10, .085, .10, airplane);
+    box(new THREE.MeshBasicMaterial({ color: 0xfff4dc, fog: false }), 0, 0, .75, .12, .09, .12, airplane);
+    let next = 0;
+    pixels.onBeforeRender = () => {
+        const now = performance.now();
+        const flight = ((now / 1000 + 12) % 65);
+        airplane.visible = flight < 29;
+        airplane.position.set(-53 - .18 * flight, 17 + .09 * flight, -57 + flight * 4);
+        if (now < next) return;
+        next = now + 850;
+        for (let n = 0; n < 14; n++) {
+            const i = Math.floor(random() * lamps.length);
+            pixels.setColorAt(i, random() < .56 ? lightColors[i % 4] : off);
+        }
+        pixels.instanceColor.needsUpdate = true;
+    };
+
+    const glazing = new THREE.MeshBasicMaterial({
+        color: 0x6e99cc, opacity: .105, transparent: true, depthWrite: false, side: THREE.DoubleSide
+    });
+    box(glazing, -20.69, 5.5, 0, .035, 10.6, 31.55);
+    for (let z = -15.55; z <= 15.6; z += 3.11) box(dark, -20.52, 5.5, z, .28, 10.46, .105);
+    for (const y of [.42, 10.67]) {
+        box(dark, -20.50, y, 0, .42, .22, 31.65);
+        box(cyan, -20.26, y, 0, .035, .025, 31.48);
+    }
+
+    // Recessed perimeter strips and localized spill keep the wall finish visible.
+    for (const [z, finish] of [[-15.39, cyan], [15.39, rose]]) {
+        box(dark, 0, 10.48, z, 40.8, .17, .14);
+        box(finish, 0, 10.43, z * .995, 40.65, .032, .04);
+    }
+    for (const [z, finish] of [[-12.8, cyan], [-12.52, amber], [-12.24, rose]]) {
+        box(dark, 20.64, 5.2, z, .14, 8.4, .09);
+        box(finish, 20.55, 5.2, z, .026, 8.24, .036);
+    }
+    for (const [x, color, intensity] of [[-13, 0x8bcaff, 70], [13, 0xe998ed, 53], [17, 0x729dff, 42]]) {
+        const spill = new THREE.PointLight(color, intensity, 15, 2);
+        spill.position.set(x, 5.3, x === 17 ? 0 : -9);
+        cityRoom.add(spill);
+    }
+
+    // Reuse the station display textures and locations, replacing only their furniture models.
+    const deskReplacements = [];
+    const movableDesks = [];
+    for (const source of interior.children.filter(object => object.name.startsWith('TF_REFERENCE_DESK_'))) {
+        const id = source.name.slice('TF_REFERENCE_DESK_'.length);
+        const stand = new THREE.Group();
+        stand.name = 'TF_WINDOW_DESK_' + id;
+        stand.position.copy(source.position);
+        cityRoom.add(stand);
+        deskReplacements.push(source);
+        const legacyAnchor = scene.children.find(object => {
+            const size = object.geometry?.parameters;
+            return object.position.x === source.position.x && object.position.z === source.position.z &&
+                size?.width === 4.5 && size.height === .16 && size.depth === 1.8;
+        });
+        if (legacyAnchor) movableDesks.push([stand, legacyAnchor]);
+        box(deskPaint, 0, 1.20, 0, 4.45, .21, 1.75, stand);
+        box(deskPaint, 0, 1.05, .47, 4.37, .13, .73, stand);
+        for (const x of [-1.94, 1.94]) for (const z of [-.61, .62]) {
+            box(chrome, x, .55, z, .065, 1.09, .065, stand);
+        }
+        box(dark, 0, 1.12, .847, 4.03, .013, .011, stand);
+        box(chrome, 0, 1.31, -.32, .70, .055, .45, stand);
+        const stem = box(chrome, 0, 1.60, -.44, .18, .58, .10, stand);
+        stem.rotation.x = -.12;
+        box(deskPaint, 0, 2.19, -.49, 2.68, 1.46, .09, stand);
+        box(dark, 0, 2.26, -.435, 2.61, 1.28, .024, stand);
+        const monitor = source.children.find(object => object.geometry?.parameters?.width === 2.55);
+        if (monitor) mesh(monitor.geometry, monitor.material, 0, 2.26, -.417, stand);
+        box(chrome, -.18, 1.32, .40, 1.27, .038, .38, stand);
+        box(dark, -.18, 1.344, .40, 1.19, .012, .31, stand);
+        const mouse = mesh(new THREE.SphereGeometry(.13, 14, 8), deskPaint, .72, 1.33, .40, stand);
+        mouse.scale.set(.69, .38, 1.13);
+        box(id === 'music' ? rose : cyan, 0, 1.131, .885, 4.02, .021, .016, stand);
+    }
+
+    const craft = new THREE.Group();
+    craft.name = 'TF_GLOSS_PROJECTOR_CRAFT';
+    const reflect = scene.getObjectByName('TF_TIER4_STUDIO_ARCHITECTURE')?.getObjectByName('steel')?.material.envMap;
+    const ceramic = new THREE.MeshPhysicalMaterial({
+        color: 0xdbe8f3, metalness: .36, roughness: .17, clearcoat: 1,
+        clearcoatRoughness: .11, envMap: reflect ?? null, envMapIntensity: 1.1
+    });
+    const cockpit = new THREE.MeshPhysicalMaterial({
+        color: 0x101f34, metalness: .64, roughness: .13, clearcoat: 1,
+        envMap: reflect ?? null, envMapIntensity: 1.5
+    });
+    const form = new THREE.Shape();
+    form.moveTo(0, -1.40);
+    form.bezierCurveTo(.51, -1.19, .64, -.46, 1.36, -.12);
+    form.bezierCurveTo(1.85, .09, 2.02, .57, 1.61, .93);
+    form.bezierCurveTo(1.26, 1.06, .76, .55, 0, .85);
+    form.bezierCurveTo(-.76, .55, -1.26, 1.06, -1.61, .93);
+    form.bezierCurveTo(-2.02, .57, -1.85, .09, -1.36, -.12);
+    form.bezierCurveTo(-.64, -.46, -.51, -1.19, 0, -1.40);
+    const body = new THREE.ExtrudeGeometry(form, {
+        depth: .16, bevelEnabled: true, bevelThickness: .102, bevelSize: .09,
+        bevelSegments: 3, curveSegments: 12
+    }).rotateX(Math.PI / 2);
+    mesh(body, ceramic, 0, .10, 0, craft);
+    const canopy = mesh(new THREE.SphereGeometry(1, 30, 16), cockpit, 0, .22, -.27, craft);
+    canopy.scale.set(.37, .21, .71);
+    for (const side of [-1, 1]) {
+        const exhaust = mesh(new THREE.TorusGeometry(.212, .049, 10, 30), chrome, side * 1.26, -.04, .84, craft);
+        exhaust.scale.set(1.35, .57, 1);
+        const hot = mesh(new THREE.CircleGeometry(.168, 24), amber, side * 1.26, -.04, .851, craft);
+        hot.scale.set(1.35, .52, 1);
+        const guide = box(cyan, side * .39, .09, -.94, .031, .017, .49, craft);
+        guide.rotation.y = side * .23;
+    }
+    mesh(new THREE.TorusGeometry(.16, .035, 10, 28), cyan, 0, -.07, -1.44, craft).rotation.y = Math.PI;
+
+    // Commit after construction. Preserve the four projector targets and state machine.
+    walls.forEach(object => { object.material = wallPaint; });
+    glassWall.visible = false;
+    const curved = scene.getObjectByName('TF_CURVED_ATRIUM_PANELS');
+    if (curved) curved.visible = false;
+    for (const name of ['TF_FRONTIER_CYBER_AMBIENCE_V1', 'TF_REFERENCE_STUDIO_V1']) {
+        const group = scene.getObjectByName(name);
+        if (group) group.visible = false;
+    }
+    for (const name of ['COMPUTE_RACK_CERAMIC_METAL', 'NETWORK_FIBER_STATUS', 'OPTICAL_TERMINAL_RINGS']) {
+        scene.getObjectByName(name)?.layers.disable(0);
+    }
+    atrium.children.forEach(object => {
+        if (object.position.y > 1 && (Math.abs(object.position.x) > 18 || Math.abs(object.position.z) > 14.9)) {
+            object.visible = false;
+        }
+    });
+    interior.children.forEach(object => {
+        if (object.geometry?.type === 'TubeGeometry') object.visible = false;
+    });
+    deskReplacements.forEach(object => { object.visible = false; });
+    for (const [stand] of movableDesks) {
+        for (const object of scene.children) {
+            const sizes = object.geometry?.parameters;
+            const dx = Math.abs(object.position.x - stand.position.x);
+            const dz = Math.abs(object.position.z - stand.position.z);
+            if (dx > 1.9 || dz > .84 || object.position.y < .62 || object.position.y > 3.28) continue;
+            if ((sizes?.depth !== undefined && [4.5, .13, 4.2, 2.55, 2.37, 2.2, 1.15, .42].includes(sizes.width)) ||
+                (sizes?.width === 3.9 && sizes.height === .8)) object.layers.disable(0);
+        }
+    }
+    ship.children.forEach(object => { if (object.isMesh) object.visible = false; });
+    ship.add(craft);
+
+    core.position.set(-8.6, 3.15, 1.8);
+    earthStatus.position.set(-8.6, 1.79, 1.95);
+    const earthStation = stations.find(station => station.label === 'Holographic computer');
+    if (earthStation) Object.assign(earthStation, { x: core.position.x, z: core.position.z });
+    scene.add(cityRoom);
+    function followProjectorFixtures() {
+        requestAnimationFrame(followProjectorFixtures);
+        for (const [desk, anchor] of movableDesks) desk.position.y = anchor.position.y - 1.25;
+    }
+    followProjectorFixtures();
+    console.info('TowerFlow city interior applied', { buildings: 33, windows: lamps.length, desks: deskReplacements.length });
+}
+
+function promotedSource(original, revision = 3) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -176,12 +433,18 @@ function promotedSource(original, legacy = false) {
         ''
     ].join('\n');
     const prior = Buffer.concat([original, Buffer.from(extension)]);
-    if (legacy) return prior;
+    if (revision === 1) return prior;
     const surfacePass = '\n// TF_LIVE_REFERENCE_SURFACES_BEGIN\ntry { (' +
         applyReferenceSurfacePass.toString() + ')({ THREE, scene }); }' +
         ' catch (error) { console.error("TowerFlow surface pass failed", error); }' +
         '\n// TF_LIVE_REFERENCE_SURFACES_END\n';
-    return Buffer.concat([prior, Buffer.from(surfacePass)]);
+    const surfaces = Buffer.concat([prior, Buffer.from(surfacePass)]);
+    if (revision === 2) return surfaces;
+    const cityPass = '\n// TF_LIVE_CITY_INTERIOR_BEGIN\ntry { (' +
+        applyCityInterior.toString() + ')({ THREE, scene, core, earthStatus, stations }); }' +
+        ' catch (error) { console.error("TowerFlow city interior failed", error); }' +
+        '\n// TF_LIVE_CITY_INTERIOR_END\n';
+    return Buffer.concat([surfaces, Buffer.from(cityPass)]);
 }
 
 function install(room, rollback = false) {
@@ -201,7 +464,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
-        !sameGraphics(promotedSource(baseline, true))) {
+        !sameGraphics(promotedSource(baseline, 2)) && !sameGraphics(promotedSource(baseline, 1))) {
         throw Error('Live room has other edits. Current SHA256: ' + beforeHash);
     }
 
