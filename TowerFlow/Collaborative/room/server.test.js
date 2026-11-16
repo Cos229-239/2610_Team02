@@ -27,20 +27,21 @@ test("room access is enforced by HTTP routes and authenticated WebSockets",async
  global.fetch=async(input,options={})=>{
   const url=new URL(typeof input==="string"?input:input.url);
   const token=String(options.headers?.Authorization||"").replace(/^Bearer\s+/i,"");
+  const apiPath=url.pathname.toLowerCase();
   if(url.hostname==="github.com"&&url.pathname==="/login/oauth/access_token")return json({access_token:"owner-token"});
   if(url.hostname==="api.github.com"&&url.pathname==="/user")return json(owner);
-  if(url.pathname==="/repos/acme/inventory"||url.pathname==="/repos/acme/other"){
-   const name=url.pathname.endsWith("/other")?"Acme/Other":repo;
+  if(apiPath==="/repos/acme/inventory"||apiPath==="/repos/acme/other"){
+   const name=apiPath.endsWith("/other")?"Acme/Other":repo;
    return json({full_name:name,name:name.split("/")[1],private:true,permissions:repoPermissions[token]||{}});
   }
-  const collaborator=url.pathname.match(/^\/repos\/acme\/inventory\/collaborators\/([^/]+)\/permission$/);
+  const collaborator=apiPath.match(/^\/repos\/acme\/inventory\/collaborators\/([^/]+)\/permission$/);
   if(collaborator){const permission=collaboratorPermissions.get(decodeURIComponent(collaborator[1]));return permission?json({permission}):json({message:"Not Found"},404);}
-  if(url.pathname.endsWith("/issues")&&(!options.method||options.method==="GET"))return json([]);
-  if(url.pathname.endsWith("/issues")&&options.method==="POST"){
+  if(apiPath.endsWith("/issues")&&(!options.method||options.method==="GET"))return json([]);
+  if(apiPath.endsWith("/issues")&&options.method==="POST"){
    const payload=JSON.parse(options.body||"{}");
    return json({number:77,title:payload.title,html_url:"https://github.com/Acme/Inventory/issues/77"},201);
   }
-  if(url.pathname.endsWith("/branches"))return json([{name:"main"}]);
+  if(apiPath.endsWith("/branches"))return json([{name:"main"}]);
   return json({message:"Not Found"},404);
  };
 
