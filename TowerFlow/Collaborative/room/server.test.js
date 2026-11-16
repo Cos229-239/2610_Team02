@@ -154,7 +154,8 @@ test("room access is enforced by HTTP routes and authenticated WebSockets",async
  const start=await request("/auth/github",{user:null,origin:null});
  assert.equal(start.status,302);
  const state=new URL(start.headers.location).searchParams.get("state");
- const stateCookie=start.headers["set-cookie"].find(value=>value.startsWith("tf_oauth_state=")).split(";")[0];
+ const stateSetCookie=start.headers["set-cookie"].find(value=>value.startsWith("tf_oauth_state="));
+ const stateCookie=stateSetCookie.split(";")[0];
  assert.match(state,/^[a-f0-9]{48}$/);
  const badCallback=await request("/auth/github/callback?state="+state+"&code=demo",{user:null,origin:null,headers:{Cookie:"tf_oauth_state="+"0".repeat(48)}});
  assert.equal(badCallback.status,400);
@@ -164,5 +165,5 @@ test("room access is enforced by HTTP routes and authenticated WebSockets",async
  const goodCallback=await request("/auth/github/callback?state="+secondState+"&code=demo",{user:null,origin:null,headers:{Cookie:correctCookie}});
  assert.equal(goodCallback.status,302);
  assert.ok(goodCallback.headers["set-cookie"].some(value=>value.startsWith("tf_session=")));
- assert.ok(stateCookie.includes("HttpOnly"));
+ assert.ok(stateSetCookie.includes("HttpOnly"));
 });
