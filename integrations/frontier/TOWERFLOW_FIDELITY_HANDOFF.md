@@ -95,3 +95,11 @@ The user requires **a full-scale, perceptible upgrade of the existing room**, no
 **UPDATED DIAGNOSIS:** The authoritative room import was never completed according to the existing Foundry handoff. This is the root reason GitHub-only configuration edits did not affect the live room. Before building graphics, obtain the real live source in version control using a **single non-destructive, secrets-excluding import** on a feature branch; preserve existing local Git modifications. Do not run `git switch` against a dirty tree, force push, or create ZIPs. Do not copy credentials, `.env`, session data, database, node_modules or tokens. Inspect actual live `server.js` and `public/room.js` after the import; then engineer and commit the visual and audio fixes. No current tool can perform this local-to-GitHub import by itself.
 
 **NEXT ACTION:** Provide one safe local command that exposes the live room source through GitHub while preserving user modifications; verify resulting paths on GitHub before editing. Do not repeat investigation, and do not present the unexecuted import as completion.
+
+
+## 2026-11-16 — Reference atrium V2 architectural replacement
+- User screenshots show exhibition wall pillars, ceiling grid, holograms and primitive workstations. Prior procedural overlays did not meet reference fidelity; visual acceptance **FAILED**.
+- Committed `integrations/frontier/apply-reference-atrium-v2.ps1` (commit `65f0bbae`): a guarded, in-place replacement of the **original** atrium grid, wall pillars and fake skyline with a unified graphite/cyan-green studio shell, tiled surface, acoustic corners and generated nighttime city window.
+- The script operates on the separate local live renderer, validates JS before writing, does not touch OAuth/server/development room, and is idempotent only via the original architecture anchor check. No backup files are created.
+- **NOT YET RUN OR VISUALLY VERIFIED.** Existing additional environment modules may still add exhibition objects; no claim of full photorealism, real GLB furniture, or functional regression pass.
+- Next: user deploy, screenshot, inspect remaining original/overlay geometry, then replace with vetted high-detail GLB/PBR assets and benchmark 1080p frame time.
