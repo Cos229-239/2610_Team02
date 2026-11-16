@@ -1,7 +1,7 @@
 name: Towerflow room access tests
 on:
   push:
-    branches: [towerflow/room-access-controls]
+    branches: [towerflow/room-access-controls, towerflow/room-access-hardening-20261116]
     paths:
       - 'TowerFlow/Collaborative/room/**'
       - '.github/workflows/towerflow-room-access.yml'
@@ -17,11 +17,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install room runtime dependencies
+        working-directory: TowerFlow/Collaborative/room
+        run: npm install --ignore-scripts --no-audit --no-fund --no-package-lock
       - name: Syntax checks
         working-directory: TowerFlow/Collaborative/room
         run: |
           node --check server.js
           node --check room-store.js
+          node --check room-store.test.js
+          node --check server.test.js
           node --check --input-type=module < public/app.js
           node --check --input-type=module < public/team.js
       - name: Permission and isolation tests

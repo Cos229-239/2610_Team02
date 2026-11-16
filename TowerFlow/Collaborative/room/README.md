@@ -35,3 +35,21 @@ The OAuth app requests `read:user user:email repo` to list repositories and use 
 - Login sessions and live presence remain in memory. A server restart preserves room membership/invites but signs users out and clears presence.
 - The IDE currently opens `github.dev`; individual code-server workspaces, Monaco/Yjs shared buffers, PR checkpoints, and integrated AI are not implemented yet.
 - This remains a local development build, not production-ready. No Supabase or paid hosting is used.
+
+
+## Automated validation
+
+Run `npm test` from this directory. The suite covers:
+
+- Owner-only invitation creation, listing, revocation, member role changes, and member removal.
+- GitHub permission ceilings for Viewer and Editor assignments.
+- Hashed invite tokens, expiration, use limits, concurrent acceptance, revoked-token reuse, and persisted-state validation.
+- Actual HTTP route authorization, same-origin mutation checks, read/write boundaries, and cross-room isolation.
+- Authenticated WebSocket joins, cross-room denial, and immediate socket closure after member removal.
+- Browser-bound, one-time OAuth state validation.
+
+The server integration suite injects a controlled GitHub API fixture. It verifies Towerflow's route and authorization behavior against explicit permission responses; it is not a live GitHub OAuth test and does not replace two-real-account browser acceptance.
+
+## Remaining operational limits
+
+The room store and sessions are still local and single-process. OAuth credentials, live GitHub permission endpoint behavior, browser compatibility, rate limiting, and deployment-specific security still require separate acceptance. This is not production-ready or deployed.
