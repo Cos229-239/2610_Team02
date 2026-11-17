@@ -1091,7 +1091,118 @@ function applyNightCityDepth({ THREE, scene, inDevelopment }) {
     console.info('TowerFlow night city depth applied',{ground:groundY,texturedTowers:originalTowers.length,vehicleCount:traffic.count});
 }
 
-function promotedSource(original, revision = 6) {
+function applyPouredStoneFinish({ THREE, scene }) {
+    const floor = scene.getObjectByName('TF_FLOW_RESIN_FLOOR');
+    if (!floor) throw Error('Resin floor was not initialized.');
+    const canvas=document.createElement('canvas');
+    const width=1280,height=960;
+    canvas.width=width;canvas.height=height;
+    const ctx=canvas.getContext('2d');
+    if(!ctx)throw Error('Poured stone canvas unavailable.');
+    const image=ctx.createImageData(width,height);
+    const bands=[
+        [0.00,[4,5,9]],[.19,[7,9,15]],[.29,[18,30,37]],[.345,[33,91,107]],
+        [.39,[64,166,182]],[.418,[156,225,225]],[.444,[25,79,98]],
+        [.487,[7,12,23]],[.55,[14,15,19]],[.595,[92,42,20]],
+        [.653,[184,90,36]],[.688,[241,166,79]],[.712,[115,49,35]],
+        [.761,[31,20,35]],[.815,[82,65,104]],[.85,[144,127,164]],
+        [.89,[25,22,39]],[1,[4,5,9]]
+    ];
+    const channels = new Uint8Array(256*3);
+    let band=0;
+    for(let i=0;i<256;i++){
+        const p=i/255;
+        while(band<bands.length-2&&p>bands[band+1][0])band++;
+        const [start,lo]=bands[band], [end,hi]=bands[band+1];
+        const t=(p-start)/(end-start);
+        for(let c=0;c<3;c++)channels[i*3+c]=lo[c]+(hi[c]-lo[c])*t;
+    }
+    const sin=Math.sin, exp=Math.exp;
+    let seed=904933;
+    for(let y=0;y<height;y++){
+        const v=y/height;
+        for(let x=0;x<width;x++){
+            const u=x/width;
+            // Curls and shear vary on independent scales, giving unequal ribbons and narrow mineral lines.
+            const curve=u+.12*sin(v*12+u*3)+.065*sin(v*27-u*12)+.034*sin(u*35+v*23);
+            const lean=curve+.065*sin(curve*25+v*8)+.022*sin(curve*60-v*16);
+            const whirl=lean*3.05+.13*sin(lean*18+v*20)+.075*sin(v*34+u*12);
+            const f=whirl-Math.floor(whirl);
+            const mineral=.58+.42*sin(lean*243+v*54+sin(v*47+u*38)*2.8)**4;
+            const pool=.45+.55*(1-exp(-13*Math.abs(sin(f*Math.PI))));
+            const idx=Math.min(255,Math.floor(f*255))*3;
+            const pixel=(y*width+x)*4;
+            seed=(Math.imul(1664525,seed)+1013904223)>>>0;
+            const fleck=(seed&511)<(f>.32&&f<.72?11:2)?(.14+((seed>>>14)&127)/140)*106:0;
+            const tint=(.76+.24*mineral)*pool;
+            image.data[pixel]=channels[idx]*tint+fleck;
+            image.data[pixel+1]=channels[idx+1]*tint+fleck*.80;
+            image.data[pixel+2]=channels[idx+2]*tint+fleck*.57;
+            image.data[pixel+3]=255;
+        }
+    }
+    ctx.putImageData(image,0,0);
+    const texture=new THREE.CanvasTexture(canvas);
+    texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=4;
+    const old=floor.material.map;
+    floor.material.map=texture;
+    floor.material.emissiveMap=null;
+    floor.material.emissive.set(0x000000);
+    floor.material.color.set(0xc4c1bb);
+    floor.material.roughness=.115;
+    floor.material.metalness=.055;
+    floor.material.envMapIntensity=.72;
+    floor.material.needsUpdate=true;
+    old?.dispose();
+    const mirror=scene.getObjectByName('TF_POLISHED_MARBLE_REFLECTION');
+    if(mirror) {
+        mirror.material.fragmentShader=mirror.material.fragmentShader.replace(
+            'active * (.095 + .46 * grazing)', 'active * (.16 + .51 * grazing)');
+        mirror.material.needsUpdate=true;
+    }
+    console.info('TowerFlow poured stone applied', { width,height, reflection:!!mirror });
+}
+
+function buildWindowRain(context) {
+    const rate=24000, seconds=29;
+    const buffer=context.createBuffer(2,rate*seconds,rate);
+    const left=buffer.getChannelData(0),right=buffer.getChannelData(1);
+    let seed=180219;
+    const random=()=>{seed=(Math.imul(1664525,seed)+1013904223)>>>0;return seed/4294967296;};
+    // Discrete, rounded impacts on glass. Every impact decays before the next cluster.
+    for(let d=0;d<520;d++){
+        const time=random()*seconds, start=Math.floor(time*rate);
+        const weight=.19+random()*.81;
+        const pan=random()*2-1;
+        const center=320+random()*660;
+        const tail=.012+random()*.063;
+        const samples=Math.floor(tail*rate);
+        const l=Math.sqrt(.5-.44*pan),r=Math.sqrt(.5+.44*pan);
+        const drift=2*Math.PI*center;
+        const over=drift*(1.54+random()*.34);
+        for(let i=0;i<samples;i++){
+            const t=i/rate,life=i/samples;
+            const attack=Math.min(1,t/.0028);
+            const decay=(1-life)**3*Math.exp(-65*t);
+            const value=weight*attack*decay*(Math.sin(drift*t)+.13*Math.sin(over*t))*.13;
+            const j=(start+i)%left.length;
+            left[j]+=value*l;right[j]+=value*r;
+            // A quiet delayed pane reflection gives the rain separation without a noise bed.
+            const echo=(j+Math.round(rate*.013))%left.length;
+            left[echo]+=value*r*.16;right[echo]+=value*l*.16;
+        }
+    }
+    let sum=0,peak=0;
+    for(let i=0;i<left.length;i++){
+        sum+=left[i]**2+right[i]**2;
+        peak=Math.max(peak,Math.abs(left[i]),Math.abs(right[i]));
+    }
+    const normal=Math.min(.50/(peak||1),.047/(Math.sqrt(sum/(left.length*2))||1));
+    for(let i=0;i<left.length;i++){left[i]*=normal;right[i]*=normal;}
+    return buffer;
+}
+
+function promotedSource(original, revision = 7) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -1145,7 +1256,51 @@ function promotedSource(original, revision = 6) {
         applyNightCityDepth.toString() + ')({ THREE, scene, inDevelopment: () => tfDevRoom }); }' +
         ' catch (error) { console.error("TowerFlow night depth failed", error); }' +
         '\n// TF_LIVE_NIGHT_CITY_DEPTH_END\n';
-    return Buffer.concat([daylight, Buffer.from(nightDepth)]);
+    const night = Buffer.concat([daylight, Buffer.from(nightDepth)]);
+    if (revision === 6) return night;
+    const finish = [
+        '',
+        '// TF_LIVE_POURED_STONE_AND_RAIN_BEGIN',
+        'try { (' + applyPouredStoneFinish.toString() + ')({ THREE, scene }); }',
+        'catch (error) { console.error("TowerFlow poured stone unavailable", error); }',
+        'const tfBuildWindowRain = ' + buildWindowRain.toString() + ';',
+        'let tfRainTrack;',
+        'startAmbience = function startWindowRain() {',
+        '    stopAmbience();',
+        '    const Audio = window.AudioContext || window.webkitAudioContext;',
+        '    if (!Audio) { showToast("Audio unavailable in this browser"); return; }',
+        '    try {',
+        '        const context = new Audio();',
+        '        ambience = context;',
+        '        tfRainTrack ??= tfBuildWindowRain(context);',
+        '        const source = context.createBufferSource();',
+        '        source.buffer = tfRainTrack; source.loop = true;',
+        '        const filter = context.createBiquadFilter();',
+        '        filter.type = "lowpass"; filter.frequency.value = 1800; filter.Q.value = .5;',
+        '        const volume = context.createGain(); volume.gain.value = .50;',
+        '        source.connect(filter); filter.connect(volume); volume.connect(context.destination);',
+        '        ambientNodes.push(source, filter, volume);',
+        '        window.tfFrontier?.resumeEnvironmentAudio?.();',
+        '        window.tfFrontier?.trackAmbientAudio?.({ gain: volume.gain, context });',
+        '        volume.gain.setValueAtTime(0, context.currentTime);',
+        '        volume.gain.setTargetAtTime(.50, context.currentTime, .22);',
+        '        source.start();',
+        '        void context.resume().catch(() => { if (ambience === context) stopAmbience(); });',
+        '        showToast("Window rain playing");',
+        '    } catch (error) {',
+        '        stopAmbience(); console.warn("Window rain unavailable", error); showToast("Window rain unavailable");',
+        '    }',
+        '};',
+        'const tfPreviousMusicPanel = musicPanel;',
+        'musicPanel = function showWindowRain() {',
+        '    tfPreviousMusicPanel();',
+        '    const rain = document.getElementById("rain");',
+        '    if (rain) rain.textContent = "Window rain";',
+        '};',
+        '// TF_LIVE_POURED_STONE_AND_RAIN_END',
+        ''
+    ].join('\n');
+    return Buffer.concat([night, Buffer.from(finish)]);
 }
 
 function install(room, rollback = false) {
@@ -1165,6 +1320,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 6)) &&
         !sameGraphics(promotedSource(baseline, 5)) &&
         !sameGraphics(promotedSource(baseline, 4)) &&
         !sameGraphics(promotedSource(baseline, 3)) &&
