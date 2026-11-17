@@ -1202,7 +1202,156 @@ function buildWindowRain(context) {
     return buffer;
 }
 
-function promotedSource(original, revision = 7) {
+function applyObservationalModeling({ THREE, scene }) {
+    const ship = scene.getObjectByName('TF_SAPPHIRE_PROJECTOR');
+    const day = scene.getObjectByName('TF_DEVELOPMENT_DAY_CITY');
+    const night = scene.getObjectByName('TF_CITY_SKYLINE');
+    if (!ship || !day || !night) throw Error('Projector or city baseline unavailable.');
+
+    // Trace the reference's long nose and swept lobes. Sculpt the volume independently.
+    const outline = new THREE.Shape();
+    outline.moveTo(0,-2.13);
+    outline.bezierCurveTo(.26,-2.13,.40,-1.56,.51,-1.14);
+    outline.bezierCurveTo(.67,-.60,1.56,-.44,1.84,.36);
+    outline.bezierCurveTo(2.14,1.15,1.58,1.38,1.19,1.17);
+    outline.bezierCurveTo(.75,.91,.44,.57,0,.70);
+    outline.bezierCurveTo(-.44,.57,-.75,.91,-1.19,1.17);
+    outline.bezierCurveTo(-1.58,1.38,-2.14,1.15,-1.84,.36);
+    outline.bezierCurveTo(-1.56,-.44,-.67,-.60,-.51,-1.14);
+    outline.bezierCurveTo(-.40,-1.56,-.26,-2.13,0,-2.13);
+    const edge = outline.getSpacedPoints(88).slice(0,-1);
+    const profile = [
+        [.002,.36],[.23,.344],[.47,.29],[.68,.225],[.84,.145],[.955,.06],
+        [1,.01],[.972,-.09],[.845,-.18],[.65,-.245],[.39,-.302],[.002,-.327]
+    ];
+    const positions=[], indices=[];
+    for (const [scale,height] of profile) {
+        for (const point of edge) {
+            const z=-.17+(point.y+.17)*scale;
+            const lift=Math.max(0,z)*.052*Math.pow(Math.abs(point.x)*scale,1.6);
+            positions.push(point.x*scale,height+lift,z);
+        }
+    }
+    for(let row=0;row<profile.length-1;row++)for(let i=0;i<edge.length;i++){
+        const a=row*edge.length+i,b=row*edge.length+(i+1)%edge.length;
+        const c=a+edge.length,d=b+edge.length;
+        indices.push(a,c,b,b,c,d);
+    }
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+    geometry.setIndex(indices);geometry.computeVertexNormals();
+    if(geometry.attributes.normal.getY(edge.length*2)<0){
+        for(let i=0;i<indices.length;i+=3)[indices[i+1],indices[i+2]]=[indices[i+2],indices[i+1]];
+        geometry.setIndex(indices); geometry.computeVertexNormals();
+    }
+    const oldHull=ship.children.find(o=>o.geometry?.type==='SphereGeometry');
+    const reflections=oldHull?.material?.envMap??null;
+    const pearl = new THREE.MeshPhysicalMaterial({color:0xd8e5f0,metalness:.58,roughness:.17,
+        clearcoat:1,clearcoatRoughness:.053,envMap:reflections,envMapIntensity:1.55});
+    const sapphire = new THREE.MeshPhysicalMaterial({color:0x062342,metalness:.52,roughness:.075,
+        clearcoat:1,clearcoatRoughness:.047,envMap:reflections,envMapIntensity:2,
+        emissive:0x0a2c55,emissiveIntensity:.11});
+    const amber=new THREE.MeshBasicMaterial({color:0xffb65d,toneMapped:false});
+    const ice=new THREE.MeshBasicMaterial({color:0x81daff,toneMapped:false});
+    const seams=new THREE.MeshStandardMaterial({color:0x273b51,roughness:.34,metalness:.54});
+    function fit(shape, finish, x,y,z){
+        const piece=new THREE.Mesh(shape,finish);
+        piece.position.set(x,y,z);piece.raycast=()=>{};craft.add(piece);return piece;
+    }
+    const craft=new THREE.Group();craft.name='TF_SWEPT_SAPPHIRE_CRAFT';
+    fit(geometry,pearl,0,0,0);
+    const domeGeometry=new THREE.SphereGeometry(1,48,28);
+    const top=fit(domeGeometry,sapphire,0,.334,-.43);
+    top.scale.set(.38,.147,.83);
+    const optic=fit(domeGeometry,sapphire,0,-.282,-.57);
+    optic.scale.set(.255,.094,.49);
+    const tube=(vertices,r,finish)=>fit(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(
+        vertices.map(point=>new THREE.Vector3(...point))),30,r,8,false),finish,0,0,0);
+    for(const side of [-1,1]){
+        const s=side;
+        tube([[s*.14,-.12,-1.95],[s*.27,-.17,-1.42],[s*.50,-.17,-.84],
+            [s*.88,-.12,-.42],[s*1.24,-.055,-.07]],.014,ice);
+        tube([[s*1.04,-.105,1.02],[s*1.33,-.082,1.22],[s*1.59,-.057,1.21],
+            [s*1.78,-.018,1.03]],.038,amber);
+        tube([[s*.47,.241,-1.0],[s*.71,.228,-.51],[s*1.11,.158,-.09],[s*1.58,.098,.46]],.012,seams);
+    }
+    const lens=fit(new THREE.TorusGeometry(.15,.025,10,32),ice,0,-.066,-1.95);
+    lens.scale.set(.78,.60,1);
+
+    // Maintain the original window locations. Change massing and allocate real roof surfaces.
+    const cityTypes=[
+        [day,64,128,0x697884,0x89979d],
+        [night,128,256,0x202b38,0x4f5b6b]
+    ];
+    const roofGeometry=new THREE.BoxGeometry(1,1,1);
+    let towers=0;
+    for (const [city,width,height,roofColor,mechanicalColor] of cityTypes) {
+        const roof=new THREE.MeshBasicMaterial({color:roofColor,fog:false});
+        const mechanical=new THREE.MeshBasicMaterial({color:mechanicalColor,fog:false});
+        const source=city.children.filter(o=>o.geometry?.type==='BoxGeometry'&&
+            o.material?.map?.image?.width===width&&o.material.map.image.height===height);
+        const roofParts=[];
+        const serviceParts=[];
+        const variants=[];
+        for(let style=0;style<4;style++){
+            const rounded=new THREE.BoxGeometry(1,1,1,5,9,5);
+            const p=rounded.attributes.position;
+            for(let i=0;i<p.count;i++){
+                const x=p.getX(i), y=p.getY(i), z=p.getZ(i);
+                const corner=Math.abs(x*z)*4;
+                const t=y+.5;
+                const daytime=city===day;
+                const cut=(daytime?.13:.052)*corner**3;
+                const taper=style===1?(daytime?.20:.04)*t:style===2?(daytime?.15:.04)*Math.max(0,(t-.53)*1.9):0;
+                const bow=style===3?(daytime?.060:.025)*Math.sin(t*Math.PI):0;
+                p.setXYZ(i,x*(1-cut-taper+bow),y,z*(1-cut-taper-bow*.45));
+            }
+            rounded.computeVertexNormals();
+            const indices=Array.from(rounded.index.array);
+            const sideFaces=[], horizontalFaces=[];
+            for(const group of rounded.groups){
+                const destination=group.materialIndex===2||group.materialIndex===3?horizontalFaces:sideFaces;
+                destination.push(...indices.slice(group.start,group.start+group.count));
+            }
+            rounded.setIndex([...sideFaces,...horizontalFaces]);
+            rounded.clearGroups();
+            rounded.addGroup(0,sideFaces.length,0);
+            rounded.addGroup(sideFaces.length,horizontalFaces.length,1);
+            variants.push(rounded);
+        }
+        source.forEach((tower,index)=>{
+            const facade=tower.material;
+            tower.geometry=variants[index%variants.length];
+            tower.material=[facade,roof];
+            const top=tower.position.y+tower.scale.y/2;
+            const roofDetail=(finish,x,y,z,w,h,d)=>{
+                (finish===roof?roofParts:serviceParts).push([tower.position.x+x,top+y,tower.position.z+z,w,h,d]);
+            };
+            const w=tower.scale.x,d=tower.scale.z;
+            roofDetail(roof,0,.10,0,w*.76,.20,d*.76);
+            roofDetail(mechanical,w*.16,.38,-d*.12,w*.27,.46,d*.25);
+            roofDetail(mechanical,-w*.18,.31,d*.13,w*.16,.30,d*.15);
+            if(index%5===0)roofDetail(mechanical,w*.15,.89,-d*.12,.11,1.30,.11);
+            towers++;
+        });
+        const pose=new THREE.Object3D();
+        for(const [items,finish,name] of [[roofParts,roof,'TF_VISIBLE_TOWER_ROOFS'],
+            [serviceParts,mechanical,'TF_ROOFTOP_SERVICE_FIXTURES']]){
+            if(!items.length)continue;
+            const batch=new THREE.InstancedMesh(roofGeometry,finish,items.length);
+            batch.name=name;batch.raycast=()=>{};
+            items.forEach(([x,y,z,w,h,d],i)=>{
+                pose.position.set(x,y,z);pose.scale.set(w,h,d);pose.updateMatrix();batch.setMatrixAt(i,pose.matrix);
+            });
+            city.add(batch);
+        }
+    }
+    ship.children.forEach(object=>{object.visible=false;});
+    ship.add(craft);
+    console.info('TowerFlow observational modeling applied',{towers,hullVertices:geometry.attributes.position.count});
+}
+
+function promotedSource(original, revision = 8) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -1300,7 +1449,13 @@ function promotedSource(original, revision = 7) {
         '// TF_LIVE_POURED_STONE_AND_RAIN_END',
         ''
     ].join('\n');
-    return Buffer.concat([night, Buffer.from(finish)]);
+    const stone = Buffer.concat([night, Buffer.from(finish)]);
+    if (revision === 7) return stone;
+    const art = '\n// TF_LIVE_OBSERVATIONAL_MODELING_BEGIN\ntry { (' +
+        applyObservationalModeling.toString() + ')({ THREE, scene }); }' +
+        ' catch (error) { console.error("TowerFlow observational modeling failed", error); }' +
+        '\n// TF_LIVE_OBSERVATIONAL_MODELING_END\n';
+    return Buffer.concat([stone, Buffer.from(art)]);
 }
 
 function install(room, rollback = false) {
@@ -1320,6 +1475,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 7)) &&
         !sameGraphics(promotedSource(baseline, 6)) &&
         !sameGraphics(promotedSource(baseline, 5)) &&
         !sameGraphics(promotedSource(baseline, 4)) &&
