@@ -1762,7 +1762,284 @@ function installPaneRecordingComparison() {
     };
 }
 
-function promotedSource(original, revision = 15) {
+function installAzureMarkets() {
+    const revision = "azure-markets-r16";
+    const venues = [
+        {
+            name: "Coinbase Exchange",
+            url: "https://api.exchange.coinbase.com/products/BTC-USD/trades?limit=40",
+            parse: data => data.map(t => [t.trade_id, t.price, t.size, t.time, t.side])
+        },
+        {
+            name: "Kraken",
+            url: "https://api.kraken.com/0/public/Trades?pair=XBTUSD&count=40",
+            parse(data) {
+                if (data.error?.length) throw Error("Exchange refused request");
+                const entry = Object.entries(data.result).find(([key]) => key !== "last");
+                return entry[1].map(t => [
+                    t[6], t[0], t[1], new Date(Number(t[2]) * 1000).toISOString(),
+                    { b: "buy", s: "sell" }[t[3]]
+                ]);
+            }
+        }
+    ];
+    const latest = new Map();
+    const lastGood = new Map();
+    const alerts = [];
+    const inRoom = () => tfDevRoom ? "Development Room" : "Atrium";
+    const azure = new THREE.Group();
+    azure.name = "TF_AZURE_ROOM_ORBS";
+    const sphere = new THREE.SphereGeometry(.73, 32, 20);
+    const body = new THREE.MeshStandardMaterial({
+        color: 0x16759f, emissive: 0x14566a, emissiveIntensity: .7, roughness: .24, metalness: .55
+    });
+    const surface = document.createElement("canvas");
+    surface.width = 512;
+    surface.height = 256;
+    const texture = new THREE.CanvasTexture(surface);
+    const label = new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+    const ctx = surface.getContext("2d");
+    const original = scene.children.find(item => item.isGroup &&
+        item.position.x === 16.9 && item.position.z === 12.4);
+    if (original) original.visible = false;
+    const hits = [[16.9, 3.1, 12.4],[77, 3.1, 10]].map(coords => {
+        const orb = new THREE.Mesh(sphere, body);
+        orb.position.set(...coords);
+        const sign = new THREE.Sprite(label);
+        sign.scale.set(4, 2, 1);
+        sign.position.y = 1.6;
+        orb.add(sign);
+        azure.add(orb);
+        return orb;
+    });
+    scene.add(azure);
+    const strip = new THREE.Sprite(label);
+    strip.name = "TF_AZURE_GLOBE_TRADE_TIMELINE";
+    strip.position.set(0, -1.7, .35);
+    strip.scale.set(4, 2, 1);
+    core.add(strip);
+
+    const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+    const age = trade => (Date.now() - Date.parse(trade.time)) / 1000;
+    function status(snapshot) {
+        if (!snapshot) return "Waiting";
+        if (snapshot.unavailable) return "Unavailable";
+        const seconds = age(snapshot.trades[0]);
+        if (seconds < -10) return "Clock mismatch";
+        return seconds > 60 ? "Stale" : "Recent";
+    }
+
+    function paint() {
+        const active = venues.map(v => latest.get(v.name)).find(s => status(s) === "Recent");
+        ctx.clearRect(0, 0, 512, 256);
+        ctx.fillStyle = "#051828";
+        ctx.fillRect(0, 20, 512, 216);
+        ctx.fillStyle = "#a6eaff";
+        ctx.font = "bold 27px sans-serif";
+        ctx.fillText("AZURE  /  BTC–USD TRADES", 20, 55);
+        ctx.font = "22px sans-serif";
+        if (active) {
+            const trade = active.trades[0];
+            ctx.fillText(active.venue + "   " + usd.format(trade.price), 20, 92);
+            const trades = active.trades.slice().reverse();
+            const prices = trades.map(t => t.price);
+            const min = Math.min(...prices);
+            const span = Math.max(.01, Math.max(...prices) - min);
+            const start = Date.parse(trades[0].time);
+            const elapsed = Math.max(1, Date.parse(trade.time) - start);
+            ctx.beginPath();
+            trades.forEach((t, i) => {
+                const x = 22 + (Date.parse(t.time) - start) / elapsed * 468;
+                const y = 196 - (t.price - min) / span * 77;
+                if (i) ctx.lineTo(x, y);
+                else ctx.moveTo(x, y);
+            });
+            ctx.strokeStyle = "#53deff";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.fillText(trade.time.slice(11, 19) + " UTC", 20, 226);
+        } else {
+            ctx.fillText(venues.map(v => v.name.split(" ")[0] + ": " + status(latest.get(v.name))).join("  /  "), 20, 100);
+        }
+        texture.needsUpdate = true;
+    }
+
+    async function refresh() {
+        await Promise.all(venues.map(async venue => {
+            try {
+                const response = await fetch(venue.url, { cache: "no-store", signal: AbortSignal.timeout(8000) });
+                if (!response.ok) throw Error("HTTP " + response.status);
+                const now = Date.now();
+                const ids = new Set();
+                const trades = venue.parse(await response.json()).flatMap(([id, p, q, time, side]) => {
+                    const price = Number(p), size = Number(q);
+                    if (id == null || ids.has(id) || !Number.isFinite(Date.parse(time)) ||
+                        !Number.isFinite(price) || price <= 0 || !Number.isFinite(size) || size <= 0) return [];
+                    ids.add(id);
+                    return [{ id: String(id), price, size, time, side: side || null }];
+                }).sort((a, b) => Date.parse(b.time) - Date.parse(a.time)).slice(0, 40);
+                if (!trades.length) throw Error("No valid trades");
+                latest.set(venue.name, { venue: venue.name, trades, receivedAt: new Date(now).toISOString() });
+                lastGood.set(venue.name, latest.get(venue.name));
+            } catch {
+                latest.set(venue.name, { venue: venue.name, unavailable: true, previous: lastGood.get(venue.name) });
+            }
+        }));
+        paint();
+        if (activePanel === "azure") renderMarket();
+    }
+
+    const frameSamples = new Map();
+    let lastFrame;
+    let lastRoom;
+    function countFrame(now) {
+        requestAnimationFrame(countFrame);
+        if (!running || document.hidden) { lastFrame = undefined; return; }
+        const room = inRoom();
+        if (room !== lastRoom) {
+            frameSamples.set(room, []);
+            lastFrame = undefined;
+            lastRoom = room;
+        }
+        const samples = frameSamples.get(room);
+        if (lastFrame !== undefined && now > lastFrame) {
+            samples.push(now - lastFrame);
+            if (samples.length > 240) samples.shift();
+        }
+        lastFrame = now;
+    }
+    requestAnimationFrame(countFrame);
+
+    function sampleEvidence() {
+        const intervals = (frameSamples.get(inRoom()) ?? []).slice().sort((a, b) => a - b);
+        const p95 = intervals[Math.floor((intervals.length - 1) * .95)] ?? null;
+        const telemetry = {
+            samples: intervals.length, p95FrameMs: p95,
+            drawCalls: renderer.info.render.calls ?? null, triangles: renderer.info.render.triangles ?? null
+        };
+        return {
+            revision, room: inRoom(), capturedAt: new Date().toISOString(),
+            camera: { position: camera.position.toArray(), rotation: camera.quaternion.toArray(), fov: camera.fov },
+            viewport: { width: renderer.domElement.width, height: renderer.domElement.height },
+            telemetry,
+            findings: !telemetry || telemetry.samples < 30 || !Number.isFinite(p95)
+                ? ["Insufficient frame samples."]
+                : [p95 > 33.3 ? "95th-percentile frame interval exceeds 33.3 ms." : "95th-percentile frame interval is within 33.3 ms."],
+            runtimeEvents: alerts.slice(),
+            market: venues.map(({ name }) => {
+                const snapshot = latest.get(name);
+                return { venue: name, status: status(snapshot), latest: snapshot?.trades?.[0] ?? snapshot?.previous?.trades[0] ?? null,
+                    receivedAt: snapshot?.receivedAt ?? snapshot?.previous?.receivedAt ?? null };
+            })
+        };
+    }
+
+    window.addEventListener("error", () => recordAlert("uncaught error"));
+    window.addEventListener("unhandledrejection", () => recordAlert("unhandled rejection"));
+    renderer.domElement.addEventListener("webglcontextlost", () => recordAlert("WebGL context lost"));
+    function recordAlert(type) {
+        alerts.push({ type, at: new Date().toISOString(), room: inRoom() });
+        if (alerts.length > 12) alerts.shift();
+    }
+
+    function renderMarket() {
+        const container = document.getElementById("tfAzureMarket");
+        if (!container) return;
+        container.replaceChildren();
+        for (const { name } of venues) {
+            const snapshot = latest.get(name);
+            const title = document.createElement("h3");
+            title.textContent = name + " · " + status(snapshot);
+            const list = document.createElement("ol");
+            const tape = snapshot?.trades ?? snapshot?.previous?.trades;
+            for (const t of (tape ?? []).slice(0, 8)) {
+                const row = document.createElement("li");
+                row.textContent = t.time + " · " + usd.format(t.price) + " · " + t.size + " BTC · #" + t.id;
+                list.append(row);
+            }
+            container.append(title, list);
+        }
+    }
+
+    const basePanel = openPanel;
+    openPanel = function showAzure(id) {
+        basePanel(id);
+        if (id !== "azure") return;
+        $("panelTitle").textContent = "AZURE · MARKETS & ROOM EVIDENCE";
+        const panel = $("panelContent");
+        panel.innerHTML = `<p>BTC/USD spot trades · separate venue tapes · refreshed every 15 seconds</p>
+            <div id="tfAzureMarket"></div>
+            <div class="field"><label for="tfAzureNote">What did you see or hear?</label><textarea id="tfAzureNote"></textarea></div>
+            <div class="row wrap"><button type="button" id="tfAzureCopy">Copy room evidence</button>
+            <button type="button" id="tfAzureImage">Save room screenshot</button></div>
+            <p id="tfAzureStatus" role="status"></p>`;
+        renderMarket();
+        $("tfAzureCopy").onclick = async () => {
+            const evidence = { ...sampleEvidence(), observation: $("tfAzureNote").value.trim() };
+            const output = JSON.stringify(evidence, null, 2);
+            try {
+                await navigator.clipboard.writeText(output);
+                showToast("Azure evidence copied");
+            } catch {
+                const field = document.createElement("textarea");
+                field.readOnly = true;
+                field.setAttribute("aria-label", "Azure evidence");
+                field.value = output;
+                panel.append(field);
+                field.select();
+            }
+        };
+        $("tfAzureImage").onclick = () => {
+            const notice = $("tfAzureStatus");
+            try {
+                renderer.render(scene, camera);
+                renderer.domElement.toBlob(blob => {
+                    if (!blob) { notice.textContent = "Screenshot unavailable."; return; }
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = "towerflow-" + inRoom().toLowerCase().replaceAll(" ", "-") + "-" + revision + ".png";
+                    link.click();
+                    setTimeout(() => URL.revokeObjectURL(link.href), 30000);
+                }, "image/png");
+            } catch { notice.textContent = "Screenshot unavailable."; }
+        };
+    };
+
+    const ray = new THREE.Raycaster();
+    renderer.domElement.addEventListener("click", event => {
+        if (!running || !$("panel").hidden || !$("menu").hidden) return;
+        const rect = renderer.domElement.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        ray.setFromCamera(new THREE.Vector2(
+            (event.clientX - rect.left) * 2 / rect.width - 1,
+            1 - (event.clientY - rect.top) * 2 / rect.height
+        ), camera);
+        const hit = ray.intersectObjects(tfDevRoom ? [hits[1]] : [hits[0], strip], false)[0];
+        if (!hit) return;
+        event.stopImmediatePropagation();
+        openPanel("azure");
+    }, true);
+    const entry = document.createElement("button");
+    entry.type = "button";
+    entry.textContent = "Azure · Markets & Evidence";
+    entry.onclick = () => openPanel("azure");
+    $("menu").append(entry);
+    window.tfAzure = Object.freeze({ capture: sampleEvidence, open: () => openPanel("azure") });
+    paint();
+    let pending = false;
+    async function poll() {
+        if (!running || document.hidden || pending) return;
+        pending = true;
+        try { await refresh(); }
+        finally { pending = false; }
+    }
+    window.addEventListener("focus", poll);
+    document.addEventListener("visibilitychange", poll);
+    setInterval(poll, 15000);
+    $("enterBtn").addEventListener("click", poll);
+}
+
+function promotedSource(original, revision = 16) {
     const nightMix = revision >= 13;
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
@@ -1981,7 +2258,10 @@ function promotedSource(original, revision = 15) {
     const feedback = revision === 14
         ? '\n;(' + installSoundGardenFeedback.toString() + ')("sound-garden-ab-r14");\n'
         : '\n;(' + installPaneRecordingComparison.toString() + ')();\n';
-    return Buffer.concat([restored, Buffer.from(feedback)]);
+    const withFeedback = Buffer.concat([restored, Buffer.from(feedback)]);
+    if (revision <= 15) return withFeedback;
+    const azure = '\n;(' + installAzureMarkets.toString() + ')();\n';
+    return Buffer.concat([withFeedback, Buffer.from(azure)]);
 }
 
 function install(room, rollback = false) {
@@ -2001,6 +2281,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 15)) &&
         !sameGraphics(promotedSource(baseline, 14)) &&
         !sameGraphics(promotedSource(baseline, 13)) &&
         !sameGraphics(promotedSource(baseline, 12)) &&
