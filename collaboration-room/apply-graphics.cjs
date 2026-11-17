@@ -641,7 +641,269 @@ function applyMaterialPolish({ THREE, scene, renderer }) {
     console.info('TowerFlow polished materials applied', { sconces: placements.length, reflection: '640x360 planar' });
 }
 
-function promotedSource(original, revision = 4) {
+function applyDaylightDevelopment({ THREE, scene, core, earthStatus, stations, tfRegister, inDevelopment }) {
+    const devX = 62;
+    const dev = new THREE.Group();
+    dev.name = 'TF_DAYLIGHT_BUSINESS_ROOM';
+    const surroundings = new THREE.Group();
+    surroundings.name = 'TF_DEVELOPMENT_DAY_CITY';
+    dev.add(surroundings);
+    const roomMeshes = scene.children.filter(object => {
+        const p = object.geometry?.parameters;
+        return object.position.x >= 41 && object.position.x <= 83 && p?.height === 11 && [42, .6].includes(p.width);
+    });
+    const ship = scene.getObjectByName('TF_GLOSS_PROJECTOR_CRAFT');
+    if (roomMeshes.length !== 4 || !ship) throw Error('Development shell or projector model was not found.');
+
+    let seed = 15184;
+    const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    const metal = (color, roughness=.5, metalness=0) => new THREE.MeshStandardMaterial({color,roughness,metalness});
+    const block = new THREE.BoxGeometry(1,1,1);
+    const frame = metal(0x354654,.28,.51);
+    const plaster = metal(0xa4aab2,.81);
+    const wood = metal(0x78634f,.43);
+    const graphite = metal(0x222933,.46,.25);
+    const trim = metal(0x98a5ad,.32,.5);
+    const panelGlass = new THREE.MeshBasicMaterial({
+        color:0xa2c9df, transparent:true, opacity:.045, side:THREE.DoubleSide, depthWrite:false
+    });
+    function mesh(geometry, material, x,y,z,parent=dev) {
+        const object = new THREE.Mesh(geometry,material);
+        object.position.set(x,y,z);
+        object.raycast=()=>{};
+        parent.add(object);
+        return object;
+    }
+    function box(material,x,y,z,w,h,d,parent=dev) {
+        const object=mesh(block,material,x,y,z,parent);
+        object.scale.set(w,h,d);
+        return object;
+    }
+    const sky = new THREE.ShaderMaterial({
+        side:THREE.BackSide, depthWrite:false,
+        uniforms:{ clock:{value:0} },
+        vertexShader:`
+            varying vec3 worldDirection;
+            void main() {
+                worldDirection = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.);
+            }`,
+        fragmentShader:`
+            uniform float clock;
+            varying vec3 worldDirection;
+            float hash21(vec2 p) { return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+            float smoothNoise(vec2 p) {
+                vec2 cell=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+                return mix(mix(hash21(cell),hash21(cell+vec2(1.,0.)),f.x),
+                           mix(hash21(cell+vec2(0.,1.)),hash21(cell+vec2(1.,1.)),f.x),f.y);
+            }
+            void main() {
+                vec3 d=normalize(worldDirection);
+                float height=max(0.,d.y);
+                vec3 c=mix(vec3(.65,.82,.91),vec3(.06,.38,.73),pow(clamp(height*1.62,0.,1.),.55));
+                vec2 p=d.xz/max(.12,d.y+.24)*2.8+vec2(clock*.005,0.);
+                float cloud=smoothstep(.44,.72,.56*smoothNoise(p)+.28*smoothNoise(p*2.2)+.16*smoothNoise(p*4.3));
+                c=mix(c,mix(vec3(.67,.78,.86),vec3(1.,.98,.93),height+.24),cloud*smoothstep(.02,.22,d.y)*.85);
+                float sun=max(0.,dot(d,normalize(vec3(.59,.52,-.61))));
+                c+=vec3(1.,.84,.56)*(pow(sun,44.)*.17+pow(sun,650.)*.74);
+                if(d.y<0.) c=mix(vec3(.24,.33,.42),c,smoothstep(-.35,0.,d.y));
+                gl_FragColor=vec4(c,1.);
+                #include <colorspace_fragment>
+            }`
+    });
+    const dome=mesh(new THREE.SphereGeometry(103,36,20),sky,devX,2,0,surroundings);
+    dome.renderOrder=-10;
+    dome.onBeforeRender=()=>{sky.uniforms.clock.value=performance.now()/1000;};
+
+    const ground=new THREE.MeshBasicMaterial({color:0x627985,fog:false});
+    box(ground,devX+14,-31.3,0,146,.2,146,surroundings);
+    const road=new THREE.MeshBasicMaterial({color:0x4c5e69,fog:false});
+    for(let n=-4;n<=4;n++){
+        box(road,devX+n*13,-31.15,0,2.65,.03,135,surroundings);
+        box(road,devX+9,-31.14,n*13,130,.03,2.45,surroundings);
+    }
+    const facade=document.createElement('canvas');
+    facade.width=64;facade.height=128;
+    const paint=facade.getContext('2d');
+    if(!paint) throw Error('Tower facade canvas unavailable.');
+    paint.fillStyle='#526d84';paint.fillRect(0,0,64,128);
+    for(let y=3;y<125;y+=8) for(let x=3;x<62;x+=8){
+        paint.fillStyle=['#253e57','#6592a9','#96aab1','#bdd5dc','#ecdaa4'][Math.floor(random()*5)];
+        paint.fillRect(x,y,5,5);
+    }
+    const map=new THREE.CanvasTexture(facade);
+    map.colorSpace=THREE.SRGBColorSpace;
+    const finishes=[0xffffff,0xc5dbf0,0x94bad8,0x769ebd].map(color =>
+        new THREE.MeshBasicMaterial({color,map,fog:false}));
+    const crown=new THREE.MeshBasicMaterial({color:0xa5b8c5,fog:false});
+    const windowEvents=[];
+    let count=0;
+    for(let row=-4;row<=4;row++) for(let col=-2;col<=5;col++){
+        const x=devX+col*12.3+(random()-.5)*4;
+        const z=row*12.8+(random()-.5)*4;
+        if(x>39&&x<86&&Math.abs(z)<20) continue;
+        if(x<39&&Math.abs(z)<18) continue;
+        if(Math.hypot(x-devX,z)>74) continue;
+        const height=12+random()*37, width=4+random()*4, depth=4+random()*4;
+        const distance=Math.hypot(x-devX,z);
+        const body=finishes[distance>55?3:count%3];
+        box(body,x,-31+height/2,z,width,height,depth,surroundings);
+        if(height>35){
+            box(crown,x,-31+height+.5,z,width*.62,1,depth*.64,surroundings);
+            if(count%3===0) box(crown,x,-31+height+2.05,z,.10,3.1,.10,surroundings);
+        }
+        if(distance<52){
+            const face=z<0?z+depth/2+.025:z-depth/2-.025;
+            for(let n=0;n<10;n++) windowEvents.push([x+(random()-.5)*width*.68,-27+random()*(height-7),face]);
+        }
+        count++;
+    }
+    if(windowEvents.length){
+        const occupancy=new THREE.InstancedMesh(block,new THREE.MeshBasicMaterial({fog:false}),windowEvents.length);
+        occupancy.name='TF_DAY_CITY_OCCUPANCY';
+        occupancy.raycast=()=>{};
+        const temp=new THREE.Object3D();
+        const bright=new THREE.Color(0xffe0a2), dark=new THREE.Color(0x395e79);
+        windowEvents.forEach(([x,y,z],i)=>{
+            temp.position.set(x,y,z);temp.scale.set(.28,.36,.027);temp.updateMatrix();
+            occupancy.setMatrixAt(i,temp.matrix);occupancy.setColorAt(i,i%3===0?bright:dark);
+        });
+        let next=0;
+        occupancy.onBeforeRender=()=>{
+            const now=performance.now();
+            if(now<next)return;
+            next=now+620;
+            for(let n=0;n<5;n++) occupancy.setColorAt(Math.floor(random()*windowEvents.length),random()>.65?bright:dark);
+            occupancy.instanceColor.needsUpdate=true;
+        };
+        surroundings.add(occupancy);
+    }
+    const traffic=new THREE.Group();
+    traffic.name='TF_DAY_CITY_STREET_TRAFFIC';surroundings.add(traffic);
+    const trafficMetal=new THREE.MeshBasicMaterial({color:0xd7c1a0,fog:false});
+    for(let i=0;i<8;i++) box(trafficMetal,devX+26+(i%2?.6:-.6),-30.83,0,.42,.22,.87,traffic);
+    dome.onBeforeRender=()=>{
+        const t=performance.now()/1000;
+        sky.uniforms.clock.value=t;
+        traffic.children.forEach((car,i)=>{car.position.z=(i%2?1:-1)*(((t*2.9+i*16.1)%112)-56);});
+    };
+
+    // Keep the shared service wall and replace the three outward walls with glazing.
+    for(const wall of roomMeshes){
+        if(wall.position.x===41){wall.material=plaster;continue;}
+        wall.visible=false;
+        const side=wall.position.x===83;
+        const x=side?82.67:devX;
+        const z=side?0:Math.sign(wall.position.z)*15.68;
+        box(panelGlass,x,5.4,z,side?.016:41.5,10.45,side?31.5:.016);
+        for(let u=-(side?15:20);u<=(side?15:20);u+=5) {
+            box(frame,side?x:x+u,5.43,side?u:z,side?.24:.13,10.65,side?.13:.24);
+        }
+        for(const y of [.36,10.55]) box(frame,x,y,z,side?.28:41.6,.13,side?31.6:.28);
+    }
+    const slab=scene.children.find(o=>o.position.x===devX&&o.position.y===-.27&&o.geometry?.parameters.width===42);
+    if(slab) slab.material=metal(0x6e7074,.47,.08);
+    const ceiling=scene.children.find(o=>o.position.x===devX&&o.position.y===11.4&&o.geometry?.parameters.width===42);
+    if(ceiling) ceiling.material=metal(0xb3bac3,.82);
+    // Cover only the Development Room ceiling effects with a clean business ceiling liner.
+    box(plaster,devX,10.79,0,41.45,.13,31.28);
+    const warm=new THREE.MeshBasicMaterial({color:0xffe5c5});
+    for (const z of [-15,15]) box(warm,devX,10.676,z,40,.022,.069);
+    const daylight=new THREE.DirectionalLight(0xfff2d9,2.0);
+    daylight.position.set(93,37,-29);
+    daylight.target.position.set(devX,0,0);
+    dev.add(daylight,daylight.target);
+    const bounce=new THREE.HemisphereLight(0xbbe3ff,0xb0a29b,.7);dev.add(bounce);
+
+    const desks=stations.filter(station=>station.id.startsWith('dev-ide-'));
+    for(const station of desks){
+        for(const object of scene.children){
+            const p=object.geometry?.parameters;
+            if(object.isMesh && p?.depth!==undefined && Math.abs(object.position.x-station.x)<2 &&
+                Math.abs(object.position.z-station.z)<.86 && object.position.y>=.62 && object.position.y<=2.15 &&
+                [4.5,.13,4.2,2.55,2.37,2.2,1.15,.42].includes(p.width))object.visible=false;
+        }
+        const x=station.x,z=station.z;
+        const top=mesh(new THREE.BoxGeometry(5.8,.18,1.95),wood,x,1.29,z);
+        top.castShadow=true;
+        box(graphite,x,1.18,z,5.58,.10,1.82);
+        for(const s of [-1,1])box(graphite,x+s*2.32,.64,z,.10,1.19,1.35);
+        box(trim,x,1.42,z+.4,1.3,.04,.32);
+        for(let m=-1;m<=1;m++){
+            const consoleScreen=new THREE.Group();consoleScreen.position.set(x+m*1.62,2.10,z-.45+Math.abs(m)*.12);
+            consoleScreen.rotation.y=-m*.19;dev.add(consoleScreen);
+            box(graphite,0,0,0,1.57,.94,.08,consoleScreen);
+            box(metal(0x152e45,.49),0,0,.045,1.45,.80,.015,consoleScreen);
+            box(trim,0,-.52,-.04,.13,.21,.15,consoleScreen);
+            if(m===0){
+                const badge=mesh(new THREE.PlaneGeometry(1.42,.28),new THREE.MeshBasicMaterial({
+                    map:makeDisplay(station.label),toneMapped:false
+                }),0,.075,.059,consoleScreen);
+                badge.name='TF_BUSINESS_WORKSTATION_LABEL';
+            }
+        }
+        const seat=mesh(new THREE.SphereGeometry(1,16,10),graphite,x,.82,z+1.35);
+        seat.scale.set(.54,.11,.54);
+        const back=mesh(new THREE.SphereGeometry(1,16,10),graphite,x,1.22,z+1.74);
+        back.scale.set(.47,.51,.11);
+        box(trim,x,.41,z+1.35,.08,.75,.08);
+    }
+    function makeDisplay(name){
+        const canvas=document.createElement('canvas');canvas.width=512;canvas.height=100;
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#142434';ctx.fillRect(0,0,512,100);
+        ctx.fillStyle='#e2edf7';ctx.font='24px sans-serif';ctx.textAlign='center';ctx.fillText(name,256,40);
+        ctx.fillStyle='#98b6cc';ctx.font='17px sans-serif';ctx.fillText('Press E to open workspace',256,73);
+        const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;return texture;
+    }
+    scene.add(dev);
+    function visibleInDevelopment(){
+        dev.visible=inDevelopment();
+        requestAnimationFrame(visibleInDevelopment);
+    }
+    visibleInDevelopment();
+
+    tfRegister(core.children.find(object=>object.geometry?.type==='SphereGeometry'), 'dev-room');
+    tfRegister(earthStatus,'dev-room');
+    const earthStation=stations.find(station=>station.label==='Holographic computer');
+    if(earthStation){earthStation.id='dev-room';earthStation.label='Enter TowerFlow Development';}
+
+    // Build the rounded pearl projector and sapphire canopy on the existing animated mount.
+    const mirror=scene.getObjectByName('TF_TIER4_STUDIO_ARCHITECTURE')?.getObjectByName('steel')?.material.envMap;
+    const glossy=new THREE.MeshPhysicalMaterial({color:0xe0e5ec,roughness:.12,metalness:.53,
+        clearcoat:1,clearcoatRoughness:.075,envMap:mirror,envMapIntensity:1.35});
+    const sapphire=new THREE.MeshPhysicalMaterial({color:0x064985,roughness:.075,metalness:.43,
+        clearcoat:1,clearcoatRoughness:.048,envMap:mirror,envMapIntensity:1.8,
+        emissive:0x0d3b66,emissiveIntensity:.21});
+    const newHousing=new THREE.Group();newHousing.name='TF_SAPPHIRE_PROJECTOR';
+    ship.children.forEach(object => { object.visible = false; });
+    newHousing.scale.setScalar(1 / ship.parent.scale.x);
+    ship.add(newHousing);
+    const shellMesh=mesh(new THREE.SphereGeometry(1,64,34),glossy,0,0,0,newHousing);
+    const point=shellMesh.geometry.attributes.position;
+    for(let i=0;i<point.count;i++){
+        const x=point.getX(i),y=point.getY(i),z=point.getZ(i);
+        const flare=.95+.32*Math.max(0,z);
+        point.setXYZ(i,x*1.6*flare,y*.35,z*1.57);
+    }
+    shellMesh.geometry.computeVertexNormals();
+    for(const [height,depth] of [[.31,.85],[-.24,.61]]){
+        const dome=mesh(new THREE.SphereGeometry(1,48,24),sapphire,0,height,-.24,newHousing);
+        dome.scale.set(.55,.18,depth);
+    }
+    const optic=new THREE.MeshBasicMaterial({color:0x7edbff});
+    const exhaust=new THREE.MeshBasicMaterial({color:0xffbc69});
+    for(const x of [-1,1]){
+        const ring=mesh(new THREE.TorusGeometry(.14,.025,12,32),exhaust,x,-.10,1.14,newHousing);
+        ring.scale.set(1.32,.58,1);
+        const stripe=mesh(new THREE.CapsuleGeometry(.017,.49,6,12),optic,x*.55,-.245,-.61,newHousing);
+        stripe.rotation.x=Math.PI/2;
+    }
+    mesh(new THREE.TorusGeometry(.13,.025,10,32),optic,0,-.073,-1.565,newHousing);
+    console.info('TowerFlow daylight development applied', { towers:count, windows:roomMeshes.length-1, desks:desks.length });
+}
+
+function promotedSource(original, revision = 5) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -683,7 +945,13 @@ function promotedSource(original, revision = 4) {
         applyMaterialPolish.toString() + ')({ THREE, scene, renderer }); }' +
         ' catch (error) { console.error("TowerFlow material polish failed", error); }' +
         '\n// TF_LIVE_MATERIAL_POLISH_END\n';
-    return Buffer.concat([city, Buffer.from(polishPass)]);
+    const polished = Buffer.concat([city, Buffer.from(polishPass)]);
+    if (revision === 4) return polished;
+    const business = '\n// TF_LIVE_DAYLIGHT_DEVELOPMENT_BEGIN\ntry { (' +
+        applyDaylightDevelopment.toString() + ')({ THREE, scene, core, earthStatus, stations, tfRegister, inDevelopment: () => tfDevRoom }); }' +
+        ' catch (error) { console.error("TowerFlow daylight development failed", error); }' +
+        '\n// TF_LIVE_DAYLIGHT_DEVELOPMENT_END\n';
+    return Buffer.concat([polished, Buffer.from(business)]);
 }
 
 function install(room, rollback = false) {
@@ -703,6 +971,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 4)) &&
         !sameGraphics(promotedSource(baseline, 3)) &&
         !sameGraphics(promotedSource(baseline, 2)) && !sameGraphics(promotedSource(baseline, 1))) {
         throw Error('Live room has other edits. Current SHA256: ' + beforeHash);
