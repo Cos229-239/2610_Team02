@@ -1353,7 +1353,219 @@ function applyObservationalModeling({ THREE, scene }) {
     console.info('TowerFlow observational modeling applied',{towers,hullVertices:geometry.attributes.position.count});
 }
 
-function promotedSource(original, revision = 9) {
+function applyDevelopmentFinishes({ THREE, scene, inDevelopment }) {
+    const dev = scene.getObjectByName('TF_DAYLIGHT_BUSINESS_ROOM');
+    if (!dev) throw Error('Development suite was not initialized.');
+    const floor = scene.children.find(object=>object.position.x===62&&object.position.y===-.27&&
+        object.geometry?.parameters?.width===42);
+    const serviceWall = scene.children.find(object=>object.position.x===41&&object.position.y===5.5&&
+        object.geometry?.parameters?.height===11);
+    if (!floor || !serviceWall) throw Error('Development finish surfaces unavailable.');
+
+    const canvas=document.createElement('canvas');
+    canvas.width=1536;canvas.height=1152;
+    const ctx=canvas.getContext('2d');
+    if(!ctx)throw Error('Development resin canvas unavailable.');
+    ctx.fillStyle='#080809';ctx.fillRect(0,0,canvas.width,canvas.height);
+    let randomState=60551;
+    const rnd=()=>{randomState=(Math.imul(1664525,randomState)+1013904223)>>>0;return randomState/4294967296;};
+    const paths=[
+        [[-70,240],[172,298],[286,187],[573,153],[629,65],[902,-48]],
+        [[-80,840],[154,730],[397,771],[534,572],[786,480],[872,312],[1225,250],[1580,100]],
+        [[242,1220],[387,1029],[668,1040],[772,824],[1000,736],[1078,565],[1403,530],[1590,366]],
+        [[920,1176],[1070,1024],[1271,980],[1453,828],[1570,844]]
+    ];
+    for(let p=0;p<paths.length;p++){
+        const spline=new THREE.SplineCurve(paths[p].map(([x,y])=>new THREE.Vector2(x,y)));
+        const points=spline.getPoints(320);
+        const line=(color,width,offset,phase)=>{
+            ctx.strokeStyle=color;ctx.lineCap='round';ctx.lineJoin='round';
+            for(let i=1;i<points.length;i+=4){
+                ctx.lineWidth=width*(.7+.28*Math.sin(i*.041+phase)+.13*Math.sin(i*.093));
+                ctx.beginPath();
+                for(let j=i-1;j<=Math.min(i+3,320);j++){
+                    const current=points[j], next=points[Math.min(320,j+1)], past=points[Math.max(0,j-1)];
+                    const dx=next.x-past.x,dy=next.y-past.y,length=Math.hypot(dx,dy)||1;
+                    const wave=offset*(.82+.20*Math.sin(j*.031+phase))+
+                        5*Math.sin(j*.12+phase)+2.7*Math.sin(j*.42+phase);
+                    const x=current.x-dy/length*wave,y=current.y+dx/length*wave;
+                    if(j===i-1)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+                }
+                ctx.stroke();
+            }
+        };
+        line('#201312',112,0,p);line('#50312b',78,-5,p);
+        line('#741b22',58,11,p);line('#ae3a31',24,15,p);
+        line('#311211',9,7,p+.5);line('#b97a38',18,-31,p+1);
+        line('#aa6630',14,43,p+.8);line('#eecb81',3.3,-40,p+1);
+        line('#c19d64',3,53,p+.8);line('#7b2425',2.6,71,p+.3);
+        for(let i=0;i<780;i++){
+            const j=Math.min(319,Math.floor(rnd()*319)),a=points[j],b=points[j+1];
+            const dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy)||1;
+            const side=i%2?43:-31;
+            const where=side*(.82+.20*Math.sin(j*.031+p+.8))+5*Math.sin(j*.12+p+.8)+
+                2.7*Math.sin(j*.42+p+.8)+(rnd()-.5)*14;
+            ctx.fillStyle=i%6===0?'#fff4bc':'#d2a056';
+            ctx.globalAlpha=.20+rnd()*.58;
+            const size=.35+rnd()*1.8;
+            ctx.fillRect(a.x-dy/len*where,a.y+dx/len*where,size,size);
+        }
+        ctx.globalAlpha=1;
+    }
+    const resin=new THREE.CanvasTexture(canvas);
+    resin.colorSpace=THREE.SRGBColorSpace;
+    resin.anisotropy=4;
+    const floorMaterial=new THREE.MeshPhysicalMaterial({color:0xebdfd4,map:resin,
+        metalness:.10,roughness:.17,clearcoat:1,clearcoatRoughness:.052,envMapIntensity:.64});
+    const panel=new THREE.Mesh(new THREE.PlaneGeometry(41.55,31.48),floorMaterial);
+    panel.name='TF_DEVELOPMENT_RED_GOLD_RESIN';
+    panel.position.set(62,.018,0);panel.rotation.x=-Math.PI/2;panel.raycast=()=>{};
+    dev.add(panel);
+
+    const matte=new THREE.MeshStandardMaterial({color:0x343741,roughness:.63});
+    const bronze=new THREE.MeshStandardMaterial({color:0xa98357,metalness:.53,roughness:.31});
+    const cream=new THREE.MeshBasicMaterial({color:0xffce8b});
+    const block=new THREE.BoxGeometry(1,1,1);
+    function prop(parent,geometry,finish,x,y,z){
+        const part=new THREE.Mesh(geometry,finish);part.position.set(x,y,z);parent.add(part);return part;
+    }
+    function bar(parent,finish,x,y,z,w,h,d){
+        const part=prop(parent,block,finish,x,y,z);part.scale.set(w,h,d);return part;
+    }
+    serviceWall.material=matte;
+    for(const z of [-14.3,-9.5,-4.75,0,4.75,9.5,14.3]){
+        bar(dev,bronze,41.31,5.2,z,.022,10.25,.041).raycast=()=>{};
+    }
+    for(const y of [.23,10.38]){
+        bar(dev,bronze,41.37,y,0,.085,.115,31.18).raycast=()=>{};
+        bar(dev,cream,41.42,y+.06,0,.018,.018,31.1).raycast=()=>{};
+    }
+    const fill=new THREE.PointLight(0xf6c89c,75,20,2);fill.position.set(46,6,0);dev.add(fill);
+    const ceiling=dev.children.find(object=>object.position.x===62&&object.position.y===10.79);
+    if(ceiling)ceiling.material=new THREE.MeshStandardMaterial({color:0x646875,roughness:.72});
+    for(const z of [-9,0,9]){
+        bar(dev,bronze,62,10.62,z,32,.08,.20).raycast=()=>{};
+        bar(dev,cream,62,10.57,z,31.9,.022,.049).raycast=()=>{};
+    }
+
+    // Keep lift and picking groups. Put real instruments in those groups instead of floating primitives.
+    const leather=new THREE.MeshStandardMaterial({color:0x161e29,roughness:.65});
+    const steel=new THREE.MeshStandardMaterial({color:0x8598aa,metalness:.73,roughness:.29});
+    const glass=new THREE.MeshPhysicalMaterial({color:0x183c54,metalness:.33,roughness:.12,clearcoat:1});
+    const artifacts=[];
+    for(const [i,x] of [-5.7,-1.9,1.9,5.7].entries()){
+        const pad=scene.children.find(object=>object.isGroup&&object.position.x===x&&object.position.z===-3.3);
+        if(!pad)continue;
+        // Existing animation may toggle visibility. Move decorative visuals off the rendered layer.
+        pad.traverse(child=>{if(child.isMesh||child.isLight)child.layers.disable(0);});
+        const item=new THREE.Group();item.name=['TF_OPTICAL_TELESCOPE','TF_CAMERA_RIG','TF_DESK_AUDIO_MONITOR','TF_PRECISION_GIMBAL'][i];
+        pad.add(item);artifacts.push(item);
+        const base=prop(item,new THREE.CylinderGeometry(1.02,1.17,.22,24),leather,0,.11,0);
+        base.userData.tfDecorativeOnly=false;
+        bar(item,steel,0,.62,0,.16,.91,.16);
+        const paint=new THREE.MeshStandardMaterial({color:i%2?0xb3bfca:0x354a57,roughness:.38,metalness:.31});
+        if(i<2){
+            const trunk=prop(item,new THREE.CylinderGeometry(i===0?.28:.31,.28,i===0?1.18:.63,30),
+                paint,0,1.43,-.06);
+            trunk.rotation.x=Math.PI/2+.18;
+            const barrel=prop(item,new THREE.CylinderGeometry(.255,.25,.10,30),steel,0,1.38,i===0?.51:.31);
+            barrel.rotation.x=Math.PI/2;
+            prop(item,new THREE.SphereGeometry(.23,24,14),glass,0,1.38,i===0?.58:.38).scale.z=.22;
+            if(i===1)bar(item,leather,0,1.44,-.26,.78,.54,.32);
+        }else if(i===2){
+            bar(item,leather,0,1.38,0,.61,.74,.38);
+            const cone=prop(item,new THREE.CylinderGeometry(.192,.11,.07,26),steel,0,1.30,.20);
+            cone.rotation.x=Math.PI/2;
+            prop(item,new THREE.SphereGeometry(.078,18,10),leather,0,1.30,.24).scale.z=.46;
+        }else{
+            const ring=prop(item,new THREE.TorusGeometry(.37,.045,10,34),steel,0,1.41,0);
+            ring.rotation.y=.24;
+            const inner=prop(item,new THREE.TorusGeometry(.27,.033,10,30),bronze,0,1.41,0);
+            inner.rotation.y=1.05;
+            bar(item,paint,0,1.41,0,.24,.18,.24);
+        }
+    }
+    const aircraft=scene.getObjectByName('TF_CITY_AIRCRAFT');
+    if(aircraft){
+        aircraft.children.slice(0,2).forEach(object=>{object.visible=false;});
+        const fuselage=prop(aircraft,new THREE.SphereGeometry(1,22,12),steel,0,0,0);
+        fuselage.scale.set(.10,.11,.86);
+        const wing=new THREE.Shape();
+        wing.moveTo(0,-.21);wing.lineTo(.83,.20);wing.lineTo(.80,.35);wing.lineTo(0,.16);
+        wing.lineTo(-.80,.35);wing.lineTo(-.83,.20);wing.closePath();
+        prop(aircraft,new THREE.ExtrudeGeometry(wing,{depth:.023,bevelEnabled:false}).rotateX(Math.PI/2),steel,0,0,0);
+    }
+    function installReflection(){
+        const target=new THREE.WebGLRenderTarget(640,360,{type:THREE.HalfFloatType});
+        const eye=new THREE.PerspectiveCamera(), uv=new THREE.Matrix4(), clip=new THREE.Vector4(), q=new THREE.Vector4();
+        const plane=new THREE.Plane(), normal=new THREE.Vector3(0,1,0), point=new THREE.Vector3(62,.021,0);
+        const physical=new THREE.Vector3(), forward=new THREE.Vector3(), quaternion=new THREE.Quaternion();
+        const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,
+            uniforms:{reflection:{value:target.texture},basis:{value:uv},enabled:{value:0}},
+            vertexShader:`
+                uniform mat4 basis;
+                varying vec4 projected;
+                varying vec3 world;
+                void main(){
+                    projected=basis*vec4(position,1.);
+                    world=(modelMatrix*vec4(position,1.)).xyz;
+                    gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);
+                }`,
+            fragmentShader:`
+                uniform sampler2D reflection;
+                uniform float enabled;
+                varying vec4 projected;
+                varying vec3 world;
+                void main(){
+                    vec2 p=projected.xy/projected.w;
+                    float grazing=pow(1.-abs(normalize(cameraPosition-world).y),2.);
+                    vec3 reflected=texture2D(reflection,p).rgb;
+                    gl_FragColor=vec4(reflected,enabled*(.14+.55*grazing));
+                    #include <tonemapping_fragment>
+                    #include <colorspace_fragment>
+                }`
+        });
+        const surface=new THREE.Mesh(panel.geometry,material);
+        surface.name='TF_DEVELOPMENT_PLANAR_RESIN';
+        surface.position.copy(point);surface.rotation.copy(panel.rotation);surface.raycast=()=>{};dev.add(surface);
+        let last=-Infinity;
+        surface.onBeforeRender=(draw,world,camera)=>{
+            if(!inDevelopment()||!camera.isPerspectiveCamera||draw.getRenderTarget()||performance.now()-last<42)return;
+            camera.getWorldPosition(physical);
+            if(physical.y<=point.y)return;
+            camera.getWorldQuaternion(quaternion);
+            camera.getWorldDirection(forward).reflect(normal);
+            eye.position.copy(physical);eye.position.y=2*point.y-physical.y;
+            eye.up.copy(camera.up).applyQuaternion(quaternion).reflect(normal);
+            eye.lookAt(forward.add(eye.position));
+            eye.far=camera.far;eye.layers.mask=camera.layers.mask;
+            eye.updateMatrixWorld();eye.projectionMatrix.copy(camera.projectionMatrix);
+            uv.set(.5,0,0,.5, 0,.5,0,.5, 0,0,.5,.5, 0,0,0,1)
+                .multiply(eye.projectionMatrix).multiply(eye.matrixWorldInverse).multiply(surface.matrixWorld);
+            plane.setFromNormalAndCoplanarPoint(normal,point).applyMatrix4(eye.matrixWorldInverse);
+            clip.set(plane.normal.x,plane.normal.y,plane.normal.z,plane.constant);
+            const p=eye.projectionMatrix.elements;
+            q.set((Math.sign(clip.x)+p[8])/p[0],(Math.sign(clip.y)+p[9])/p[5],-1,(1+p[10])/p[14]);
+            const scale=clip.dot(q);if(Math.abs(scale)<1e-6)return;
+            clip.multiplyScalar(2/scale);p[2]=clip.x;p[6]=clip.y;p[10]=clip.z+.998;p[14]=clip.w;
+            const xr=draw.xr.enabled,shadows=draw.shadowMap.autoUpdate;
+            try{
+                surface.visible=false;draw.xr.enabled=false;draw.shadowMap.autoUpdate=false;
+                draw.setRenderTarget(target);draw.state.buffers.depth.setMask(true);draw.clear();draw.render(world,eye);
+                material.uniforms.enabled.value=1;last=performance.now();
+            }catch(error){
+                material.uniforms.enabled.value=0;surface.removeFromParent();
+                console.warn('Development floor mirror unavailable; using clearcoat finish.',error);
+            }finally {
+                draw.setRenderTarget(null);draw.xr.enabled=xr;draw.shadowMap.autoUpdate=shadows;surface.visible=true;
+            }
+        };
+    }
+    installReflection();
+    console.info('TowerFlow development finishes applied',{resin:'black, red and gold',physicalDisplays:artifacts.length});
+}
+
+function promotedSource(original, revision = 10) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -1512,7 +1724,13 @@ function promotedSource(original, revision = 9) {
         '// TF_LIVE_FIELD_RAIN_END',
         ''
     ].join('\n');
-    return Buffer.concat([artScene, Buffer.from(recordings)]);
+    const recordedRain = Buffer.concat([artScene, Buffer.from(recordings)]);
+    if (revision === 9) return recordedRain;
+    const finishes = '\n// TF_LIVE_DEVELOPMENT_FINISHES_BEGIN\ntry { (' +
+        applyDevelopmentFinishes.toString() + ')({ THREE, scene, inDevelopment: () => tfDevRoom }); }' +
+        ' catch (error) { console.error("TowerFlow development finishes unavailable", error); }' +
+        '\n// TF_LIVE_DEVELOPMENT_FINISHES_END\n';
+    return Buffer.concat([recordedRain, Buffer.from(finishes)]);
 }
 
 function install(room, rollback = false) {
@@ -1532,6 +1750,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 9)) &&
         !sameGraphics(promotedSource(baseline, 8)) &&
         !sameGraphics(promotedSource(baseline, 7)) &&
         !sameGraphics(promotedSource(baseline, 6)) &&
