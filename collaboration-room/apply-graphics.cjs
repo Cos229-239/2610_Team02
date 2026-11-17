@@ -903,7 +903,195 @@ function applyDaylightDevelopment({ THREE, scene, core, earthStatus, stations, t
     console.info('TowerFlow daylight development applied', { towers:count, windows:roomMeshes.length-1, desks:desks.length });
 }
 
-function promotedSource(original, revision = 5) {
+function applyNightCityDepth({ THREE, scene, inDevelopment }) {
+    const city = scene.getObjectByName('TF_CITY_SKYLINE');
+    if (!city) throw Error('Night skyline not initialized.');
+    const detail = new THREE.Group();
+    detail.name = 'TF_NIGHT_CITY_DEPTH';
+    const groundY = -32.5;
+    const palette = {
+        ground: 0x151d2a, roof: 0x202936, road: 0x292733, walk: 0x383743,
+        line: 0x8b775d, water: 0x112237, trees: 0x172c2d, lamp: 0xdab487
+    };
+    const geometry = new THREE.BoxGeometry(1,1,1);
+    const rows = Object.fromEntries(Object.keys(palette).map(name=>[name,[]]));
+    const cube = (kind,x,y,z,w,h,d)=>rows[kind].push([x,y,z,w,h,d]);
+    let seed=23191;
+    const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+    const channels=[-29,-46,-62,-76];
+    const alleys=[-44,-30,-16,-3,11,26,42];
+    cube('ground',-48,groundY-.32,0,60,.6,132);
+    cube('ground',-105,groundY-.32,0,21,.6,150);
+    cube('water',-86,groundY-.54,0,19,.1,163);
+    cube('walk',-77.7,groundY+.025,0,.4,.16,134);
+    cube('walk',-95.8,groundY+.025,0,.42,.16,145);
+    for(const x of channels){
+        cube('road',x,groundY+.012,0,2.3,.02,126);
+        for(const side of [-1,1])cube('walk',x+side*1.4,groundY+.04,0,.39,.065,126);
+        for(let z=-60;z<=60;z+=3){
+            cube('line',x,groundY+.028,z,.035,.007,.83);
+            if(z%6===0)cube('lamp',x+.97,groundY+.085,z,.08,.04,.13);
+        }
+    }
+    for(const z of alleys){
+        cube('road',-48,groundY+.017,z,58,.022,1.75);
+        for(let x=-73;x<-21;x+=3)cube('line',x,groundY+.030,z,.85,.009,.038);
+    }
+    for(const z of [-26,22]){
+        cube('walk',-86.7,groundY+1.65,z,19,.34,2.36);
+        cube('road',-86.7,groundY+1.84,z,19,.08,1.82);
+        for(let x=-95;x<-78;x+=1.6)for(const side of [-1,1])
+            cube('lamp',x,groundY+2,z+side*1.02,.08,.09,.10);
+    }
+    // A quiet park and street-level blocks give the eye a scale reference below the glass.
+    cube('trees',-25,groundY+.025,5,5,.08,8.7);
+    for(let i=0;i<19;i++)cube('trees',-23.4-random()*3.6,groundY+.43,1+random()*8,.36,.78,.4);
+    for(let i=0;i<27;i++){
+        const x=-26-random()*44,z=(random()-.5)*116;
+        if(channels.some(v=>Math.abs(x-v)<2.1)||alleys.some(v=>Math.abs(z-v)<1.6))continue;
+        const height=1.2+random()*4.7;
+        cube('roof',x,groundY+height*.5,z,1+random()*2.2,height,.9+random()*2.3);
+        cube('lamp',x,groundY+.54,z+.53,.25,.12,.045);
+    }
+    for(let i=0;i<22;i++){
+        const x=-98-random()*15,z=(random()-.5)*138, h=1.6+random()*11;
+        cube('roof',x,groundY+h*.5,z,2.8+random()*2.7,h,2.2+random()*2.8);
+        cube('lamp',x+.27,groundY+h+.07,z,.065,.13,.12);
+    }
+
+    const towerFace=document.createElement('canvas');
+    towerFace.width=128;towerFace.height=256;
+    const ctx=towerFace.getContext('2d');
+    if(!ctx)throw Error('Night facade texture canvas unavailable.');
+    ctx.fillStyle='#435063';ctx.fillRect(0,0,128,256);
+    for(let x=0;x<128;x+=16){
+        ctx.fillStyle=x%32===0?'#253044':'#5b6879';ctx.fillRect(x,0,3,256);
+        for(let y=0;y<256;y+=10){
+            ctx.fillStyle=random()<.16?'#9b7759':random()<.30?'#4a627d':'#29364b';
+            ctx.fillRect(x+4,y+2,10,6);
+            ctx.fillStyle='#738293';ctx.fillRect(x+4,y+7,10,1);
+        }
+    }
+    for(let y=18;y<256;y+=41){ctx.fillStyle='#202a39';ctx.fillRect(0,y,128,3);}
+    const atlas=new THREE.CanvasTexture(towerFace);atlas.colorSpace=THREE.SRGBColorSpace;atlas.anisotropy=4;
+
+    // Local atmospheric shading keeps the atrium, instruments and daylight room untouched.
+    function cityMaterial(color, map=null, shaded=false){
+        const material=new THREE.MeshBasicMaterial({color,map,fog:false});
+        material.onBeforeCompile=shader=>{
+            shader.vertexShader='varying vec3 tfCityPoint;\n'+shader.vertexShader;
+            shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',`
+                #include <project_vertex>
+                vec4 tfLocal=vec4(transformed,1.0);
+                #ifdef USE_INSTANCING
+                    tfLocal=instanceMatrix*tfLocal;
+                #endif
+                tfCityPoint=(modelMatrix*tfLocal).xyz;`);
+            shader.fragmentShader='varying vec3 tfCityPoint;\n'+shader.fragmentShader;
+            shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`
+                #include <color_fragment>
+                float distanceToEye=length(cameraPosition-tfCityPoint);
+                float fade=clamp(1.0-exp(-pow(distanceToEye*.014,1.32)),.02,.87);
+                float lowHaze=1.0-smoothstep(-32.5,-5.0,tfCityPoint.y);
+                ${shaded?`vec3 n=normalize(cross(dFdx(tfCityPoint),dFdy(tfCityPoint)));
+                  float face= .56 + .37 * abs(dot(n,normalize(vec3(.64,.61,.44))));
+                  diffuseColor.rgb*=face;`:''}
+                diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.065,.085,.13)+lowHaze*vec3(.018,.016,.013),fade);`);
+        };
+        material.customProgramCacheKey=()=>shaded?'towerflow-night-facade-depth-v1':'towerflow-night-depth-v1';
+        return material;
+    }
+    const towerMaterials=[0xb9c3d6,0x8aadc9,0xc5b8a7,0x9895b1].map(color=>cityMaterial(color,atlas,true));
+    const originalTowers=city.children.filter(o=>o.isMesh&&o.geometry?.type==='BoxGeometry'&&
+        o.position.x< -28&&o.position.x> -90&&o.scale.y>=9&&o.scale.y<=37);
+    originalTowers.forEach((tower,i)=>{
+        const top=tower.position.y+tower.scale.y/2;
+        tower.scale.y=top-groundY;
+        tower.position.y=(top+groundY)/2;
+        tower.material=towerMaterials[i%4];
+        const {x,z}=tower.position,w=tower.scale.x,d=tower.scale.z;
+        cube('roof',x,top+.095,z,w*1.03,.19,d*1.03);
+        cube('roof',x+.19,top+.4,z-.24,w*.41,.67,d*.38);
+        cube('line',x-w*.43,top+.18,z,.036,.14,d*.84);
+        if(i%3===0)cube('lamp',x+.22,top+1.06,z-.31,.09,.10,.09);
+    });
+    const horizon=city.children.find(o=>o.position.x===-96);
+    if(horizon){
+        horizon.position.x=-119;
+        horizon.scale.z=173;
+        // A veiled skyline gradient with a warm reflected horizon and drifting cloud bands.
+        horizon.material=new THREE.ShaderMaterial({
+            vertexShader:`
+                varying vec2 uvSky;
+                void main(){uvSky=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}
+            `,
+            fragmentShader:`
+                varying vec2 uvSky;
+                uniform float clock;
+                float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453123);}
+                float noise(vec2 p){
+                    vec2 c=floor(p),u=fract(p);u=u*u*(3.-2.*u);
+                    return mix(mix(hash(c),hash(c+vec2(1.,0.)),u.x),mix(hash(c+vec2(0.,1.)),hash(c+vec2(1.)),u.x),u.y);
+                }
+                void main(){
+                    float y=uvSky.y;
+                    vec3 c=mix(vec3(.085,.098,.16),vec3(.008,.016,.047),smoothstep(.33,.94,y));
+                    float bank=exp(-pow((y-.43)*6.5,2.));
+                    vec2 cloudPoint=uvSky*vec2(8.,19.)+vec2(clock*.011,0.);
+                    float cloud=smoothstep(.40,.72,noise(cloudPoint)*.67+noise(cloudPoint*2.6)*.33);
+                    c+=vec3(.07,.052,.025)*bank;
+                    c=mix(c,c*.59+vec3(.032,.031,.052),cloud*smoothstep(.42,.67,y)*.72);
+                    gl_FragColor=vec4(c,1.);
+                    #include <colorspace_fragment>
+                }
+            `,
+            uniforms:{clock:{value:0}}
+        });
+        horizon.onBeforeRender=()=>{horizon.material.uniforms.clock.value=performance.now()/1000;};
+    }
+
+    const transform=new THREE.Object3D();
+    for(const [name,items] of Object.entries(rows)){
+        if(!items.length)continue;
+        const batch=new THREE.InstancedMesh(geometry,cityMaterial(palette[name]),items.length);
+        batch.name='TF_NIGHT_CITY_'+name.toUpperCase();
+        batch.raycast=()=>{};
+        items.forEach(([x,y,z,w,h,d],i)=>{
+            transform.position.set(x,y,z);transform.scale.set(w,h,d);transform.updateMatrix();
+            batch.setMatrixAt(i,transform.matrix);
+        });
+        detail.add(batch);
+    }
+    const traffic=new THREE.InstancedMesh(geometry,cityMaterial(0xf5c080),36);
+    traffic.name='TF_NIGHT_CITY_TRAFFIC';
+    traffic.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    traffic.frustumCulled=false;
+    traffic.raycast=()=>{};
+    detail.add(traffic);
+    let next=0;
+    traffic.onBeforeRender=()=>{
+        const now=performance.now();
+        if(now<next)return;
+        next=now+65;
+        for(let i=0;i<traffic.count;i++){
+            const direction=i%2?1:-1;
+            const x=channels[i%channels.length]+direction*.42;
+            const z=direction*(((now*.0024+i*17.87)%122)-61);
+            transform.position.set(x,groundY+.13,z);transform.scale.set(.19,.13,.35);transform.updateMatrix();
+            traffic.setMatrixAt(i,transform.matrix);
+        }
+        traffic.instanceMatrix.needsUpdate=true;
+    };
+    city.add(detail);
+    function selectNightExterior(){
+        city.visible=!inDevelopment();
+        requestAnimationFrame(selectNightExterior);
+    }
+    selectNightExterior();
+    console.info('TowerFlow night city depth applied',{ground:groundY,texturedTowers:originalTowers.length,vehicleCount:traffic.count});
+}
+
+function promotedSource(original, revision = 6) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -951,7 +1139,13 @@ function promotedSource(original, revision = 5) {
         applyDaylightDevelopment.toString() + ')({ THREE, scene, core, earthStatus, stations, tfRegister, inDevelopment: () => tfDevRoom }); }' +
         ' catch (error) { console.error("TowerFlow daylight development failed", error); }' +
         '\n// TF_LIVE_DAYLIGHT_DEVELOPMENT_END\n';
-    return Buffer.concat([polished, Buffer.from(business)]);
+    const daylight = Buffer.concat([polished, Buffer.from(business)]);
+    if (revision === 5) return daylight;
+    const nightDepth = '\n// TF_LIVE_NIGHT_CITY_DEPTH_BEGIN\ntry { (' +
+        applyNightCityDepth.toString() + ')({ THREE, scene, inDevelopment: () => tfDevRoom }); }' +
+        ' catch (error) { console.error("TowerFlow night depth failed", error); }' +
+        '\n// TF_LIVE_NIGHT_CITY_DEPTH_END\n';
+    return Buffer.concat([daylight, Buffer.from(nightDepth)]);
 }
 
 function install(room, rollback = false) {
@@ -971,6 +1165,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 5)) &&
         !sameGraphics(promotedSource(baseline, 4)) &&
         !sameGraphics(promotedSource(baseline, 3)) &&
         !sameGraphics(promotedSource(baseline, 2)) && !sameGraphics(promotedSource(baseline, 1))) {
