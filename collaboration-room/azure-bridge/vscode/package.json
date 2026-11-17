@@ -1,0 +1,14 @@
+{
+  "name": "towerflow-evidence",
+  "displayName": "TowerFlow Evidence",
+  "publisher": "towerflow-team02",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.93.0" },
+  "main": "./extension.cjs",
+  "contributes": {
+    "commands": [
+      { "command": "towerflowEvidence.pair", "title": "TowerFlow: Pair with Room" },
+      { "command": "towerflowEvidence.check", "title": "TowerFlow: Run and Report Check" }
+    ]
+  }
+}
