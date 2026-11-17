@@ -1565,7 +1565,42 @@ function applyDevelopmentFinishes({ THREE, scene, inDevelopment }) {
     console.info('TowerFlow development finishes applied',{resin:'black, red and gold',physicalDisplays:artifacts.length});
 }
 
-function promotedSource(original, revision = 10) {
+function addContributionEntry(panel) {
+    if (!panel || panel.querySelector('[data-tf-team-contribute]')) return;
+    const create=(tag,text)=>{
+        const element=document.createElement(tag);
+        if(text) element.textContent=text;
+        return element;
+    };
+    const signpost=create('section');
+    signpost.dataset.tfTeamContribute='1';
+    signpost.style.cssText='border:1px solid #46768c;padding:16px;margin-bottom:14px;background:#112737;border-radius:9px';
+    const headline=create('h3','Contribute to Team 02');
+    headline.style.margin='0 0 8px';
+    const steps=create('ol');
+    for(const hint of [
+        'Open the browser editor. Click the branch name and create your own branch from dev.',
+        'Edit your files. In Source Control, choose Commit & Push.',
+        'On GitHub, open a pull request with dev as the base and your branch as the compare branch.'
+    ]) steps.append(create('li',hint));
+    const tools=create('div');
+    tools.style.cssText='display:flex;gap:16px;flex-wrap:wrap;margin-top:10px';
+    for(const [label,href] of [
+        ['Open browser editor on dev ↗','https://github.dev/Cos229-239/2610_Team02/tree/dev'],
+        ['Open pull requests ↗','https://github.com/Cos229-239/2610_Team02/pulls']
+    ]){
+        const link=create('a',label);link.href=href;link.target='_blank';link.rel='noopener noreferrer';
+        tools.append(link);
+    }
+    signpost.append(headline,steps,tools);
+    const hostEditor=create('details');
+    hostEditor.append(create('summary','Host checkout tools'));
+    hostEditor.append(create('p','These tools use the room host’s local checkout. Use the links above to contribute with your own GitHub account.'));
+    for(const element of Array.from(panel.childNodes))hostEditor.append(element);
+    panel.replaceChildren(signpost,hostEditor);
+}
+
+function promotedSource(original, revision = 11) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -1730,7 +1765,24 @@ function promotedSource(original, revision = 10) {
         applyDevelopmentFinishes.toString() + ')({ THREE, scene, inDevelopment: () => tfDevRoom }); }' +
         ' catch (error) { console.error("TowerFlow development finishes unavailable", error); }' +
         '\n// TF_LIVE_DEVELOPMENT_FINISHES_END\n';
-    return Buffer.concat([recordedRain, Buffer.from(finishes)]);
+    const finishedDev = Buffer.concat([recordedRain, Buffer.from(finishes)]);
+    if (revision === 10) return finishedDev;
+    const contribution = [
+        '', '// TF_LIVE_TEAM_CONTRIBUTION_BEGIN',
+        'const tfAddContributionEntry = ' + addContributionEntry.toString() + ';',
+        'const tfOpenPanelBeforeContribution = openPanel;',
+        'openPanel = function openPanelWithContribution(id) {',
+        '  const result = tfOpenPanelBeforeContribution(id);',
+        '  if (id === "ide") queueMicrotask(() => {',
+        '    if (activePanel === "ide" && !document.getElementById("panel").hidden) {',
+        '      tfAddContributionEntry(document.getElementById("panelContent"));',
+        '    }',
+        '  });',
+        '  return result;',
+        '};',
+        '// TF_LIVE_TEAM_CONTRIBUTION_END', ''
+    ].join('\n');
+    return Buffer.concat([finishedDev, Buffer.from(contribution)]);
 }
 
 function install(room, rollback = false) {
@@ -1750,6 +1802,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 10)) &&
         !sameGraphics(promotedSource(baseline, 9)) &&
         !sameGraphics(promotedSource(baseline, 8)) &&
         !sameGraphics(promotedSource(baseline, 7)) &&
