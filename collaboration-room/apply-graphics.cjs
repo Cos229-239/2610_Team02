@@ -1600,7 +1600,7 @@ function addContributionEntry(panel) {
     panel.replaceChildren(signpost,hostEditor);
 }
 
-function promotedSource(original, revision = 11) {
+function promotedSource(original, revision = 12) {
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
     for (const [name, route] of [['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
@@ -1782,7 +1782,22 @@ function promotedSource(original, revision = 11) {
         '};',
         '// TF_LIVE_TEAM_CONTRIBUTION_END', ''
     ].join('\n');
-    return Buffer.concat([finishedDev, Buffer.from(contribution)]);
+    const withContribution = Buffer.concat([finishedDev, Buffer.from(contribution)]);
+    if (revision === 11) return withContribution;
+    const restoreDisplays = [
+        '', '// TF_LIVE_RESTORE_ILLUMINATED_DISPLAYS_BEGIN',
+        '(() => {',
+        '  for (const name of ["TF_OPTICAL_TELESCOPE", "TF_CAMERA_RIG", "TF_DESK_AUDIO_MONITOR", "TF_PRECISION_GIMBAL"]) {',
+        '    const replacement = scene.getObjectByName(name);',
+        '    const pad = replacement?.parent;',
+        '    if (!pad) continue;',
+        '    pad.remove(replacement);',
+        '    pad.traverse(object => { if (object.isMesh || object.isLight) object.layers.enable(0); });',
+        '  }',
+        '})();',
+        '// TF_LIVE_RESTORE_ILLUMINATED_DISPLAYS_END', ''
+    ].join('\n');
+    return Buffer.concat([withContribution, Buffer.from(restoreDisplays)]);
 }
 
 function install(room, rollback = false) {
@@ -1802,6 +1817,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 11)) &&
         !sameGraphics(promotedSource(baseline, 10)) &&
         !sameGraphics(promotedSource(baseline, 9)) &&
         !sameGraphics(promotedSource(baseline, 8)) &&
