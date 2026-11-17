@@ -1601,7 +1601,104 @@ function addContributionEntry(panel) {
     panel.replaceChildren(signpost,hostEditor);
 }
 
-function promotedSource(original, revision = 13) {
+function installSoundGardenFeedback(build) {
+    const showSoundGarden = musicPanel;
+    const presets = {
+        A: { label: "A · Current live mix", cutoff: 20, presence: 0 },
+        B: { label: "B · Less wash, clearer impacts", cutoff: 550, presence: 3 }
+    };
+    let selected = "A";
+    let filters;
+    let heard = new Set();
+    let note = "";
+
+    tfConnectRainOutput = (source, volume, context) => {
+        const highpass = context.createBiquadFilter();
+        highpass.type = "highpass";
+        highpass.Q.value = Math.SQRT1_2;
+        const presence = context.createBiquadFilter();
+        presence.type = "peaking";
+        presence.frequency.value = 3400;
+        presence.Q.value = .9;
+        source.connect(highpass);
+        highpass.connect(presence);
+        presence.connect(volume);
+        ambientNodes.push(highpass, presence);
+        filters = { context, highpass, presence };
+        applyPreset(true);
+    };
+
+    function applyPreset(initial = false) {
+        if (!filters || filters.context !== ambience) return;
+        const { context, highpass, presence } = filters;
+        const { cutoff, presence: gain } = presets[selected];
+        if (initial) {
+            highpass.frequency.value = cutoff;
+            presence.gain.value = gain;
+        } else {
+            highpass.frequency.setTargetAtTime(cutoff, context.currentTime, .045);
+            presence.gain.setTargetAtTime(gain, context.currentTime, .045);
+        }
+    }
+
+    const startRain = startAmbience;
+    startAmbience = async (...args) => {
+        await startRain(...args);
+        if (filters?.context === ambience) heard.add(selected);
+    };
+
+    musicPanel = function showListeningFeedback() {
+        showSoundGarden();
+        const panel = document.createElement("section");
+        panel.innerHTML = `<h3>Sound Garden A/B</h3>
+            <p>Start the rain and switch between A and B while it plays. Listen for distinct glass impacts and the recorded hiss.</p>
+            <div class="row wrap"><button type="button" data-preset="A"></button><button type="button" data-preset="B"></button></div>
+            <div class="field"><label for="tfRainNote">Listening note</label>
+            <textarea id="tfRainNote" placeholder="Which sounds more like rain outside? What still sounds taped?"></textarea></div>
+            <button type="button" data-copy>Copy listening report</button>
+            <div class="field" data-fallback hidden><label for="tfRainReport">Listening report</label><textarea id="tfRainReport" readonly></textarea></div>`;
+        document.getElementById("panelContent").append(panel);
+
+        const buttons = panel.querySelectorAll("[data-preset]");
+        const markSelected = () => buttons.forEach(button =>
+            button.setAttribute("aria-pressed", String(button.dataset.preset === selected)));
+        for (const button of buttons) {
+            const key = button.dataset.preset;
+            button.textContent = presets[key].label;
+            button.onclick = () => {
+                selected = key;
+                applyPreset();
+                if (filters?.context === ambience) heard.add(key);
+                markSelected();
+            };
+        }
+        markSelected();
+
+        const input = panel.querySelector("#tfRainNote");
+        input.value = note;
+        input.oninput = () => { note = input.value; };
+        panel.querySelector("[data-copy]").onclick = async () => {
+            const report = [
+                "TowerFlow | Sound Garden | " + build,
+                "Room: " + location.origin + location.pathname,
+                "Compared: " + ([...heard].join(", ") || "playback not observed"),
+                "Selected: " + presets[selected].label,
+                "Observation: " + (input.value.trim() || "(none entered)")
+            ].join("\n");
+            try {
+                await navigator.clipboard.writeText(report);
+                showToast("Listening report copied");
+            } catch {
+                panel.querySelector("[data-fallback]").hidden = false;
+                const output = panel.querySelector("#tfRainReport");
+                output.value = report;
+                output.select();
+            }
+        };
+    };
+}
+
+function promotedSource(original, revision = 14) {
     const nightMix = revision >= 13;
     const preview = fs.readFileSync(require.resolve('./graphics-preview.cjs'), 'utf8');
     let integrated = applyIntegratedGraphics.toString();
@@ -1720,6 +1817,7 @@ function promotedSource(original, revision = 13) {
             '// Edited: filtered wind, loop crossfade, quiet stereo forest layer, MP3 encoding.',
         'const tfFieldRainEncoded = ' + JSON.stringify(nightMix ? nightWindowBase64 : fieldRainBase64) + ';',
         'let tfFieldRainDecoded;',
+        ...(revision >= 14 ? ['let tfConnectRainOutput;'] : []),
         'startAmbience = async function startFieldRain() {',
         '    stopAmbience();',
         '    const Audio = window.AudioContext || window.webkitAudioContext;',
@@ -1739,7 +1837,8 @@ function promotedSource(original, revision = 13) {
         '        const source = context.createBufferSource();',
         '        source.buffer = tfFieldRainDecoded; source.loop = true;',
         '        const volume = context.createGain(); volume.gain.value = .65;',
-        '        source.connect(volume); volume.connect(context.destination);',
+        revision >= 14 ? '        tfConnectRainOutput(source, volume, context); volume.connect(context.destination);' :
+            '        source.connect(volume); volume.connect(context.destination);',
         '        ambientNodes.push(source, volume);',
         '        window.tfFrontier?.resumeEnvironmentAudio?.();',
         '        window.tfFrontier?.trackAmbientAudio?.({ gain: volume.gain, context });',
@@ -1803,7 +1902,10 @@ function promotedSource(original, revision = 13) {
         '})();',
         '// TF_LIVE_RESTORE_ILLUMINATED_DISPLAYS_END', ''
     ].join('\n');
-    return Buffer.concat([withContribution, Buffer.from(restoreDisplays)]);
+    const restored = Buffer.concat([withContribution, Buffer.from(restoreDisplays)]);
+    if (revision <= 13) return restored;
+    const feedback = '\n;(' + installSoundGardenFeedback.toString() + ')("sound-garden-ab-r14");\n';
+    return Buffer.concat([restored, Buffer.from(feedback)]);
 }
 
 function install(room, rollback = false) {
@@ -1823,6 +1925,7 @@ function install(room, rollback = false) {
         before.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n') ===
         candidate.subarray(baseline.length).toString('utf8').replace(/\r\n/g, '\n');
     if (beforeHash !== recoveredHash && !sameGraphics(enhanced) &&
+        !sameGraphics(promotedSource(baseline, 13)) &&
         !sameGraphics(promotedSource(baseline, 12)) &&
         !sameGraphics(promotedSource(baseline, 11)) &&
         !sameGraphics(promotedSource(baseline, 10)) &&
