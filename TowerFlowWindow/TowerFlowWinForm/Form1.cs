@@ -1,8 +1,8 @@
 namespace TowerFlowWinForm
 {
-    public partial class Form1 : Form
+    public partial class TowerFlow_NamePanel : Form
     {
-        public Form1()
+        public TowerFlow_NamePanel()
         {
             InitializeComponent();
             PartData.LoadParts();

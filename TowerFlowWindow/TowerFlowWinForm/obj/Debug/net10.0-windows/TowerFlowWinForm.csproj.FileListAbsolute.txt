@@ -4,7 +4,6 @@ C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\bin\Debug\net10.
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\bin\Debug\net10.0-windows\TowerFlowWinForm.runtimeconfig.dev.json
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\bin\Debug\net10.0-windows\TowerFlowWinForm.dll
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\bin\Debug\net10.0-windows\TowerFlowWinForm.pdb
-C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.0-windows\TowerFlowWinForm.Form1.resources
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.0-windows\TowerFlowWinForm.csproj.GenerateResource.cache
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.0-windows\TowerFlowWinForm.GeneratedMSBuildEditorConfig.editorconfig
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.0-windows\TowerFlowWinForm.AssemblyInfoInputs.cache
@@ -17,3 +16,4 @@ C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.0-windows\TowerFlowWinForm.genruntimeconfig.cache
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.0-windows\ref\TowerFlowWinForm.dll
 C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.0-windows\TowerFlo.200421D2.Up2Date
+C:\FSO_2610_Team02\2610_Team02\TowerFlowWindow\TowerFlowWinForm\obj\Debug\net10.0-windows\TowerFlowWinForm.TowerFlow_NamePanel.resources

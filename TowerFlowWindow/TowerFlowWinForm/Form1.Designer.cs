@@ -1,6 +1,6 @@
 ﻿namespace TowerFlowWinForm
 {
-    partial class Form1
+    partial class TowerFlow_NamePanel
     {
         /// <summary>
         ///  Required designer variable.
@@ -252,7 +252,7 @@
             refreshTimer.Interval = 3000;
             refreshTimer.Tick += refreshTimer_Tick;
             // 
-            // Form1
+            // TowerFlow_NamePanel
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
@@ -262,8 +262,8 @@
             Controls.Add(partsGrid);
             Controls.Add(groupBox2);
             Controls.Add(Part_ManagementBox);
-            Name = "Form1";
-            Text = "Form1";
+            Name = "TowerFlow_NamePanel";
+            Text = "TowerFlow";
             Part_ManagementBox.ResumeLayout(false);
             groupBox2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)partsGrid).EndInit();

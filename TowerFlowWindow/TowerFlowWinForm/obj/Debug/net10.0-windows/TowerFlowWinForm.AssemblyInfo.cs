@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TowerFlowWinForm")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c88b67414ea061e215946b2794e328a7c01e0ef5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+34e642683ff75610bb27fe465a984e168d3417ed")]
 [assembly: System.Reflection.AssemblyProductAttribute("TowerFlowWinForm")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TowerFlowWinForm")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
