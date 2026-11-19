@@ -81,6 +81,14 @@ async function status(login, project) {
     return {ready:current===expected,branch:current,expected,changed:changed.slice(0,100),
         changeCount:changed.length,project,reason:current===expected?null:'Branch mismatch: inspect existing work before continuing.'};
 }
+async function diff(login,project) {
+    const summary=await status(login,project);
+    if(!summary.ready) throw Error(summary.reason||'Workspace is not ready for diff review.');
+    const dir=workspace(login,project);
+    const patch=await git(dir,'-c','core.pager=cat','diff','--no-ext-diff','--no-color','HEAD','--');
+    return {patch:patch.slice(0,32768),truncated:patch.length>32768,
+        note:'Shows tracked staged/unstaged changes only. Untracked files appear in status until added to Git.'};
+}
 function locateVS() {
     const p=process.env['ProgramFiles(x86)'];
     return p && path.join(p,'Microsoft Visual Studio','Installer','vswhere.exe');
@@ -113,7 +121,7 @@ async function startEditor(project, entry, dir) {
     return {editor:'Visual Studio',launched:true,verifiedDebugSession:false};
 }
 function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('hex'),prepareWorkspace=prepare,
-    getStatus=status,launch=startEditor}={}) {
+    getStatus=status,getDiff=diff,launch=startEditor}={}) {
     if (!acceptableOrigin(origin)) throw Error('Supply an exact HTTPS TowerFlow origin using --origin=https://your-room-host');
     if (!loginPattern.test(allowedLogin||'')) throw Error('Supply your GitHub username using --login=your-user');
     const fail=(res,code,msg)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});
@@ -131,14 +139,15 @@ function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('
         if(req.headers.authorization!=='Bearer '+token) return fail(res,401,'Pairing token required');
         const reply=value=>{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,...value}));};
         try {
-            if(req.method==='GET'&&req.url==='/health') return reply({version:1,capabilities:['prepare','open','status']});
-            if(req.method!=='POST'||!['/status','/open'].includes(req.url)) return fail(res,404,'Unknown action');
+            if(req.method==='GET'&&req.url==='/health') return reply({version:1,capabilities:['prepare','open','status','diff']});
+            if(req.method!=='POST'||!['/status','/open','/diff'].includes(req.url)) return fail(res,404,'Unknown action');
             if(!String(req.headers['content-type']||'').startsWith('application/json')) return fail(res,415,'JSON required');
             let body='';for await(const chunk of req) {body+=chunk; if(Buffer.byteLength(body)>maxBytes)return fail(res,413,'Request too large');}
             const input=JSON.parse(body),{login,project}=input;
             if (login.toLowerCase()!==allowedLogin.toLowerCase()) return fail(res,403,'This companion belongs to another GitHub account.');
             workspace(login,project); // Validate before accessing the filesystem.
             if(req.url==='/status')return reply({workspace:await getStatus(login,project)});
+            if(req.url==='/diff')return reply({review:await getDiff(login,project)});
             const prepared=await prepareWorkspace(login,project);
             const launched=await launch(project,prepared.entry,prepared.dir);
             return reply({workspace:await getStatus(login,project),opened:launched});
@@ -160,4 +169,4 @@ async function main() {
     });
 }
 if(require.main===module)main().catch(e=>{console.error(e.message);process.exitCode=1;});
-module.exports={makeBridge,workspace,projectEntry,acceptableOrigin,folderRef,prepare,status};
+module.exports={makeBridge,workspace,projectEntry,acceptableOrigin,folderRef,prepare,status,diff};
