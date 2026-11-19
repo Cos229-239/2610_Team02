@@ -28,11 +28,13 @@
     const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
     const open=document.createElement('button');open.type='button';open.textContent='Open My Project';open.disabled=true;
     const refresh=document.createElement('button');refresh.type='button';refresh.textContent='Refresh My Changes';refresh.disabled=true;
-    actions.append(open,refresh);
+    const review=document.createElement('button');review.type='button';review.textContent='Review My Changes';review.disabled=true;
+    actions.append(open,refresh,review);
+    const diff=document.createElement('pre');diff.hidden=true;diff.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto;font-size:12px';
     const state=document.createElement('p');state.setAttribute('role','status');
     state.textContent='Not connected to a local workspace.';
     const files=document.createElement('ul');files.setAttribute('aria-label','Actual local Git changes');
-    html.append(title,explanation,instructions,connection,actions,state,files);
+    html.append(title,explanation,instructions,connection,actions,state,files,diff);
     let panel;
     function current() {
         if (!panel || !panel.isConnected) throw Error('Open your Contribute workspace first.');
@@ -67,14 +69,14 @@
     }
     async function perform(action) {
         if(busy)return;
-        busy=true;open.disabled=true;refresh.disabled=true;connect.disabled=true;
+        busy=true;open.disabled=true;refresh.disabled=true;review.disabled=true;connect.disabled=true;
         state.textContent=action==='open'?'Preparing and opening your project…':'Reading local workspace status…';
         try {
             const data=await call(action==='open'?'/open':'/status',current());
             renderStatus(data);
             if(data.opened)state.textContent+=' · '+data.opened.editor+' started (debugger attachment not yet verified).';
         }catch(err){state.textContent='Not completed: '+err.message;}
-        finally{busy=false;open.disabled=!token;refresh.disabled=!token;connect.disabled=false;}
+        finally{busy=false;open.disabled=!token;refresh.disabled=!token;review.disabled=!token;connect.disabled=false;}
     }
     connect.onclick=async()=>{
         if(busy)return;
@@ -85,14 +87,15 @@
             const health=await call('/health');
             state.textContent='Connected to your local PC (companion protocol '+health.version+').';
             pairing.hidden=true;connect.hidden=true;disconnect.hidden=false;
-            open.disabled=false;refresh.disabled=false;await perform('status');
+            open.disabled=false;refresh.disabled=false;review.disabled=false;await perform('status');
         }catch(err){
             token='';state.textContent='Connection failed: '+err.message+'. Check the local companion, allowed room origin and browser permissions.';
         }
     };
-    disconnect.onclick=()=>{token='';pairing.value='';pairing.hidden=false;connect.hidden=false;disconnect.hidden=true;open.disabled=true;refresh.disabled=true;files.replaceChildren();state.textContent='Disconnected; the local companion is still running on your PC.';};
+    disconnect.onclick=()=>{token='';pairing.value='';pairing.hidden=false;connect.hidden=false;disconnect.hidden=true;open.disabled=true;refresh.disabled=true;review.disabled=true;diff.hidden=true;diff.textContent='';files.replaceChildren();state.textContent='Disconnected; the local companion is still running on your PC.';};
     open.onclick=()=>perform('open');
     refresh.onclick=()=>perform('status');
+    review.onclick=async()=>{try{const result=await call('/diff',current());diff.textContent=(result.review.patch||'No tracked source changes to display.')+(result.review.truncated?'\n[Diff shortened at 32 KiB.]':'')+'\n'+result.review.note;diff.hidden=false;state.textContent='Read-only local diff loaded. Nothing has been committed or pushed.';}catch(err){state.textContent='Cannot review: '+err.message;}};
     function mount(){
         const target=Array.from(document.querySelectorAll('section.tf-azure-loadout')).find(el=>el.querySelector('[data-windows]') && el.querySelector('[data-select]'));
         if(!target || (panel===target && html.parentNode===target))return;
