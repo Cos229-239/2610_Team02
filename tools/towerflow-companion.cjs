@@ -11,6 +11,7 @@ const {promisify} = require('node:util');
 const exec = promisify(execFile);
 const {projects} = require('../collaboration-room/azure-bridge/loadouts.cjs');
 const {sourceTarget} = require('../collaboration-room/azure-bridge/source-navigation.cjs');
+const {makePlanner} = require('./towerflow-ai-planner.cjs');
 const REPO = 'https://github.com/Cos229-239/2610_Team02.git';
 const PORT = 4179;
 const maxBytes = 8192;
@@ -132,7 +133,7 @@ async function openSource(login,area){
     return {area,file:target.file,line:target.line,editor:'VS Code',launched:true,verifiedDebugSession:false,workspace:prepared.branch};
 }
 function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('hex'),prepareWorkspace=prepare,
-    getStatus=status,getDiff=diff,launch=startEditor,openTarget=openSource}={}) {
+    getStatus=status,getDiff=diff,launch=startEditor,openTarget=openSource,planner=makePlanner()}={}) {
     if (!acceptableOrigin(origin)) throw Error('Supply an exact HTTPS TowerFlow origin using --origin=https://your-room-host');
     if (!loginPattern.test(allowedLogin||'')) throw Error('Supply your GitHub username using --login=your-user');
     const fail=(res,code,msg)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});
@@ -150,13 +151,21 @@ function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('
         if(req.headers.authorization!=='Bearer '+token) return fail(res,401,'Pairing token required');
         const reply=value=>{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,...value}));};
         try {
-            if(req.method==='GET'&&req.url==='/health') return reply({version:1,capabilities:['prepare','open','status','diff','open-target']});
-            if(req.method!=='POST'||!['/status','/open','/diff','/open-target'].includes(req.url)) return fail(res,404,'Unknown action');
+            if(req.method==='GET'&&req.url==='/health') return reply({version:2,capabilities:['prepare','open','status','diff','open-target','ai-capabilities','ai-plan']});
+            if(req.method==='GET'&&req.url==='/ai-capabilities') return reply({ai:{provider:'Gemini CLI',available:planner.available(),mode:'read-only-plan',canEdit:false,canCommit:false,canDeploy:false}});
+            if(req.method!=='POST'||!['/status','/open','/diff','/open-target','/ai-plan'].includes(req.url)) return fail(res,404,'Unknown action');
             if(!String(req.headers['content-type']||'').startsWith('application/json')) return fail(res,415,'JSON required');
             let body='';for await(const chunk of req) {body+=chunk; if(Buffer.byteLength(body)>maxBytes)return fail(res,413,'Request too large');}
             const input=JSON.parse(body),{login,project}=input;
             if (typeof login!=='string'||login.toLowerCase()!==allowedLogin.toLowerCase()) return fail(res,403,'This companion belongs to another GitHub account.');
             workspace(login,project); // Validate before accessing the filesystem.
+            if(req.url==='/ai-plan'){
+                if(project!=='integration')return fail(res,403,'AI planning is limited to the verified integration workspace.');
+                const ready=await getStatus(login,project);
+                if(!ready.ready)return fail(res,409,ready.reason||'Workspace is not ready');
+                const result=await planner.plan({dir:workspace(login,project),area:input.area,prompt:input.prompt});
+                return reply({ai:result});
+            }
             if(req.url==='/open-target')return reply({target:await openTarget(login,input.area)});
             if(req.url==='/status')return reply({workspace:await getStatus(login,project)});
             if(req.url==='/diff')return reply({review:await getDiff(login,project)});
