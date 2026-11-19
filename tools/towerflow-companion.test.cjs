@@ -126,7 +126,7 @@ test('VS Code and Cursor open audited source only in selected contributor checko
   assert.match(vscode.sourceSha256,/^[a-f0-9]{64}$/);
   assert.equal(vscode.sourceSha256,require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(dir,'TowerFlow','app.js'))).digest('hex'));
   assert.equal(history[1][1],'C:/VSCode/Code.exe');
-  assert.deepEqual(history[1][2],['--new-window',dir,'--goto',fs.realpathSync(path.join(dir,'TowerFlow','app.js'))+':2']);
+  assert.deepEqual(history[1][2],['--new-window',dir,'--goto',(await fs.promises.realpath(path.join(dir,'TowerFlow','app.js')))+':2']);
   const cursor=await openIDE('tester','cursor','markets',options);
   assert.equal(cursor.id,'cursor');
   assert.ok(history.at(-1)[2].includes('--classic'));
