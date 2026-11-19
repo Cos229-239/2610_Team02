@@ -46,3 +46,21 @@
 .tf-mode-panel textarea { display:block; box-sizing:border-box; margin:.5rem 0; padding:.6rem; width:100%; background:#10293c; color:#ebf5ff; border:1px solid #45667d; }
 .tf-direct-review { margin:.8rem 0; border-top:1px solid #45667d; padding-top:.7rem; }
 .tf-direct-review .tf-merged-app { height:min(50vh,550px); }
+
+/* Shared in-room app integration hub */
+.tf-app-hub { --desk-accent:#81cfff; max-width: 100%; }
+.tf-app-hub-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.65rem; margin:1rem 0; }
+.tf-app-hub-card { text-align:left; padding:1rem; background:#102c40; border:1px solid #3f6076; border-radius:.65rem; display:grid; gap:.45rem; min-height:85px; }
+.tf-app-hub-card strong { font-size:1rem; }
+.tf-app-hub-card small { font-size:.78rem; color:#b8cad6; }
+.tf-app-hub-card[data-active="true"] { border-color:#91e8ff; box-shadow:inset 0 0 0 1px #91e8ff; }
+.tf-app-hub-editor { background:#122739; border:1px solid #385269; padding:1rem; border-radius:.6rem; }
+.tf-app-hub-editor > select { width:100%; margin-bottom:.6rem; }
+.tf-app-hub-editor .row { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; }
+.tf-app-hub-editor form { display:grid; gap:.6rem; margin-top:.8rem; }
+.tf-app-hub-editor input, .tf-app-hub-editor textarea { max-width:100%; width:100%; box-sizing:border-box; }
+.tf-app-hub-feed ol { list-style:none; margin:.5rem 0; padding:0; }
+.tf-app-hub-feed li { display:flex; flex-wrap:wrap; gap:.4rem .75rem; padding:.7rem 0; border-bottom:1px solid #334f65; align-items:center; overflow-wrap:anywhere; }
+.tf-app-hub-feed li small { color:#b3c6d0; }
+.tf-app-hub-badge { font-size:.72rem; border:1px solid #618097; border-radius:2rem; padding:.2rem .55rem; }
+.tf-app-hub [hidden] { display:none !important; }
