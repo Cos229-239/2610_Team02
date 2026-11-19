@@ -152,9 +152,9 @@ function installedIDEs(paths=localIDEPaths(),exists=fs.existsSync){
       status:'Detected local executable only; launch and debugger must be verified separately.'}
   ]));
 }
-async function openIDE(login,ide,area,{prepareWorkspace=prepare,launcher=launchProcess,paths=localIDEPaths(),exists=fs.existsSync,execNative=exec}={}){
+async function openIDE(login,ide,area,{prepareWorkspace=prepare,launcher=launchProcess,paths=localIDEPaths(),exists=fs.existsSync,execNative=exec,platform=process.platform}={}){
   if(!IDE_NAMES.includes(ide))throw Error('Unknown IDE; choose one of the four supported workstations.');
-  if(process.platform!=='win32')throw Error('Desktop IDE launch needs a Windows contributor computer.');
+  if(platform!=='win32')throw Error('Desktop IDE launch needs a Windows contributor computer.');
   // Use the contributor's isolated branch; never open or change the host's checkout.
   const selected=ide==='vscommunity'&&area==='native'?'portfolio':'integration';
   const prepared=await prepareWorkspace(login,selected);
