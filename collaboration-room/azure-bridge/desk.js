@@ -7,9 +7,65 @@
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = 'Development Desk · VS Code Evidence';
+    button.textContent = 'Development Desk · Code, Debug & Git';
     menu.append(button);
+    const contribute = document.createElement('a');
+    contribute.href = 'https://codespaces.new/Cos229-239/2610_Team02?ref=dev';
+    contribute.target = '_blank';
+    contribute.rel = 'noopener noreferrer';
+    contribute.textContent = 'Contribute · Open VS Code';
+    menu.prepend(contribute);
     let refreshTimer;
+    function teammateWorkspace() {
+        const section = document.createElement('section');
+        section.dataset.teammateWorkspace = 'true';
+        section.innerHTML = `<h3>My development workspace</h3>
+            <div class="row wrap"><a href="https://codespaces.new/Cos229-239/2610_Team02?ref=dev" target="_blank" rel="noopener noreferrer">Contribute · Open VS Code</a>
+            <a href="vscode://vscode.git/clone?url=https%3A%2F%2Fgithub.com%2FCos229-239%2F2610_Team02.git">Clone in desktop VS Code</a>
+            <a href="https://github.com/Cos229-239/2610_Team02/pulls" target="_blank" rel="noopener noreferrer">Review and merge contributions</a></div>
+            <p>In VS Code, choose “TowerFlow — Debug server / Codespaces” and press F5. Open the preview on port 4174. Desktop users can choose “TowerFlow — Run with F5” to debug browser code. In a browser workspace, use the preview browser’s developer tools for client breakpoints. Codespaces uses your available GitHub quota.</p>
+            <details><summary>Git commands for submitting a change</summary><p>Run these in your workspace terminal. Choose your files when staging and review the diff before committing.</p>
+            <pre class="code" data-commands></pre></details>
+            <p>Use VS Code Source Control to commit and push. Open the pull request for review and merge into dev. The host then publishes that revision to the room.</p>
+            <p data-build role="status">Checking the room’s published revision…</p>
+            <p>Room refresh: F5 reloads this page. Ctrl + Shift + R reloads cached assets. Use these after the host publishes the merged revision.</p>
+            <button type="button" data-reload>Refresh room</button>`;
+        section.querySelector('[data-commands]').textContent = [
+            'git fetch origin', 'git switch -c my-contribution origin/dev',
+            '# Edit and run your code, then check it:', 'node tools/check-contributions.cjs',
+            'git status', 'git add -p', 'git diff --cached',
+            'git commit -m "Describe the change"', 'git push -u origin HEAD',
+            'gh pr create --base dev --fill',
+            '# After review and passing checks, merge your PR:', 'gh pr merge --merge'
+        ].join('\n');
+        section.querySelector('[data-reload]').onclick = () => location.reload();
+        async function readBuild() {
+            if (!section.isConnected || panel.hidden) return;
+            const status = section.querySelector('[data-build]');
+            try {
+                const response = await fetch('/towerflow/towerflow-build.json', {cache:'no-store'});
+                if (!response.ok) throw Error('No deployment receipt');
+                const build = await response.json();
+                if (!/^[a-f0-9]{40}$/.test(build.revision)) throw Error('Invalid deployment receipt');
+                const previous = section.dataset.revision;
+                section.dataset.revision = build.revision;
+                status.textContent = (previous && previous !== build.revision ? 'A new revision is published. Press Ctrl + Shift + R. ' : 'Published room app: ') + build.revision.slice(0, 12);
+            } catch {
+                status.textContent = 'Published revision unavailable. Ask the host to import the merged commit.';
+            }
+            if (section.isConnected && !panel.hidden) setTimeout(readBuild, 15000);
+        }
+        setTimeout(readBuild, 0);
+        return section;
+    }
+    const ideNames = /CODE NEXUS|BROWSER IDE|VISUAL STUDIO|DEVELOPMENT WORKSTATION|CURSOR|ANTIGRAVITY/i;
+    const observer = new MutationObserver(() => {
+        if (panel.hidden || content.querySelector('[data-teammate-workspace]')) return;
+        if (ideNames.test(document.getElementById('panelTitle').textContent)) content.prepend(teammateWorkspace());
+    });
+    observer.observe(content, {childList:true});
+    observer.observe(document.getElementById('panelTitle'), {childList:true,subtree:true,characterData:true});
+
 
     async function api(route, body) {
         const response = await fetch(root + route, body ? {
@@ -24,14 +80,14 @@
         menu.hidden = true;
         panel.hidden = false;
         document.getElementById('panelTag').textContent = 'DEVELOPMENT WORKSTATION';
-        document.getElementById('panelTitle').textContent = 'VS CODE EVIDENCE';
+        document.getElementById('panelTitle').textContent = 'DEVELOPMENT DESK';
         const desk = document.createElement('section');
         desk.innerHTML = `<p>Pair VS Code, then run <strong>TowerFlow: Run and Report Check</strong> in the command palette.</p>
             <div class="row wrap"><button type="button" data-writer>Pair VS Code</button>
             <button type="button" data-reader disabled>Share this result with the assistant</button></div>
             <p role="status"></p><textarea readonly hidden aria-label="Temporary Azure access"></textarea>
             <pre class="code"></pre>`;
-        content.replaceChildren(desk);
+        content.replaceChildren(teammateWorkspace(), desk);
         const status = desk.querySelector('[role=status]');
         const output = desk.querySelector('pre');
         const tokenBox = desk.querySelector('textarea');

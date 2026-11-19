@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "2.0.0",
   "tasks": [
     {
@@ -9,7 +9,10 @@
         "${workspaceFolder}/TowerFlow/server.js"
       ],
       "options": {
-        "cwd": "${workspaceFolder}/TowerFlow"
+        "cwd": "${workspaceFolder}/TowerFlow",
+        "env": {
+          "PORT": "4174"
+        }
       },
       "isBackground": true,
       "problemMatcher": {
@@ -22,9 +25,21 @@
         "background": {
           "activeOnStart": true,
           "beginsPattern": "^TowerFlow server listening at",
-          "endsPattern": "^TowerFlow server listening at http://127\\.0\\.0\\.1:4173$"
+          "endsPattern": "^TowerFlow server listening at http://127\\.0\\.0\\.1:4174$"
         }
       }
+    },
+    {
+      "label": "TowerFlow: Check contribution",
+      "type": "process",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/tools/check-contributions.cjs"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

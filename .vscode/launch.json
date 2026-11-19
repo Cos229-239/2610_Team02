@@ -1,13 +1,32 @@
-﻿{
+{
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "TowerFlow — Run with F5",
+      "name": "TowerFlow \u2014 Run with F5",
       "type": "pwa-chrome",
       "request": "launch",
-      "url": "http://127.0.0.1:4173",
+      "url": "http://127.0.0.1:4174",
       "webRoot": "${workspaceFolder}/TowerFlow",
       "preLaunchTask": "TowerFlow: Start local server"
+    },
+    {
+      "name": "TowerFlow \u2014 Debug server / Codespaces",
+      "type": "pwa-node",
+      "request": "launch",
+      "program": "${workspaceFolder}/TowerFlow/server.js",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PORT": "4174"
+      },
+      "console": "integratedTerminal",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "serverReadyAction": {
+        "pattern": "TowerFlow server listening at (http://[^ ]+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
     }
   ]
 }

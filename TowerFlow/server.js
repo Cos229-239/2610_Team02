@@ -1,11 +1,12 @@
-﻿"use strict";
+"use strict";
 
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 
 const HOST = "127.0.0.1";
-const PORT = 4173;
+const PORT = Number(process.env.PORT || 4173);
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw Error("Invalid PORT");
 const ROOT = path.resolve(__dirname);
 
 const MIME = {
