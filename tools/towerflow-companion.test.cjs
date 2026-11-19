@@ -11,11 +11,12 @@ test('origin and path validation rejects unsafe inputs',()=>{
     assert.throws(()=>workspace('Contributor','../../etc'),/Invalid contributor/);
     assert.equal(folderRef('Contributor','shared'),'work/contributor/shared');
     assert.equal(projectEntry('integration'),'.');
+    assert.throws(()=>makeBridge({origin:'https://team.example'}),/GitHub username/);
 });
 async function fixture(){
     const origin='https://team.example';
     const calls=[];
-    const bridge=makeBridge({origin,token:'testing-secret',
+    const bridge=makeBridge({origin,allowedLogin:'tester',token:'testing-secret',
         prepareWorkspace:async(login,project)=>{calls.push(['prepare',login,project]);return {dir:'/local/test',entry:'/local/test/index.html'};},
         getStatus:async(login,project)=>{calls.push(['status',login,project]);return {ready:true,changeCount:2,branch:'work/tester/integration'};},
         launch:async(project)=>{calls.push(['open',project]);return {editor:'VS Code',launched:true,verifiedDebugSession:false};}
@@ -36,6 +37,8 @@ test('unauthorized or cross-origin access cannot invoke local actions',async()=>
         assert.equal(r.status,403);
         r=await request(f.base,'/open',{token:'wrong',body:{login:'tester',project:'integration'}});
         assert.equal(r.status,401);
+        r=await request(f.base,'/open',{body:{login:'someone-else',project:'integration'}});
+        assert.equal(r.status,403);
         r=await request(f.base,'/open',{body:{login:'tester',project:'../../etc'}});
         assert.equal(r.status,422);
         r=await request(f.base,'/shell',{body:{login:'tester',project:'integration',command:'cmd.exe'}});
