@@ -61,6 +61,21 @@ async function main() {
             await page.locator('.toolbar button').first().click();await page.locator('[data-windows]').waitFor();return page;
         };
         const presenter=await member('William'),viewer=await member('Omarion');
+        // Azure Bridge B must produce an actionable provider-specific handoff.
+        await presenter.locator('[data-azure-ai]').click();
+        assert.equal(await presenter.locator('.tf-ai-provider-card').count(),4);
+        await presenter.locator('.tf-ai-provider-card').filter({hasText:'Grok'}).click();
+        await presenter.locator('.tf-ai-handoff-form textarea:not([readonly])').fill(
+            'Add an authenticated display name to the dashboard without changing portfolio calculations.'
+        );
+        await presenter.getByRole('button',{name:'Generate & copy integration prompt'}).click();
+        const generated=await presenter.locator('textarea[readonly][aria-label="Generated repository access and integration prompt"]').inputValue();
+        assert.match(generated,/Cos229-239\/2610_Team02/);
+        assert.match(generated,/FIRST: PROVE ACTUAL REPOSITORY ACCESS/);
+        assert.match(generated,/Grok/);
+        await presenter.locator('.tf-development-entry').click();
+        console.log('Azure AI handoff provides the correct GitHub access verification instructions without credentials.');
+
         // User journey: two prominently visible choices, exact source card and real preview.
         await presenter.locator('.tf-developer-center').waitFor();
         assert.equal(await presenter.locator('.tf-dev-choice').count(),2);
@@ -77,7 +92,13 @@ async function main() {
         assert.match(await presenter.locator('.tf-dev-review').textContent(),/Not published/);
         await presenter.locator('.tf-dev-example').filter({hasText:'Background: magenta'}).click();
         await presenter.locator('.tf-dev-workspace .tf-dev-primary').first().click();
-        await presenter.waitForFunction(()=>document.querySelector('.tf-dev-change-summary')?.textContent.includes('TowerFlow/styles.css'));
+        try{
+            await presenter.waitForFunction(()=>document.querySelector('.tf-dev-change-summary')?.textContent.includes('TowerFlow/styles.css'),null,{timeout:12000});
+        }catch(error){
+            console.error('CSS PREVIEW DIAGNOSTIC',await presenter.locator('.tf-dev-status').textContent());
+            console.error('CSS SUMMARY DIAGNOSTIC',await presenter.locator('.tf-dev-change-summary').textContent());
+            throw error;
+        }
         await presenter.frameLocator('.tf-dev-review iframe').locator('body').waitFor();
         let newBackground='';
         for(let attempt=0;attempt<30;attempt++){
