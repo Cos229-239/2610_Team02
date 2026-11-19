@@ -160,8 +160,8 @@ async function publishedBranches(login, token, read = fetch) {
     const signal = AbortSignal.timeout(10000);
     const response = await read('https://api.github.com/graphql',{method:'POST',headers,signal,redirect:'error',
         body:JSON.stringify({query:`query { repository(owner:"Cos229-239",name:"2610_Team02") {
-            refs(refPrefix:"refs/heads/",first:100,orderBy:{field:TAG_COMMIT_DATE,direction:DESC}) {
-                nodes {name target { ... on Commit {author {user {login}}} }}
+            refs(refPrefix:"refs/heads/",first:100) {
+                nodes {name target { ... on Commit {committedDate author {user {login}}} }}
             } } }`})});
     if (!response.ok) throw Error('Branch list unavailable');
     const graph = await response.json();
@@ -169,8 +169,11 @@ async function publishedBranches(login, token, read = fetch) {
     if (!Array.isArray(refs)) throw Error('Branch list unavailable');
     const key = login.toLowerCase();
     const personal = members[key]?.[2];
-    const candidates = refs.filter(r => r.name !== 'dev' && r.name !== 'main' &&
-        (r.name === personal || r.name.toLowerCase().startsWith('work/'+key+'/') || r.target?.author?.user?.login?.toLowerCase() === key)).slice(0,8);
+    const peerBranches = new Set(Object.entries(members).filter(([account])=>account!==key).map(([,member])=>member[2]));
+    const candidates = refs.filter(r => !peerBranches.has(r.name) &&
+        (!r.name.startsWith('work/') || r.name.toLowerCase().startsWith('work/'+key+'/')) && r.name !== 'dev' && r.name !== 'main' &&
+        (r.name === personal || r.name.toLowerCase().startsWith('work/'+key+'/') || r.target?.author?.user?.login?.toLowerCase() === key))
+        .sort((a,b)=>Date.parse(b.target.committedDate)-Date.parse(a.target.committedDate)).slice(0,8);
     const results = await Promise.all(candidates.map(async r => {
         const res = await read('https://api.github.com/repos/'+teamRepo+'/compare/dev...'+encodeURIComponent(r.name)+'?per_page=1',{headers,signal,redirect:'error'});
         if (!res.ok) return null;

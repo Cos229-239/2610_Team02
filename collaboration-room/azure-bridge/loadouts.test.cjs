@@ -80,9 +80,9 @@ test('branch suggestions contain the signed-in member’s published work ahead o
         assert.equal(options.headers.Authorization,'Bearer fixture');
         if (url.endsWith('/graphql')) return {ok:true,json:async()=>({data:{repository:{refs:{nodes:[
             ref('dev','Lopobunnie'),ref('feature/parts','Lopobunnie'),ref('other-work','HyperRealmEnd'),
-            ref('WilliamPersonal','other'),ref('work/Lopobunnie/old','other')
+            ref('WilliamPersonal','other'),ref('work/Lopobunnie/old','other'),ref('DaynaPersonal','Lopobunnie'),ref('work/peer/edits','Lopobunnie')
         ]}}}})};
-        assert.doesNotMatch(url,/other-work/);
+        assert.doesNotMatch(url,/other-work|DaynaPersonal|work%2Fpeer/i);
         return {ok:true,json:async()=>({ahead_by:url.includes('old')?0:1})};
     };
     assert.deepEqual(await publishedBranches('Lopobunnie','fixture',read),['feature/parts','WilliamPersonal']);

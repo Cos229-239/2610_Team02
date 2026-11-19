@@ -23,7 +23,7 @@ Use the same room invite as the rest of the team. Sign in with your own GitHub a
 
 **Resume feature** opens the source in the browser editor. **Open Windows workspace…** copies a PowerShell command that clones a separate checkout on first use and opens the local project. Subsequent launches reopen that checkout and preserve local edits. Each Windows checkout lives under your own GitHub login in Documents/TowerFlow Workspaces. Use Fetch/Pull in your IDE to bring it up to date. Forms debugging requires Visual Studio with the project's Windows desktop workload. The room cannot observe a desktop breakpoint.
 
-**New feature** prepares an editable title, sample, expected result and observed-result field. Push your branch and use **Prepare pull request** to open the draft text on GitHub for review. Entering the chamber is silent. Sound Garden, voice chat and the explicit Help voice retain their controls.
+**Submit feature** suggests pushed branches with work ahead of dev. A single match is filled in for you. **New feature** prepares an editable title, sample, expected result and observed-result field. Push your branch and use **Prepare pull request** to open the draft text on GitHub for review. Entering the chamber is silent. Sound Garden, voice chat and the explicit Help voice retain their controls.
 
 ## Windows host installation
 
@@ -79,12 +79,12 @@ Click **Team updates** in the room toolbar. The titles open the exact changes on
 
 The collaboration room embeds its own public/towerflow copy of the business
 application. Merging a PR updates GitHub. The host imports the reviewed commit
-into that directory using a clean checkout. Preview first:
+into that directory. The publisher fetches the shared dev revision and reads its committed browser files directly. You can leave your personal branch and local edits open. From an updated copy of this repository, preview first:
 
     node tools/import-room-app.cjs "C:\Users\dulsk\Desktop\Towerflow_Team02_Private_Invite_Room\Towerflow_Collaboration_Room"
 
-Review the commit and files printed by the preview. Add --apply to import.
-Checks run before deployment. Additional room assets are retained. One previous
+Review the commit and files printed by the preview. Use the --apply and --revision flags printed by the preview to publish that same revision.
+Checks run in a temporary checkout of the exact shared revision. Additional room assets are retained. Previously published assets removed on dev are removed if their host copy still matches its last receipt. One previous
 app copy is kept at public/towerflow.previous. Review or remove that directory
 before a subsequent import. For rollback, stop serving requests, move the new
 public/towerflow aside and rename public/towerflow.previous to public/towerflow.
