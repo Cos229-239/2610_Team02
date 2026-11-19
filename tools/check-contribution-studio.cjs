@@ -69,6 +69,10 @@ async function main() {
             'Add an authenticated display name to the dashboard without changing portfolio calculations.'
         );
         await presenter.getByRole('button',{name:'Generate & copy integration prompt'}).click();
+        await presenter.waitForFunction(()=>{
+            const value=document.querySelector('textarea[readonly][aria-label="Generated repository access and integration prompt"]')?.value;
+            return typeof value==='string'&&value.includes('Cos229-239/2610_Team02');
+        },null,{timeout:12000});
         const generated=await presenter.locator('textarea[readonly][aria-label="Generated repository access and integration prompt"]').inputValue();
         assert.match(generated,/Cos229-239\/2610_Team02/);
         assert.match(generated,/FIRST: PROVE ACTUAL REPOSITORY ACCESS/);
