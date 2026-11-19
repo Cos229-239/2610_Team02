@@ -8,7 +8,8 @@ const CATALOG=Object.freeze({
   analytics:{label:'Analytics & Projection',path:'TowerFlow/app.js',description:'Charts, performance calculations and what-if projections.',kind:'web'},
   app:{label:'Shared Web App',path:'TowerFlow/index.html',description:'Changes that span multiple dashboard or market areas.',kind:'web'},
   room:{label:'Collaboration Room',path:'collaboration-room/azure-bridge/desk.js',description:'Room, workstations, visuals, interaction and developer integrations.',kind:'room'},
-  native:{label:'Native & Desktop',path:'TowerFlow/TowerFlow.Native',description:'C++, C#, Visual Studio and desktop applications; demonstrated separately.',kind:'native'}
+  native:{label:'Native & Desktop',path:'TowerFlow/TowerFlow.Native',description:'C++, C#, Visual Studio and desktop applications; demonstrated separately.',kind:'native'},
+  other:{label:'Other & Unassigned',path:'README.md',description:'Documentation, tools or contributions that have not been assigned to an app area.',kind:'other'}
 });
 const AREAS=Object.keys(CATALOG);
 function parseArea(body) {
@@ -22,7 +23,7 @@ function classifyFiles(files) {
   if(paths.some(p=>/^TowerFlow\/TowerFlow\.Native\/|^Towerflow_OW\/|^TowerFlow Files\/|^TowerFlowWindow\//i.test(p)))return 'native';
   if(paths.some(p=>/^collaboration-room\//.test(p)))return 'room';
   if(paths.some(p=>/^TowerFlow\/(?!TowerFlow\.Native\/)/.test(p)))return 'app';
-  return null;
+  return 'other';
 }
 function moduleFor(pr,files) {
   const tagged=parseArea(pr.body);
@@ -30,7 +31,7 @@ function moduleFor(pr,files) {
   // A PR tag is a contributor's declared intent, not proof of an integrated runtime.
   // Reject incompatible declarations for native/room-only changes.
   if (tagged && inferred && CATALOG[tagged].kind !== CATALOG[inferred].kind) return inferred;
-  return tagged||inferred||'app';
+  return tagged||inferred||'other';
 }
 function createIndex(read=fetch,clock=Date.now) {
   let cached,until=0;
@@ -57,7 +58,7 @@ function createIndex(read=fetch,clock=Date.now) {
             const found=await get('/pulls/'+p.number+'/files?per_page=100');
             if(Array.isArray(found))files=found;
           }catch{ /* A PR remains visible, but its classification is unverified. */ }
-          const area=files?moduleFor(p,files):parseArea(p.body)||'app';
+          const area=files?moduleFor(p,files):parseArea(p.body)||'other';
           return {number:p.number,title:String(p.title||'Contribution').slice(0,160),
             area,areaVerified:Boolean(files),author:String(p.user?.login||'unknown').slice(0,64),
             state:p.merged_at?'merged':p.state==='open'?(p.draft?'draft':'review'):'closed',
