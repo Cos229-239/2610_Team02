@@ -19,6 +19,7 @@
         const page=document.createElement('section');page.className='tf-azure-loadout';
         content.replaceChildren(page);return page;
     }});
+    window.tfOpenMergedAppPreview = () => studio.openPreview();
     const personalDesk = window.tfAzureLoadout?.(button, openUpdates, studio);
     let refreshTimer;
     const updatesButton = document.createElement('button');
