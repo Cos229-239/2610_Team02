@@ -2,6 +2,7 @@ namespace TowerFlowWinForm
 {
     public partial class TowerFlow_NamePanel : Form
     {
+        private string filter = "";
         public TowerFlow_NamePanel()
         {
             InitializeComponent();
@@ -9,9 +10,18 @@ namespace TowerFlowWinForm
             RefreshGrid();
         }
 
+        private void ClearInputs()
+        {
+            txtName.Clear();
+            txtRevision.Clear();
+            txtPartNumber.Clear();
+            txtSerialNumber.Clear();
+            txtQuantity.Clear();
+        }
+
         private void RefreshGrid()
         {
-            var parts = PartData.GetAllParts();
+            var parts = PartData.GetPartsByName(filter);
             partsGrid.Rows.Clear();
             if (partsGrid.Columns.Count == 0)
             {
@@ -44,9 +54,10 @@ namespace TowerFlowWinForm
         {
             if (int.TryParse(txtRevision.Text, out int revision) &&
                int.TryParse(txtPartNumber.Text, out int partNumber) &&
-               int.TryParse(txtSerialNumber.Text, out int serialNumber) &&
+        
                int.TryParse(txtQuantity.Text, out int quantity))
             {
+                int serialNumber = PartUtils.GenRandomSerialNumber(); // generates a unique serial number per new part
                 var newPart = new Part
                 {
                     Name = txtName.Text,
@@ -59,6 +70,7 @@ namespace TowerFlowWinForm
                 {
                     MessageBox.Show("Part added successfully.");
                     RefreshGrid();
+                    ClearInputs();
                 }
                 else
                 {
@@ -67,7 +79,7 @@ namespace TowerFlowWinForm
             }
             else
             {
-                MessageBox.Show("Please enter valid numeric values for Revision, Part Number, Serial Number, and Quantity.");
+                MessageBox.Show("Please enter valid numeric values for Revision, Part Number, and Quantity.");
             }
 
         }
@@ -91,6 +103,7 @@ namespace TowerFlowWinForm
                 {
                     MessageBox.Show("Part updated successfully.");
                     RefreshGrid();
+                    
                 }
                 else
                 {
@@ -109,10 +122,10 @@ namespace TowerFlowWinForm
             if (!int.TryParse(txtPartNumber.Text, out int partNumber) ||
                 !int.TryParse(txtSerialNumber.Text, out int serialNumber))
             {
-                MessageBox.Show("Please enter valid Part Number and Serial Number.");
+                MessageBox.Show("Please enter valid numeric values for Part Number and Serial Number.");
                 return;
             }
-
+          // ClearInputs();
             bool success = PartData.DeletePart(partNumber, serialNumber);
             if (!success)
             {
@@ -122,6 +135,7 @@ namespace TowerFlowWinForm
             {
                 MessageBox.Show("Part deleted successfully.");
                 RefreshGrid();
+                ClearInputs();
             }
 
         }

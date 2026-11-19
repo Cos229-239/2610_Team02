@@ -4,6 +4,21 @@ using System.Text;
 
 namespace TowerFlowWinForm
 {
+    public static class PartUtils
+    {
+        private static readonly Random rng = new Random();
+
+        public static int GenRandomSerialNumber()
+        {
+            int GRSN = rng.Next(100000, 999999);
+            do
+            {
+                GRSN = rng.Next(100000, 999999);// generates a 5 digit number
+            } while (PartData.GetAllParts().Any(p => p.SerialNumber == GRSN));
+            return GRSN;
+        }
+    }
+    
     public class Part
     {
         public string Name = string.Empty; //make sure to avoid null reference exceptions by using an empty string.
@@ -13,6 +28,7 @@ namespace TowerFlowWinForm
         public int Quantity { get; set; }  
 
     }
+    
 
     public static class PartData
     {
@@ -82,6 +98,11 @@ namespace TowerFlowWinForm
                 return true;
             }
             return false;
+        }
+
+        public static List<Part> GetPartsByName(string filter = "")
+        {
+            return parts.Where(p => p.Name.Contains(filter, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
         public static List<Part> GetAllParts()
