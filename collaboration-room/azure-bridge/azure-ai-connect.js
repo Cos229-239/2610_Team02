@@ -2,7 +2,7 @@
 'use strict';
 const REPO='Cos229-239/2610_Team02', BASE='https://github.com/'+REPO;
 const PROVIDERS=Object.freeze({
-  chatgpt:{name:'ChatGPT',home:'https://chatgpt.com/',help:'https://help.openai.com/en/articles/11145903-connecting-github-to-chatgpt-deep-resear',
+  chatgpt:{name:'ChatGPT',home:'https://chatgpt.com/',help:'https://help.openai.com/en/articles/11145903-connecting-github-to-chatgpt',
     instructions:'Inside ChatGPT, open Settings → Plugins (or Apps if shown), find GitHub, connect your own GitHub account and authorize Team 02. Return to a tool-enabled chat and run the access verification prompt. A read-only GitHub connection may not support edits.'},
   grok:{name:'Grok',home:'https://grok.com/',help:'https://docs.x.ai/grok/connectors',
     instructions:'In Grok, use + → Connectors → Add connector → GitHub where available. Sign in using your own GitHub account, approve access to Team 02, and run the verification prompt. Connector availability and write actions depend on the account and tools.'},
@@ -97,10 +97,13 @@ function mount(){
    const copy=elt('button','Generate & copy integration prompt','tf-dev-primary');copy.type='button';
    const verify=elt('button','Check my TowerFlow access','tf-dev-secondary');verify.type='button';
    controls.append(copy,verify);
+   const snapshotLabel=elt('label','Include verified live TowerFlow environment snapshot');
+   const snapshotOpt=elt('input');snapshotOpt.type='checkbox';snapshotOpt.checked=true;
+   snapshotLabel.prepend(snapshotOpt);
    const receipt=elt('p','Select a provider and enter your requested change.');receipt.setAttribute('role','status');
    const result=elt('textarea');result.readOnly=true;result.rows=15;result.setAttribute('aria-label','Generated repository access and integration prompt');
    const caution=elt('p','Verification is performed by your AI inside its own account, not by this web pane. If your AI reports access denied, its provider needs a separate GitHub connection. No API keys, CLI or shared credentials required by Azure.');
-   fields.append(alabel,rlabel,controls,receipt,result,caution);
+   fields.append(alabel,rlabel,snapshotLabel,controls,receipt,result,caution);
    const example=elt('button','Use example: Add my name to Dashboard','tf-dev-secondary');example.type='button';
    example.onclick=()=>{select.value='dashboard';request.value='Add my authenticated GitHub display name to the dashboard. Preserve existing calculations and show the result in a working preview.';};
    fields.insertBefore(example,rlabel);
@@ -125,7 +128,18 @@ function mount(){
    }
    copy.onclick=async()=>{
       try{
-        const prompt=makeHandoff({provider:selected,area:select.value,request:request.value,identity:login});
+        let prompt=makeHandoff({provider:selected,area:select.value,request:request.value,identity:login});
+        if(snapshotOpt.checked){
+          try{
+            const response=await fetch('/api/azure-bridge/environment-manifest',{cache:'no-store',credentials:'same-origin'});
+            if(!response.ok)throw Error('HTTP '+response.status);
+            const evidence=await response.json();
+            if(evidence.schema!=='towerflow-environment-evidence/v1'||!evidence.room?.sceneSha256)throw Error('Evidence response invalid');
+            prompt+='\n\nCURRENT HOST ENVIRONMENT SNAPSHOT (reported by authenticated host; verify independently):\n'+JSON.stringify(evidence,null,2);
+          }catch(e){
+            prompt+='\n\nHost environment snapshot unavailable: '+e.message+'. Do not assume the deployed host matches the repository.';
+          }
+        }
         result.value=prompt;
         result.focus();result.select();
         try{
