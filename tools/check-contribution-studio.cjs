@@ -5,7 +5,7 @@ const crypto=require('node:crypto');
 const fs=require('node:fs/promises');
 const os=require('node:os');
 const path=require('node:path');
-const {spawn}=require('node:child_process');
+const {spawn,execFileSync}=require('node:child_process');
 const {once}=require('node:events');
 const express=require('express');
 const {chromium}=require('playwright-core');
@@ -61,6 +61,17 @@ async function main() {
             await page.locator('.toolbar button').first().click();await page.locator('[data-windows]').waitFor();return page;
         };
         const presenter=await member('William'),viewer=await member('Omarion');
+        for (const key of ['interface','forms','portfolio','operations','reporting','integration','shared']) {
+            await presenter.locator('[data-select]').selectOption(key);
+            await presenter.locator('[data-windows]').click();
+            const script=await presenter.locator('[data-command]').inputValue();
+            assert.ok(script.includes("$login = 'William'"));
+            const file=path.join(dir,key+'.ps1');await fs.writeFile(file,script);
+            execFileSync('pwsh',['-NoProfile','-Command',
+                '$errors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile($env:TF_TEST_LAUNCHER,[ref]$null,[ref]$errors); if ($errors.Count) { throw ($errors -join [Environment]::NewLine) }'],
+                {env:{...process.env,TF_TEST_LAUNCHER:file}});
+        }
+        console.log('PowerShell parsed all seven account-specific IDE launch commands.');
         await viewer.locator('[data-try-dev]').click();
         const frame=viewer.frameLocator('iframe.tf-merged-app');
         await frame.locator('#addWatchBtn').click();

@@ -8,13 +8,9 @@
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = 'Development Desk · Code, Debug & Git';
-    menu.append(button);
-    const contribute = document.createElement('button');
-    contribute.type = 'button';
-    contribute.textContent = 'Contribute';
-    contribute.onclick = () => button.click();
-    menu.prepend(contribute);
+    button.textContent = 'Contribute';
+    button.dataset.contribute = '';
+    menu.prepend(button);
     window.tfOpenMemberDesk = () => { button.click(); return true; };
     const studio=window.tfStudio({back:()=>button.click(), show(title) {
         clearTimeout(refreshTimer);menu.hidden=true;panel.hidden=false;
@@ -164,7 +160,7 @@
         clearTimeout(refreshTimer);
         menu.hidden = true;
         panel.hidden = false;
-        document.getElementById('panelTag').textContent = 'DEVELOPMENT WORKSTATION';
+        document.getElementById('panelTag').textContent = 'AZURE · DEVELOPMENT WORKSTATION';
         document.getElementById('panelTitle').textContent = 'DEVELOPMENT DESK';
         const desk = document.createElement('section');
         desk.innerHTML = `<details><summary>Share a VS Code check result</summary><p>Pair VS Code, then run <strong>TowerFlow: Run and Report Check</strong> in the command palette.</p>

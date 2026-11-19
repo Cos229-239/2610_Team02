@@ -28,3 +28,5 @@
 .tf-demo-image { display:block; max-width:100%; max-height:65vh; object-fit:contain; }
 .tf-contribute-guide p { margin:.3rem 0 .55rem; }
 .tf-contribute-guide li+li { margin-top:1rem; }
+
+.tf-contribute-guide [data-windows] { background:#163e52; border-color:var(--desk-accent); font-weight:650; }

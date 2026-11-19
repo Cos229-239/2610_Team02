@@ -23,7 +23,7 @@ async function exercise(member) {
     try {
         document.querySelector('#enterBtn').click();
         const william = member === 'William', title = william ? 'Forms studio' : 'Inventory and reporting';
-        await until(()=>document.querySelector('.toolbar button')?.textContent === 'Azure · '+title);
+        await until(()=>document.querySelector('.toolbar button')?.textContent === 'Contribute · '+title);
         check(document.querySelectorAll('script[src="/azure-bridge/desk.js"]').length === 1,'Duplicate desk script');
         check(window.spoken === 0 && window.recordings === 0,'Entry played a voice');
         document.querySelector('.toolbar button').click();
@@ -44,7 +44,7 @@ async function exercise(member) {
         current.value = william ? 'reporting' : 'forms';
         current.dispatchEvent(new Event('change'));
         document.querySelector('[data-pin]').click();
-        document.querySelector('#menu button:last-child').click();
+        document.querySelector('#menu [data-contribute]').click();
         await until(()=>document.querySelector('[data-title]')?.textContent === (william ? 'Inventory and reporting' : 'Forms studio'));
         if (!william) {
             check(new URL(document.querySelector('[data-desktop]').href).searchParams.get('branch')==='dev','Opened a peer branch for editing');

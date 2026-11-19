@@ -5,7 +5,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
     const hud = document.getElementById('hud');
     const shortcut = document.createElement('button');
     shortcut.type = 'button';
-    shortcut.textContent = 'Azure · My desk';
+    shortcut.textContent = 'Contribute';
     shortcut.onclick = () => openDesk.click();
     hud?.querySelector('.toolbar')?.prepend(shortcut);
     let model, pending, pin, chosen, visibleCard;
@@ -33,7 +33,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
     function refresh() {
         if (!model) return;
         const title = model.projects[selected().project].name;
-        shortcut.textContent = 'Azure · ' + title;
+        shortcut.textContent = 'Contribute · ' + title;
         shortcut.title = model.name + ' · Open your development desk';
         if (visibleCard) render(visibleCard);
     }
@@ -50,7 +50,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
                 refresh();
             } catch {
                 model = null; chosen = null; pin = null; drafts.clear();
-                shortcut.textContent = 'Azure · My desk';
+                shortcut.textContent = 'Contribute';
                 if (visibleCard) visibleCard.textContent = 'Azure could not load your personal desk. The shared contribution tools are available below.';
             } finally { pending = null; }
         })();

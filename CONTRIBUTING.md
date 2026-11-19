@@ -26,7 +26,7 @@ Open it on that branch in Visual Studio with .NET desktop development and .NET 1
 
 ## Your Azure desk
 
-Use the same room invite as the rest of the team. Sign in with your own GitHub account and choose **Contribute** in the menu or **Azure** in the toolbar. The desk shows your GitHub handle, repository, branch, Changes and History. In **Open in GitHub Desktop**, use the same account under File → Options → Accounts. Your desk uses your signed-in GitHub account. An open feature PR targeting dev takes precedence over a recent source commit on dev or your personal branch. Build output and merge commits are skipped. If GitHub activity is unavailable, Azure labels the recorded project starter. Choose a different workspace to try another teammate's template. Pin it on this browser or choose **Follow my work** to restore automatic selection.
+Use the same room invite as the rest of the team. Sign in with your own GitHub account and choose **Contribute** in the toolbar or menu. The desk shows your GitHub handle, repository, branch, Changes and History. In **Open in GitHub Desktop**, use the same account under File → Options → Accounts. Your desk uses your signed-in GitHub account. An open feature PR targeting dev takes precedence over a recent source commit on dev or your personal branch. Build output and merge commits are skipped. If GitHub activity is unavailable, Azure labels the recorded project starter. Choose a different workspace to try another teammate's template. Pin it on this browser or choose **Follow my work** to restore automatic selection.
 
 **Browse source** opens the source in the browser editor. The Windows IDE button copies a PowerShell command that clones a separate checkout on first use and opens the local project. Subsequent launches reopen that checkout and preserve local edits. Each Windows checkout lives under your own GitHub login in Documents/TowerFlow Workspaces. Use Fetch/Pull in your IDE to bring it up to date. Forms debugging requires Visual Studio with the project's Windows desktop workload. The room cannot observe a desktop breakpoint.
 
@@ -64,7 +64,7 @@ On the Team 02 host, run this block in PowerShell once to install the desk from 
 }
 ```
 
-After restarting, hard refresh the hosted team room and enter with your team account. Check that Azure opens your project and **Team updates** opens the shared dev history. To confirm which code the room used, inspect the room document's module URL in the browser Network panel. The Azure bridge serves the current graphics file at `/towerflow-entry.mjs` with the two legacy entry audio calls removed.
+After restarting, hard refresh the hosted team room and enter with your team account. Check that Contribute opens your project and **Team updates** opens the shared dev history. To confirm which code the room used, inspect the room document's module URL in the browser Network panel. The Azure bridge serves the current graphics file at `/towerflow-entry.mjs` with the two legacy entry audio calls removed.
 
 ## Submit for review
 
