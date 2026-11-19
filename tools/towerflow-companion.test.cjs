@@ -20,7 +20,8 @@ async function fixture(){
         prepareWorkspace:async(login,project)=>{calls.push(['prepare',login,project]);return {dir:'/local/test',entry:'/local/test/index.html'};},
         getStatus:async(login,project)=>{calls.push(['status',login,project]);return {ready:true,changeCount:2,branch:'work/tester/integration'};},
         getDiff:async(login,project)=>{calls.push(['diff',login,project]);return {patch:'diff --git a/source.js b/source.js',truncated:false};},
-        launch:async(project)=>{calls.push(['open',project]);return {editor:'VS Code',launched:true,verifiedDebugSession:false};}
+        launch:async(project)=>{calls.push(['open',project]);return {editor:'VS Code',launched:true,verifiedDebugSession:false};},
+        openTarget:async(login,area)=>{calls.push(['target',login,area]);return {file:'TowerFlow/app.js',line:62,editor:'VS Code',launched:true};}
     });
     const server=http.createServer(bridge.handler);
     await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -52,7 +53,7 @@ test('paired session provides real status and explicitly launches allowlisted pr
     try {
         let r=await request(f.base,'/health',{method:'GET'});
         assert.equal(r.status,200);
-        assert.deepEqual((await r.json()).capabilities,['prepare','open','status','diff']);
+        assert.deepEqual((await r.json()).capabilities,['prepare','open','status','diff','open-target']);
         r=await request(f.base,'/status',{body:{login:'tester',project:'integration'}});
         assert.equal((await r.json()).workspace.changeCount,2);
         r=await request(f.base,'/open',{body:{login:'tester',project:'integration'}});
@@ -61,7 +62,9 @@ test('paired session provides real status and explicitly launches allowlisted pr
         assert.equal(result.opened.verifiedDebugSession,false);
         r=await request(f.base,'/diff',{body:{login:'tester',project:'integration'}});
         assert.match((await r.json()).review.patch,/source\.js/);
-        assert.deepEqual(f.calls.map(v=>v[0]),['status','prepare','open','status','diff']);
+        r=await request(f.base,'/open-target',{body:{login:'tester',project:'integration',area:'markets'}});
+        assert.equal((await r.json()).target.line,62);
+        assert.deepEqual(f.calls.map(v=>v[0]),['status','prepare','open','status','diff','target']);
     } finally {await f.close();}
 });
 test('preflight request limit and content type',async()=>{
