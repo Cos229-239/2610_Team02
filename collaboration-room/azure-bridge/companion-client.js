@@ -55,7 +55,7 @@
         const response=await fetch(service+route,{method:payload?'POST':'GET',mode:'cors',
             headers:{Authorization:'Bearer '+token,...(payload?{'Content-Type':'application/json'}:{})},
             ...(payload?{body:JSON.stringify(payload)}:{}) ,
-            signal:AbortSignal.timeout(route==='/ai-plan'?100000:20000),cache:'no-store'});
+            signal:AbortSignal.timeout(20000),cache:'no-store'});
         const json=await response.json().catch(()=>({}));
         if(!response.ok || !json.ok)throw Error(json.error||'Local companion HTTP '+response.status);
         return json;
@@ -98,15 +98,6 @@
         const {login}=current();
         const result=await call('/open-target',{login,project:'integration',area});
         return result.target;
-    };
-    window.tfLocalAIPlan=async (area,prompt)=>{
-        if(!token)throw Error('Pair your local companion before using an AI agent.');
-        const {login}=current();
-        const capabilities=await call('/ai-capabilities');
-        if(!capabilities.ai?.available)throw Error('Gemini CLI not installed or configured on this computer.');
-        if(capabilities.ai.mode!=='read-only-plan')throw Error('Unexpected AI permission mode; operation blocked.');
-        const result=await call('/ai-plan',{login,project:'integration',area,prompt});
-        return result.ai;
     };
     open.onclick=()=>perform('open');
     refresh.onclick=()=>perform('status');
