@@ -22,14 +22,19 @@ test('all navigation targets still exist in the checked-out repository at their 
   }
 });
 test('prompt interpretation is restricted, refuses arbitrary code, and escapes HTML',()=>{
-  assert.deepEqual(parsePrompt('Change the dashboard headline to TowerFlow Command Center.'),{headline:'TowerFlow Command Center'});
-  assert.throws(()=>parsePrompt('run rm -rf /'),/Prototype supports/);
-  assert.throws(()=>parsePrompt('set market price to 500'),/Prototype supports/);
+  assert.deepEqual(parsePrompt('Change the dashboard headline to TowerFlow Command Center.'),{kind:'headline',value:'TowerFlow Command Center',headline:'TowerFlow Command Center'});
+  assert.equal(parsePrompt('Set app background to magenta').value,'#d946ef');
+  assert.equal(parsePrompt('Change accent color to blue').kind,'accent');
+  assert.equal(parsePrompt('Change dashboard subtitle to New progress').kind,'subtitle');
+  assert.equal(parsePrompt('Rename holdings section title to Assets').kind,'holdingsTitle');
+  assert.throws(()=>parsePrompt('run rm -rf /'),/Supported:/);
+  assert.throws(()=>parsePrompt('set market price to 500'),/Supported:/);
+  assert.throws(()=>parsePrompt('set app background to javascript:evil'),/named color/);
   const base=Buffer.from('<section class="welcome">'+old+'</section>');
   const patched=transform(base,{headline:'A & <script>alert(1)</script>'}).toString('utf8');
   assert.match(patched,/A &amp; &lt;script&gt;/);
   assert.equal(patched.includes('<script>'),false);
-  assert.throws(()=>transform(Buffer.from('other app'),{headline:'hey'}),/changed upstream/);
+  assert.throws(()=>transform(Buffer.from('other app'),{headline:'hey'}),/source anchor changed/);
 });
 test('plan is pinned to verified dev bytes; preview serves actual changed HTML and original JS',async()=>{
   const original=Buffer.from('<!doctype html><h1>Your money. <span>In motion.</span></h1><script src="app.js"></script>');
@@ -63,7 +68,7 @@ test('explicit submission creates a draft PR only on verified dev and contributo
   const result=await direct.submit({key:p.key,owner:'A',login:'Alice',token:'test'});
   assert.equal(result.number,29);
   assert.equal(calls.length,4);
-  assert.equal(calls[1].body.ref,'refs/heads/work/alice/dashboard-ffffffffff');
+  assert.equal(calls[1].body.ref,'refs/heads/work/alice/headline-ffffffffff');
   assert.equal(calls[2].body.sha,sha(original));
   assert.equal(calls[3].body.base,'dev');
   assert.equal(calls[3].body.draft,true);
@@ -78,4 +83,45 @@ test('dev mismatch blocks remote branch creation and unsafe publication',async()
   const p=await direct.plan({owner:'A',prompt:'Change dashboard headline to Test'});
   await assert.rejects(()=>direct.submit({key:p.key,owner:'A',login:'alice',token:'test'}),/Dev moved/);
   assert.equal(calls.length,1);
+});
+
+test('real CSS, intro and holdings edits are exact, single-anchor and escaped',()=>{
+  const css=Buffer.from('﻿:root{--bg:#071711;--accent:#51e39a;--bad:#ff7e8a}');
+  const base=css.toString('utf8');
+  const background=transform(css,parsePrompt('Change app background color to magenta')).toString('utf8');
+  assert.equal(background,'﻿:root{--bg:#d946ef;--accent:#51e39a;--bad:#ff7e8a}');
+  const accent=transform(css,parsePrompt('Change accent color to #abcdef')).toString('utf8');
+  assert.equal(accent,'﻿:root{--bg:#071711;--accent:#abcdef;--bad:#ff7e8a}');
+  const html=Buffer.from('<p>Track holdings, review activity, and model your next move.</p><h2>Holdings</h2>');
+  const changed=transform(html,parsePrompt('Change dashboard subtitle to Balance & <returns>')).toString('utf8');
+  assert.match(changed,/Balance &amp; &lt;returns&gt;/);
+  assert.match(transform(html,parsePrompt('Rename holdings title to My Assets')).toString('utf8'),/<h2>My Assets<\/h2>/);
+  assert.equal(base.includes('#d946ef'),false);
+  assert.throws(()=>transform(Buffer.from('not stylesheet'),parsePrompt('Change accent color to blue')),/source anchor/);
+});
+test('verified CSS request replaces styles.css only in sandbox preview and generates scoped draft PR',async()=>{
+  const css=Buffer.from(':root{--bg:#071711;--accent:#51e39a;}');
+  const pk='d'.repeat(48),calls=[];
+  const preview={
+    open:async()=>({revision:'a'.repeat(40),url:'/api/azure-bridge/preview-files/'+pk+'/index.html'}),
+    file:(_,name)=>name==='styles.css'?{bytes:css,sha:sha(css),type:'text/css'}:
+      name==='index.html'?{bytes:Buffer.from('<h1>Unchanged</h1>'),sha:sha(Buffer.from('<h1>Unchanged</h1>')),type:'text/html'}:null};
+  const read=async(url,o)=>{
+    calls.push({url,method:o.method,body:o.body&&JSON.parse(o.body)});
+    const data=url.endsWith('/git/ref/heads/dev')?{object:{sha:'a'.repeat(40)}}:
+      url.endsWith('/pulls')?{number:30,html_url:'https://github.com/Cos229-239/2610_Team02/pull/30'}:{sha:'e'.repeat(40)};
+    return {ok:true,json:async()=>data};
+  };
+  const direct=makeDirect({preview,read,now:()=>1000,nonce:()=> 'e'.repeat(48)});
+  const planned=await direct.plan({owner:'A',token:'member',prompt:'Change app background to magenta'});
+  assert.equal(planned.file,'TowerFlow/styles.css');
+  assert.equal(planned.after,'#d946ef');
+  assert.match(direct.asset(planned.key,'styles.css').bytes.toString('utf8'),/--bg:#d946ef/);
+  assert.equal(direct.asset(planned.key,'index.html').bytes.toString('utf8'),'<h1>Unchanged</h1>');
+  const submitted=await direct.submit({key:planned.key,owner:'A',login:'alice',token:'member'});
+  assert.equal(submitted.number,30);
+  assert.ok(calls[2].url.endsWith('/contents/TowerFlow/styles.css'));
+  assert.equal(calls[3].body.base,'dev');
+  assert.match(calls[3].body.body,/TowerFlow-Area: ui/);
+  assert.equal(Buffer.from(calls[2].body.content,'base64').toString('utf8'),direct.asset(planned.key,'styles.css').bytes.toString('utf8'));
 });
