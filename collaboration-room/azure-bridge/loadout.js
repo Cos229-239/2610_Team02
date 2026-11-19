@@ -143,7 +143,9 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
             <div class="tf-repo-tabs" role="group" aria-label="Repository views"><button type="button" data-changes aria-pressed="true">Changes</button><button type="button" data-history aria-pressed="false">History</button></div>
             <section data-history-pane hidden><p data-history-status role="status"></p><ol data-history-list></ol><a data-history-web>Full branch history</a></section>
             <div data-changes-pane><h3 data-title></h3><p data-context></p><ol class="tf-contribute-guide">
-            <li><strong>Open your IDE and debug</strong><p data-debug-help></p><button type="button" data-windows></button> <a data-cloud hidden>Browser debugger</a></li>
+            <li><strong>Debug your working branch</strong><p data-debug-help></p><button type="button" data-windows></button> <button type="button" data-debug-web hidden>Debug shared web app</button>
+            <details data-cloud-options hidden><summary>Use GitHub Codespaces</summary>
+            <a data-cloud>Create a codespace</a><p data-cloud-help></p></details></li>
             <li><strong>Share your change</strong><p data-submit-help></p><a data-review></a> <button type="button" data-new>Prepare feature notes</button></li>
             <li><strong>Try it together</strong><p>Show your running window during development, or try the latest merged web app here.</p>
             <button type="button" data-demo>Live debug demo</button> <button type="button" data-try-dev>Try merged web app</button> <button type="button" data-see-updates>Team updates</button></li></ol><ul data-remote-files hidden></ul>
@@ -169,14 +171,23 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
         $('[data-demo]').onclick=studio.openDemo;
         const vsCode=['integration','shared'].includes(key);
         const roomCode=work?.file?.startsWith('collaboration-room/');
-        $('[data-windows]').textContent=vsCode?'Open VS Code on Windows…':'Open Visual Studio on Windows…';
-        $('[data-debug-help]').textContent=vsCode
-            ? roomCode ? 'Paste the command into PowerShell. In VS Code choose TowerFlow — Debug room checks and press F5 to step through the room tests.' : 'Paste the copied command into PowerShell. In VS Code choose TowerFlow — Run with F5, then press F5. You can set breakpoints in TowerFlow/app.js.'
-            : key==='interface' ? 'Open the header demo in Visual Studio, set a breakpoint in PrintHeader and press F5.'
-            : 'Paste the copied command into PowerShell to open your project in Visual Studio. Set a breakpoint and press F5.';
+        $('[data-windows]').textContent=vsCode?'Copy VS Code launch command':'Copy Visual Studio launch command';
         if (vsCode) {
-            const cloud=$('[data-cloud]');cloud.hidden=false;link(cloud,'https://codespaces.new/'+repoName+'?'+new URLSearchParams({ref}));
-            cloud.title='Uses your GitHub Codespaces quota. In Run and Debug choose the TowerFlow server profile and press F5.';
+            const debugWeb=$('[data-debug-web]');
+            debugWeb.hidden=false;
+            debugWeb.onclick=()=>studio.openPreview(false,true);
+            $('[data-debug-help]').textContent=roomCode
+                ? 'Open the repository in VS Code. In Run and Debug select TowerFlow — Debug room checks, set a breakpoint in the check you are running, then press F5.'
+                : 'Open the repository in VS Code. In TowerFlow/app.js set a breakpoint on localStorage.setItem inside persist(). In Run and Debug choose TowerFlow — Run with F5 and press F5. Change Color Theme in the app to pause. Inspect state.theme in Watch.';
+            $('[data-cloud-options]').hidden=false;
+            link($('[data-cloud]'),'https://codespaces.new/'+repoName+'?'+new URLSearchParams({ref}));
+            $('[data-cloud-help]').textContent=roomCode
+                ? 'After the workspace opens, choose Run and Debug → TowerFlow — Debug room checks → F5. Codespaces uses your GitHub quota.'
+                : 'After the workspace opens, choose Run and Debug → TowerFlow — Debug server / Codespaces → F5. This debugs TowerFlow/server.js. For app.js, open port 4174 in a browser and use its developer tools. Codespaces uses your GitHub quota.';
+        } else {
+            $('[data-debug-help]').textContent=key==='interface'
+                ? 'In Visual Studio select the header demo target. In DisplayHelper.h click beside the first output line inside PrintHeader, then press F5. The debugger pauses there.'
+                : 'In Visual Studio select Debug, click the margin beside an executable line in your change, then press F5. Try the feature in the running app. When it pauses, inspect Locals and press F10 to step.';
         }
         $('[data-submit-help]').textContent=(vsCode?'In VS Code, open Source Control':'In Visual Studio, open Git Changes')+
             ', review your files, commit and push your branch. Then open your pull request here with dev as the destination.';
@@ -275,7 +286,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
         $('[data-launch]').textContent = project.launch + ' Browse source opens the browser editor. The Windows command opens a separate local workspace on first use and reuses it on your next visit.';
         $('[data-windows]').onclick = async () => {
             const box = $('[data-command]'); box.value = windowsCommand(repoName,ref,project,key,editBranch);
-            try { await navigator.clipboard.writeText(box.value); $('[data-command-status]').textContent = 'Copied. Paste into Windows PowerShell to open your workspace.'; }
+            try { await navigator.clipboard.writeText(box.value); $('[data-command-status]').textContent = 'Copied. Paste into Windows PowerShell on your computer. When the project opens, follow the breakpoint steps above.'; }
             catch { box.hidden = false; box.select(); $('[data-command-status]').textContent = 'Copy the selected command, then paste into Windows PowerShell.'; }
         };
         const draftKey = [model.login, key, repoName, ref, work?.number ?? ''].join(':');

@@ -87,7 +87,7 @@
         const section = document.createElement('section');
         section.dataset.teammateWorkspace = 'true';
         section.innerHTML = `<details><summary>Team contributions and shared tools</summary>
-            <div class="row wrap"><a href="https://codespaces.new/Cos229-239/2610_Team02?ref=dev" target="_blank" rel="noopener noreferrer">Contribute · Open VS Code</a>
+            <div class="row wrap"><a href="https://codespaces.new/Cos229-239/2610_Team02?ref=dev" target="_blank" rel="noopener noreferrer">Create a GitHub codespace</a>
             <a href="${repo}/compare/dev...dev" target="_blank" rel="noopener noreferrer">Submit feature</a>
             <a href="${repo}/pulls?q=is%3Apr+is%3Aopen+base%3Adev" target="_blank" rel="noopener noreferrer">Review features</a></div>
             <p>Already pushed? Choose <strong>Submit feature</strong> and select your branch under <strong>compare</strong>. The base is <strong>dev</strong>.</p>

@@ -72,7 +72,12 @@ async function main() {
                 {env:{...process.env,TF_TEST_LAUNCHER:file}});
         }
         console.log('PowerShell parsed all seven account-specific IDE launch commands.');
-        await viewer.locator('[data-try-dev]').click();
+        await viewer.getByRole('button',{name:'Debug shared web app',exact:true}).click();
+        const newTab=viewer.context().waitForEvent('page');
+        await viewer.getByRole('link',{name:'Open this dev revision in a separate tab'}).click();
+        const previewTab=await newTab;await previewTab.waitForLoadState();
+        assert.match(previewTab.url(),/\/preview-files\/[0-9a-f]{48}\/index\.html$/);
+        assert.equal(await previewTab.evaluate(()=>window.opener===null),true);
         const frame=viewer.frameLocator('iframe.tf-merged-app');
         await frame.locator('#addWatchBtn').click();
         await frame.locator('#watchSymbol').fill('ROOM');await frame.locator('#watchPrice').fill('24');
@@ -84,17 +89,27 @@ async function main() {
         // A real Chromium breakpoint in the actual web app served by the checked-in F5 target.
         const debug=await presenter.context().newPage();
         await debug.goto('http://127.0.0.1:4174');
-        const cdp=await debug.context().newCDPSession(debug);await cdp.send('Debugger.enable');
         const source=await fs.readFile(path.join(root,'TowerFlow/app.js'),'utf8');
         const lineNumber=source.split('\n').findIndex(l=>l.includes('try { localStorage.setItem'));
-        const bp=await cdp.send('Debugger.setBreakpointByUrl',{url:'http://127.0.0.1:4174/app.js',lineNumber});
-        assert.ok(bp.locations.length>0);
-        const paused=once(cdp,'Debugger.paused',{signal:AbortSignal.timeout(15000)});
-        const change=debug.locator('#themeSelect').selectOption('blue');
-        const [event]=await paused;assert.equal(event.callFrames[0].functionName,'persist');
-        await cdp.send('Debugger.resume');await change;
+        assert.ok(lineNumber>=0);
+        for (const page of [previewTab,debug]) {
+            const cdp=await page.context().newCDPSession(page);
+            await cdp.send('Debugger.enable');
+            const bp=await cdp.send('Debugger.setBreakpointByUrl',{url:new URL('app.js',page.url()).href,lineNumber});
+            assert.ok(bp.locations.length>0);
+            const paused=once(cdp,'Debugger.paused',{signal:AbortSignal.timeout(15000)});
+            const change=page.locator('#themeSelect').selectOption('blue');
+            const [event]=await paused;
+            const frame=event.callFrames[0];
+            assert.equal(frame.functionName,'persist');
+            const watch=await cdp.send('Debugger.evaluateOnCallFrame',{callFrameId:frame.callFrameId,expression:'state.theme',returnByValue:true});
+            assert.equal(watch.result.value,'blue');
+            await cdp.send('Debugger.resume');await change;
+            assert.equal(await page.locator('body').getAttribute('data-theme'),'blue');
+        }
         assert.equal(await debug.evaluate(()=>JSON.parse(localStorage.getItem('towerflow-state-v1')).theme),'blue');
-        await debug.close();console.log('Chrome hit and resumed a real breakpoint in app.js on the F5 server.');
+        await previewTab.close();await debug.close();
+        console.log('Chrome paused inside persist(), read state.theme as blue and resumed in the desk preview and the desktop F5 target.');
 
         // The window picker belongs to the OS. Supply a generated video track at that boundary.
         await presenter.evaluate(()=>{

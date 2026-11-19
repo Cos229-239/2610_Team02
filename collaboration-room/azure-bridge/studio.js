@@ -98,11 +98,11 @@ window.tfStudio = function studio({show,back}) {
         }
         poll();
     }
-    async function openPreview(gallery=false) {
+    async function openPreview(gallery=false, debugging=false) {
         gallery=gallery===true;
         const page=show(gallery?'SAVED FEATURE DEMOS':'MERGED WEB APP');
         page.innerHTML='<div class="row wrap"><button type="button" data-back>Back to my desk</button><button type="button" data-reload>Check latest dev</button></div><p role="status">Loading the merged web app…</p>';
-        page.querySelector('[data-back]').onclick=back;page.querySelector('[data-reload]').onclick=()=>openPreview(gallery);
+        page.querySelector('[data-back]').onclick=back;page.querySelector('[data-reload]').onclick=()=>openPreview(gallery,debugging);
         const status=page.querySelector('p');
         try {
             const response=await fetch(root+'merged-preview',{cache:'no-store'});
@@ -128,7 +128,14 @@ window.tfStudio = function studio({show,back}) {
             frame.className='tf-merged-app';frame.title='Interactive app from shared dev';frame.setAttribute('sandbox','allow-scripts allow-forms allow-downloads');
             frame.referrerPolicy='no-referrer';frame.src=url;
             status.textContent='Team dev · '+revision.slice(0,8)+' · Demo edits last for this preview.';
-            page.append(frame);
+            const debug=document.createElement('details'), summary=document.createElement('summary');
+            summary.textContent='Debug the shared web app';debug.open=debugging===true;
+            const tab=document.createElement('a');
+            tab.href=url;tab.target='_blank';tab.rel='noopener noreferrer';
+            tab.textContent='Open this dev revision in a separate tab';
+            const steps=document.createElement('p');
+            steps.textContent='In the new tab press F12. In Sources open app.js and click the line number beside localStorage.setItem inside persist(). Change Color Theme in the app. When execution pauses, add state.theme to Watch. Press F10 to step or F8 to resume.';
+            debug.append(summary,tab,steps);page.append(debug,frame);
         } catch {status.textContent='Could not load the merged web app. Check latest dev to retry.';}
     }
     return {openDemo,openPreview};
