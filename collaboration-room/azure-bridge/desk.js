@@ -8,15 +8,18 @@
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.textContent = 'Development Desk · Code, Debug & Git';
-    menu.append(button);
-    const contribute = document.createElement('button');
-    contribute.type = 'button';
-    contribute.textContent = 'Contribute';
-    contribute.onclick = () => button.click();
-    menu.prepend(contribute);
+    button.textContent = 'Contribute';
+    button.dataset.contribute = '';
+    menu.prepend(button);
     window.tfOpenMemberDesk = () => { button.click(); return true; };
-    const personalDesk = window.tfAzureLoadout?.(button, openUpdates);
+    const studio=window.tfStudio({back:()=>button.click(), show(title) {
+        clearTimeout(refreshTimer);menu.hidden=true;panel.hidden=false;
+        document.getElementById('panelTag').textContent='TEAM WORKSPACE';
+        document.getElementById('panelTitle').textContent=title;
+        const page=document.createElement('section');page.className='tf-azure-loadout';
+        content.replaceChildren(page);return page;
+    }});
+    const personalDesk = window.tfAzureLoadout?.(button, openUpdates, studio);
     let refreshTimer;
     const updatesButton = document.createElement('button');
     updatesButton.type = 'button';
@@ -32,11 +35,14 @@
         const section = document.createElement('section');
         section.className = 'tf-azure-loadout tf-team-updates';
         section.innerHTML = `<h3>What changed on dev?</h3><p>Everyone in the room sees the same team history. Open a change to see the exact files.</p>
-            <div class="row wrap"><a href="${repo}/commits/dev/" target="_blank" rel="noopener noreferrer">Full dev history</a>
+            <div class="row wrap"><button data-try-dev>Try merged web app</button><button data-demo>Live debug demo</button><button data-saved>Saved demos</button><a href="${repo}/commits/dev/" target="_blank" rel="noopener noreferrer">Full dev history</a>
             <a href="${repo}/pulls?q=is%3Apr+is%3Amerged+base%3Adev" target="_blank" rel="noopener noreferrer">Merged pull requests and test notes</a>
             <button type="button" data-my-desk>My workspace</button></div>
             <p data-update-status role="status">Loading team changes…</p><ol data-updates-list></ol>`;
         content.replaceChildren(section);
+        section.querySelector('[data-try-dev]').onclick=studio.openPreview;
+        section.querySelector('[data-demo]').onclick=studio.openDemo;
+        section.querySelector('[data-saved]').onclick=()=>studio.openPreview(true);
         section.querySelector('[data-my-desk]').onclick = () => button.click();
         const status = section.querySelector('[data-update-status]'), list = section.querySelector('ol');
         let signature;
@@ -154,14 +160,14 @@
         clearTimeout(refreshTimer);
         menu.hidden = true;
         panel.hidden = false;
-        document.getElementById('panelTag').textContent = 'DEVELOPMENT WORKSTATION';
+        document.getElementById('panelTag').textContent = 'AZURE · DEVELOPMENT WORKSTATION';
         document.getElementById('panelTitle').textContent = 'DEVELOPMENT DESK';
         const desk = document.createElement('section');
-        desk.innerHTML = `<p>Pair VS Code, then run <strong>TowerFlow: Run and Report Check</strong> in the command palette.</p>
+        desk.innerHTML = `<details><summary>Share a VS Code check result</summary><p>Pair VS Code, then run <strong>TowerFlow: Run and Report Check</strong> in the command palette.</p>
             <div class="row wrap"><button type="button" data-writer>Pair VS Code</button>
             <button type="button" data-reader disabled>Share this result with the assistant</button></div>
             <p role="status"></p><textarea readonly hidden aria-label="Temporary Azure access"></textarea>
-            <pre class="code"></pre>`;
+            <pre class="code"></pre></details>`;
         content.replaceChildren(teammateWorkspace(), desk);
         const status = desk.querySelector('[role=status]');
         const output = desk.querySelector('pre');

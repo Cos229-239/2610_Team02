@@ -14,9 +14,28 @@ watch:[{symbol:"AMZN",price:187.42},{symbol:"GOOGL",price:176.31},{symbol:"TSLA"
 transactions:[],
 theme:"emerald"
 };
+const roomPreview = window.origin === "null" && window.parent !== window;
+if (roomPreview) document.querySelector("footer span:last-child").textContent="Demo workspace · Changes last until you close this preview";
+function message(text, needsConsent=false) {
+    if (!roomPreview) return needsConsent ? window.confirm(text) : window.alert(text);
+    const dialog=document.createElement("dialog"), description=document.createElement("p"), ok=document.createElement("button");
+    description.textContent=text;ok.textContent=needsConsent?"Confirm":"OK";
+    dialog.append(description);
+    if (needsConsent) {
+        const cancel=document.createElement("button");cancel.textContent="Cancel";cancel.onclick=()=>dialog.close();dialog.append(cancel);
+    }
+    ok.onclick=()=>dialog.close("ok");dialog.append(ok);document.body.append(dialog);
+    return new Promise(resolve=>{
+        dialog.onclose=()=>{dialog.remove();resolve(dialog.returnValue==="ok");};
+        dialog.showModal();
+    });
+}
 let state;
 try { state=JSON.parse(localStorage.getItem("towerflow-state-v1")) || structuredClone(demo); } catch { state=structuredClone(demo); }
-function persist(){localStorage.setItem("towerflow-state-v1",JSON.stringify(state));}
+function persist(){
+    try { localStorage.setItem("towerflow-state-v1",JSON.stringify(state)); }
+    catch (error) { if (error.name !== "SecurityError") throw error; } // An isolated room preview keeps its edits in memory.
+}
 function normalize(){state.cash=Number(state.cash)||0;state.assets=Array.isArray(state.assets)?state.assets:[];state.watch=Array.isArray(state.watch)?state.watch:[];state.transactions=Array.isArray(state.transactions)?state.transactions:[];state.assets.forEach(a=>{a.symbol=String(a.symbol||"").toUpperCase();a.shares=Number(a.shares)||0;a.cost=Number(a.cost)||0;a.price=Number(a.price)||0;});}
 normalize();
 function totals(){let invested=state.assets.reduce((s,a)=>s+a.shares*a.price,0),cost=state.assets.reduce((s,a)=>s+a.shares*a.cost,0);return {invested,cost,ret:invested-cost,total:state.cash+invested};}
@@ -61,15 +80,15 @@ $("tradeSymbol").addEventListener("change",()=>{let a=state.assets.find(x=>x.sym
 $("addAssetBtn").addEventListener("click",()=>{$("modalTitle").textContent="Add asset";$("assetForm").reset();$("modal").hidden=false;});
 $("closeModal").addEventListener("click",()=>$("modal").hidden=true);
 $("modal").addEventListener("click",e=>{if(e.target===$("modal"))$("modal").hidden=true;});
-$("assetForm").addEventListener("submit",e=>{e.preventDefault();let symbol=$("assetSymbol").value.trim().toUpperCase(),shares=Number($("assetShares").value),cost=Number($("assetCost").value),price=Number($("assetPrice").value);if(!/^[A-Z0-9.^*-]{1,12}$/.test(symbol)||shares<=0||cost<=0||price<=0){alert("Enter a valid symbol and positive numeric values.");return;}if(state.assets.some(a=>a.symbol===symbol)){alert("That symbol already exists. Record a buy transaction to increase its position.");return;}state.assets.push({symbol,name:$("assetName").value.trim()||symbol,shares,cost,price});persist();render();$("modal").hidden=true;});
-$("holdingsBody").addEventListener("click",e=>{let b=e.target.closest("[data-remove]");if(!b)return;let i=Number(b.dataset.remove),a=state.assets[i];if(a&&confirm(`Remove ${a.symbol} from tracked holdings? This does not create a sale or add cash.`)){state.assets.splice(i,1);persist();render();}});
+$("assetForm").addEventListener("submit",e=>{e.preventDefault();let symbol=$("assetSymbol").value.trim().toUpperCase(),shares=Number($("assetShares").value),cost=Number($("assetCost").value),price=Number($("assetPrice").value);if(!/^[A-Z0-9.^*-]{1,12}$/.test(symbol)||shares<=0||cost<=0||price<=0){message("Enter a valid symbol and positive numeric values.");return;}if(state.assets.some(a=>a.symbol===symbol)){message("That symbol already exists. Record a buy transaction to increase its position.");return;}state.assets.push({symbol,name:$("assetName").value.trim()||symbol,shares,cost,price});persist();render();$("modal").hidden=true;});
+$("holdingsBody").addEventListener("click",async e=>{let b=e.target.closest("[data-remove]");if(!b)return;let i=Number(b.dataset.remove),a=state.assets[i];if(a&&await message(`Remove ${a.symbol} from tracked holdings? This does not create a sale or add cash.`,true)){state.assets.splice(i,1);persist();render();}});
 $("addWatchBtn").addEventListener("click",()=>{$("watchForm").hidden=!$("watchForm").hidden;});
-$("watchForm").addEventListener("submit",e=>{e.preventDefault();let symbol=$("watchSymbol").value.trim().toUpperCase(),price=Number($("watchPrice").value);if(!/^[A-Z0-9.^*-]{1,12}$/.test(symbol)||price<=0)return;if(state.watch.some(w=>w.symbol===symbol)){alert("That symbol is already on your watchlist.");return;}state.watch.push({symbol,price});persist();render();$("watchForm").reset();$("watchForm").hidden=true;});
+$("watchForm").addEventListener("submit",e=>{e.preventDefault();let symbol=$("watchSymbol").value.trim().toUpperCase(),price=Number($("watchPrice").value);if(!/^[A-Z0-9.^*-]{1,12}$/.test(symbol)||price<=0)return;if(state.watch.some(w=>w.symbol===symbol)){message("That symbol is already on your watchlist.");return;}state.watch.push({symbol,price});persist();render();$("watchForm").reset();$("watchForm").hidden=true;});
 $("watchlist").addEventListener("click",e=>{let b=e.target.closest("[data-watch-remove]");if(!b)return;state.watch.splice(Number(b.dataset.watchRemove),1);persist();render();});
 ["projectionStart","monthlyContribution","annualReturn","projectionYears"].forEach(id=>$(id).addEventListener("input",project));
 $("themeSelect").addEventListener("change",()=>{state.theme=$("themeSelect").value;persist();render();});
-$("clearTransactions").addEventListener("click",()=>{if(confirm("Clear transaction history? Holdings and cash will not change.")){state.transactions=[];persist();render();}});
-$("resetDemo").addEventListener("click",()=>{if(confirm("Reset this browser's TowerFlow data to the demonstration portfolio? This replaces the saved local workspace.")){state=structuredClone(demo);persist();render();}});
+$("clearTransactions").addEventListener("click",async ()=>{if(await message("Clear transaction history? Holdings and cash will not change.",true)){state.transactions=[];persist();render();}});
+$("resetDemo").addEventListener("click",async ()=>{if(await message("Reset this browser's TowerFlow data to the demonstration portfolio? This replaces the saved local workspace.",true)){state=structuredClone(demo);persist();render();}});
 $("exportBtn").addEventListener("click",()=>download("towerflow-portfolio.json",JSON.stringify(state,null,2),"application/json"));
 $("importBtn").addEventListener("click",()=>$("fileInput").click());
 function download(name,content,type){let blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
@@ -78,6 +97,6 @@ $("fileInput").addEventListener("change",async e=>{let f=e.target.files[0];if(!f
 else if(/.csv$/i.test(f.name))assets=parseCSV(text);
 else if(/.xml$/i.test(f.name)){let xml=new DOMParser().parseFromString(text,"application/xml");if(xml.querySelector("parsererror"))throw Error("Invalid XML file.");assets=[...xml.querySelectorAll("asset,holding")].map(n=>({symbol:n.querySelector("symbol,ticker")?.textContent,name:n.querySelector("name")?.textContent,shares:Number(n.querySelector("shares,quantity")?.textContent),cost:Number(n.querySelector("cost,costBasis,averageCost")?.textContent),price:Number(n.querySelector("price,currentPrice")?.textContent)})).filter(a=>a.symbol&&a.shares>0&&a.cost>0&&a.price>0);}
 else throw Error("Supported formats: JSON, CSV, XML, and PDF (PDF extraction is not available).");
-assets=assets.map(a=>({symbol:String(a.symbol||a.ticker||"").trim().toUpperCase(),name:String(a.name||a.symbol||""),shares:Number(a.shares),cost:Number(a.cost||a.costBasis),price:Number(a.price||a.currentPrice)})).filter(a=>/^[A-Z0-9.^_-]{1,12}$/.test(a.symbol)&&a.shares>0&&a.cost>0&&a.price>0);if(!assets.length)throw Error("No valid holdings found. Expected symbol, shares, cost, and price columns/fields.");if(!confirm(`Import ${assets.length} valid holding(s) and replace the current holdings?`))return;state.assets=assets;persist();render();alert(`Imported ${assets.length} holdings. Check cash and cost basis before trading.`);}catch(err){alert("Import failed: "+err.message);}finally{$("fileInput").value="";}});
+assets=assets.map(a=>({symbol:String(a.symbol||a.ticker||"").trim().toUpperCase(),name:String(a.name||a.symbol||""),shares:Number(a.shares),cost:Number(a.cost||a.costBasis),price:Number(a.price||a.currentPrice)})).filter(a=>/^[A-Z0-9.^_-]{1,12}$/.test(a.symbol)&&a.shares>0&&a.cost>0&&a.price>0);if(!assets.length)throw Error("No valid holdings found. Expected symbol, shares, cost, and price columns/fields.");if(!await message(`Import ${assets.length} valid holding(s) and replace the current holdings?`,true))return;state.assets=assets;persist();render();message(`Imported ${assets.length} holdings. Check cash and cost basis before trading.`);}catch(err){message("Import failed: "+err.message);}finally{$("fileInput").value="";}});
 window.addEventListener("resize",drawChart);
 marketTick();setInterval(marketTick,1000);render();

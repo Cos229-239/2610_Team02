@@ -1,5 +1,12 @@
 # Contributing to TowerFlow
 
+## Contribute from the room
+
+1. Sign in with your own GitHub account and open **Contribute**. Choose **Open Visual Studio on Windows…** for a native project or **Open VS Code on Windows…** for the web app. Paste the copied command into PowerShell. The launcher opens your personal checkout and working branch. Set a breakpoint and press **F5**. For the shared display header, Visual Studio opens a small CMake program that calls the header. Web contributors can also choose **Browser debugger** in GitHub Codespaces using their available quota.
+2. To show a running app or breakpoint, choose **Live debug demo → Share my debug window**. Pick the app window or browser tab. A teammate opens **Live debug demo** to watch. You control the debugger. The room holds the latest image in memory, updates it about once a second, and clears it when you stop or the feed expires. The browser prompts before capture. For an example teammates can see later, choose **Save a demo image…**, save it in the checkout’s **TowerFlow/demos** folder and include it in the feature commit. **Saved demos** shows those images after merge.
+3. Commit and push in your IDE's source-control view. Click **Submit feature**, review the proposed branch and open the pull request targeting **dev**.
+4. After merge anyone can choose **Try merged web app** in the desk or **Team updates**. The room fetches the committed static browser files, checks their Git hashes and opens an interactive preview in the room. Click **Check latest dev** to reopen it (the GitHub lookup is cached for 30 seconds). Edits in the preview last for that visit. Native applications run in Visual Studio and can be shown through the live demo. The existing published business station still uses the host's reviewed release.
+
 ## Start or resume a feature
 
 Already pushed your feature? Skip to **Submit for review**. Already editing on a
@@ -19,9 +26,9 @@ Open it on that branch in Visual Studio with .NET desktop development and .NET 1
 
 ## Your Azure desk
 
-Use the same room invite as the rest of the team. Sign in with your own GitHub account and choose **Contribute** in the menu or **Azure** in the toolbar. The desk shows your GitHub handle, repository, branch, Changes and History. In **Open in GitHub Desktop**, use the same account under File → Options → Accounts. Your desk uses your signed-in GitHub account. An open feature PR targeting dev takes precedence over a recent source commit on dev or your personal branch. Build output and merge commits are skipped. If GitHub activity is unavailable, Azure labels the recorded project starter. Choose a different workspace to try another teammate's template. Pin it on this browser or choose **Follow my work** to restore automatic selection.
+Use the same room invite as the rest of the team. Sign in with your own GitHub account and choose **Contribute** in the toolbar or menu. The desk shows your GitHub handle, repository, branch, Changes and History. In **Open in GitHub Desktop**, use the same account under File → Options → Accounts. Your desk uses your signed-in GitHub account. An open feature PR targeting dev takes precedence over a recent source commit on dev or your personal branch. Build output and merge commits are skipped. If GitHub activity is unavailable, Azure labels the recorded project starter. Choose a different workspace to try another teammate's template. Pin it on this browser or choose **Follow my work** to restore automatic selection.
 
-**Resume feature** opens the source in the browser editor. **Open Windows workspace…** copies a PowerShell command that clones a separate checkout on first use and opens the local project. Subsequent launches reopen that checkout and preserve local edits. Each Windows checkout lives under your own GitHub login in Documents/TowerFlow Workspaces. Use Fetch/Pull in your IDE to bring it up to date. Forms debugging requires Visual Studio with the project's Windows desktop workload. The room cannot observe a desktop breakpoint.
+**Browse source** opens the source in the browser editor. The Windows IDE button copies a PowerShell command that clones a separate checkout on first use and opens the local project. Subsequent launches reopen that checkout and preserve local edits. Each Windows checkout lives under your own GitHub login in Documents/TowerFlow Workspaces. Use Fetch/Pull in your IDE to bring it up to date. Forms debugging requires Visual Studio with the project's Windows desktop workload. The room cannot observe a desktop breakpoint.
 
 **Submit feature** suggests pushed branches with work ahead of dev. A single match is filled in for you. **New feature** prepares an editable title, sample, expected result and observed-result field. Push your branch and use **Prepare pull request** to open the draft text on GitHub for review. Entering the chamber is silent. Sound Garden, voice chat and the explicit Help voice retain their controls.
 
@@ -40,7 +47,7 @@ On the Team 02 host, run this block in PowerShell once to install the desk from 
         git -C $repo fetch --no-tags https://github.com/Cos229-239/2610_Team02.git refs/heads/dev
         if ($LASTEXITCODE) { throw 'Could not fetch the desk.' }
         $rev = git -C $repo rev-parse FETCH_HEAD
-        git -C $repo cat-file -e "${rev}:collaboration-room/azure-bridge/team-updates.cjs"
+        git -C $repo cat-file -e "${rev}:collaboration-room/azure-bridge/studio.js"
         if ($LASTEXITCODE) { throw 'The team desk has not reached dev yet.' }
         New-Item -ItemType Directory -Path $temp -ErrorAction Stop | Out-Null
         $zip = Join-Path $temp 'desk.zip'
@@ -57,7 +64,7 @@ On the Team 02 host, run this block in PowerShell once to install the desk from 
 }
 ```
 
-After restarting, hard refresh the hosted team room and enter with your team account. Check that Azure opens your project and **Team updates** opens the shared dev history. To confirm which code the room used, inspect the room document's module URL in the browser Network panel. The Azure bridge serves the current graphics file at `/towerflow-entry.mjs` with the two legacy entry audio calls removed.
+After restarting, hard refresh the hosted team room and enter with your team account. Check that Contribute opens your project and **Team updates** opens the shared dev history. To confirm which code the room used, inspect the room document's module URL in the browser Network panel. The Azure bridge serves the current graphics file at `/towerflow-entry.mjs` with the two legacy entry audio calls removed.
 
 ## Submit for review
 

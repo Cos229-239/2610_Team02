@@ -68,7 +68,7 @@ test('upgrading an existing host installs the complete desk and keeps its graphi
     fs.writeFileSync(path.join(room,'public/room.js'),'// installed graphics');
     assert.equal(installRoom(room),true);
     assert.equal(installRoom(room),false);
-    for (const f of ['quiet-entry.cjs','team-updates.cjs','loadouts.cjs','loadout.js','loadout.css','desk.js','server.cjs']) {
+    for (const f of ['studio.js','debug-demo.cjs','merged-preview.cjs','quiet-entry.cjs','team-updates.cjs','loadouts.cjs','loadout.js','loadout.css','desk.js','server.cjs']) {
         assert.deepEqual(fs.readFileSync(path.join(room,'azure-bridge',f)),fs.readFileSync(path.join(__dirname,f)));
     }
     assert.equal(fs.readFileSync(path.join(room,'public/room.js'),'utf8'),'// installed graphics');
