@@ -98,7 +98,7 @@
     review.onclick=async()=>{try{const result=await call('/diff',current());diff.textContent=(result.review.patch||'No tracked source changes to display.')+(result.review.truncated?'\n[Diff shortened at 32 KiB.]':'')+'\n'+result.review.note;diff.hidden=false;state.textContent='Read-only local diff loaded. Nothing has been committed or pushed.';}catch(err){state.textContent='Cannot review: '+err.message;}};
     function mount(){
         const target=Array.from(document.querySelectorAll('section.tf-azure-loadout')).find(el=>el.querySelector('[data-windows]') && el.querySelector('[data-select]'));
-        if(!target || (panel===target && html.parentNode===target))return;
+        if(!target || (panel===target && target.contains(html)))return;
         panel=target;updateCommand();
         const guide=target.querySelector('.tf-contribute-guide');
         if(guide)guide.before(html);
