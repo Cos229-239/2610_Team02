@@ -150,3 +150,15 @@
 .tf-ai-handoff-form textarea,.tf-ai-handoff-form select { box-sizing:border-box; width:100%; padding:.6rem; border:1px solid #60819c; border-radius:7px; background:#0b1a2b; color:#f5fdff; font:inherit; }
 .tf-ai-handoff-form textarea[readonly] { font-size:.82rem; line-height:1.4; }
 .tf-ai-azure button:focus-visible { outline:3px solid #b4edff; outline-offset:2px; }
+
+/* Actionable in-world IDE workstations: no change to the 3D room materials. */
+.tf-dev-ide-station { padding:clamp(.9rem,2vw,1.5rem); margin:.5rem 0; border:1px solid #5b849e; border-radius:12px; color:#ebfaff; background:linear-gradient(145deg,#0c1b2b,#14334a); }
+.tf-ide-station-head h2 { font-size:clamp(1.25rem,3vw,1.9rem); margin:.5rem 0; }
+.tf-ide-station-head p { color:#c7dce8; line-height:1.5; }
+.tf-ide-availability,.tf-ide-steps { background:#19374b; padding:.8rem; border:1px solid #466a80; border-radius:8px; margin:.75rem 0; }
+.tf-dev-ide-station label { display:grid; gap:.5rem; font-weight:750; }
+.tf-dev-ide-station select { box-sizing:border-box; width:100%; max-width:700px; padding:.65rem; background:#102538; color:#fff; border:1px solid #66879c; border-radius:7px; }
+.tf-ide-steps p { margin:.4rem 0; }
+.tf-dev-ide-station .tf-dev-action-row { gap:.8rem; }
+.tf-dev-ide-station .tf-dev-action-row a { color:#b3eaff; }
+.tf-dev-ide-station button:focus-visible { outline:3px solid #c9f4ff; outline-offset:3px; }
