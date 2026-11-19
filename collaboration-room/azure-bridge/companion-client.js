@@ -106,7 +106,12 @@
     };
     window.tfLaunchContributorIDE=async(ide,area)=>{
         if(!token)throw Error('Pair your own Windows companion in Contribute first.');
-        const {login}=current();
+        // The 3D IDE station replaces the Contribute panel: never derive identity
+        // from the detached DOM or accept an untrusted login from browser input.
+        const member=await fetch('/api/azure-bridge/loadout',{credentials:'same-origin',cache:'no-store'});
+        if(!member.ok)throw Error('Your current TowerFlow GitHub session is unavailable.');
+        const {login}=await member.json();
+        if(typeof login!=='string'||!/^[a-z0-9-]{1,39}$/i.test(login))throw Error('Verified member login missing.');
         const result=await call('/launch-ide',{login,project:'integration',ide,area});
         return result.ide;
     };
