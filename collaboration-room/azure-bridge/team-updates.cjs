@@ -70,4 +70,4 @@ function makeTeamUpdates(publicDir, read = fetch, clock = Date.now) {
         try { return await promise; } catch (error) { if (cached === promise) cached = undefined; throw error; }
     };
 }
-module.exports = {makeTeamUpdates, compareWebFiles};
+module.exports = {makeTeamUpdates, compareWebFiles, webPath};

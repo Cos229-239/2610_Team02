@@ -1,6 +1,6 @@
 'use strict';
 
-window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates) {
+window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
     const team = 'Cos229-239/2610_Team02';
     const hud = document.getElementById('hud');
     const shortcut = document.createElement('button');
@@ -69,7 +69,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates) {
     const escapePS = value => "'" + value.replaceAll("'", "''") + "'";
     const encodePath = value => value.split('/').map(encodeURIComponent).join('/');
     function windowsCommand(repo, ref, project, key, editBranch) {
-        const file = key === 'operations' || key === 'integration' ? project.path : [project.path,project.file].filter(Boolean).join('/');
+        const file = key === 'interface' ? 'tools/header-preview' : key === 'operations' || key === 'integration' ? project.path : [project.path,project.file].filter(Boolean).join('/');
         const workspace = 'TowerFlow-' + key + '-' + ref.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0,60);
 
         return [
@@ -97,6 +97,18 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates) {
             '  git -C $dir config --local user.email ("{0}+{1}@users.noreply.github.com" -f $account.id,$login)',
             "  if ($LASTEXITCODE) { throw 'Could not set the email in this checkout.' }",
             '  $project = Join-Path $dir ' + escapePS(file),
+            ...(key==='interface' ? [
+                '  if (!(Test-Path -LiteralPath (Join-Path $project "CMakeLists.txt"))) {',
+                '    $header = Join-Path $dir "DisplayHelper.h"',
+                '    if (!(Test-Path -LiteralPath $header)) { throw "DisplayHelper.h is missing on this branch." }',
+                '    $project = Join-Path $dir ".vs/TowerFlowHeaderDemo"',
+                '    New-Item -ItemType Directory -Force -Path $project | Out-Null',
+                '    $sourceRoot = $dir.Replace("\\", "/")',
+                `    $lines = @('cmake_minimum_required(VERSION 3.16)','project(TowerFlowHeaderDemo LANGUAGES CXX)','add_executable(TowerFlowHeaderDemo main.cpp)',"target_include_directories(TowerFlowHeaderDemo PRIVATE [==[$sourceRoot]==])")`,
+                '    [IO.File]::WriteAllLines((Join-Path $project "CMakeLists.txt"),$lines)',
+                `    [IO.File]::WriteAllLines((Join-Path $project "main.cpp"),@('#include "DisplayHelper.h"','int main() { TowerDisplay::PrintHeader(); }'))`,
+                '  }'
+            ] : []),
             '  if (!(Test-Path -LiteralPath $project)) { throw "Project missing on $branch at $project." }',
             ...(['integration','shared'].includes(key) ? ['  & code $dir'] : [
                 "  $finder = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'",
@@ -125,13 +137,15 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates) {
             </div>
             <div class="tf-repo-tabs" role="group" aria-label="Repository views"><button type="button" data-changes aria-pressed="true">Changes</button><button type="button" data-history aria-pressed="false">History</button></div>
             <section data-history-pane hidden><p data-history-status role="status"></p><ol data-history-list></ol><a data-history-web>Full branch history</a></section>
-            <div data-changes-pane><h3 data-title></h3><p data-context></p><ol class="tf-contribute-guide"><li><strong>Open your project.</strong> <span data-local></span></li><li><strong>Share your edit.</strong> Test it in your editor. In Desktop, click Changes, write a summary, click Commit, then Publish branch or Push origin. Return here and choose <b data-submit-label></b> for review against dev.</li><li><strong>After the merge</strong> <button type="button" data-see-updates>See team updates</button></li></ol><ul data-remote-files hidden></ul>
-            <div class="row wrap"><a data-resume>Resume feature</a><button type="button" data-new>New feature</button>
-            <a data-review></a><button type="button" data-windows>Open Windows workspace…</button></div>
+            <div data-changes-pane><h3 data-title></h3><p data-context></p><ol class="tf-contribute-guide">
+            <li><strong>Open your IDE and debug</strong><p data-debug-help></p><button type="button" data-windows></button> <a data-cloud hidden>Browser debugger</a></li>
+            <li><strong>Share your change</strong><p data-submit-help></p><a data-review></a> <button type="button" data-new>Prepare feature notes</button></li>
+            <li><strong>Try it together</strong><p>Show your running window during development, or try the latest merged web app here.</p>
+            <button type="button" data-demo>Live debug demo</button> <button type="button" data-try-dev>Try merged web app</button> <button type="button" data-see-updates>Team updates</button></li></ol><ul data-remote-files hidden></ul>
             <textarea data-command hidden readonly aria-label="Windows launch command"></textarea><p data-command-status role="status"></p>
             <p data-check></p>
             <details><summary>Debugger and source</summary><p data-launch></p>
-            <a data-source>View source evidence</a></details>
+            <a data-resume>Browse source</a> · <a data-source>View source evidence</a><p data-local></p></details>
             <form data-template hidden><h4>Feature handoff</h4><label>Feature title<input data-feature required maxlength="120"></label>
             <label data-options hidden>Your pushed branches<select data-pushed></select></label><label>Pushed feature branch<input data-branch required maxlength="160"></label>
             <label>What to try and what happened<textarea data-notes required rows="7" maxlength="4000"></textarea></label>
@@ -146,10 +160,25 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates) {
         link($('[data-ref]'),repo+'/tree/'+encodePath(ref));
         $('[data-desktop]').href = 'x-github-client://openRepo/'+repo+'?branch='+encodeURIComponent(crossReview ? 'dev' : ref);
         $('[data-see-updates]').onclick = openUpdates;
-        $('[data-submit-label]').textContent = work?.type === 'pull' ? 'Review pull request' : 'Submit feature';
+        $('[data-try-dev]').onclick=studio.openPreview;
+        $('[data-demo]').onclick=studio.openDemo;
+        const vsCode=['integration','shared'].includes(key);
+        const roomCode=work?.file?.startsWith('collaboration-room/');
+        $('[data-windows]').textContent=vsCode?'Open VS Code on Windows…':'Open Visual Studio on Windows…';
+        $('[data-debug-help]').textContent=vsCode
+            ? roomCode ? 'Paste the command into PowerShell. In VS Code choose TowerFlow — Debug room checks and press F5 to step through the room tests.' : 'Paste the copied command into PowerShell. In VS Code choose TowerFlow — Run with F5, then press F5. You can set breakpoints in TowerFlow/app.js.'
+            : key==='interface' ? 'Open the header demo in Visual Studio, set a breakpoint in PrintHeader and press F5.'
+            : 'Paste the copied command into PowerShell to open your project in Visual Studio. Set a breakpoint and press F5.';
+        if (vsCode) {
+            const cloud=$('[data-cloud]');cloud.hidden=false;link(cloud,'https://codespaces.new/'+repoName+'?'+new URLSearchParams({ref}));
+            cloud.title='Uses your GitHub Codespaces quota. In Run and Debug choose the TowerFlow server profile and press F5.';
+        }
+        $('[data-submit-help]').textContent=(vsCode?'In VS Code, open Source Control':'In Visual Studio, open Git Changes')+
+            ', review your files, commit and push your branch. Then open your pull request here with dev as the destination.';
+
         $('[data-local]').textContent = ownBranch
             ? 'Open in GitHub Desktop as @'+model.login+' and select '+editBranch+' under Current branch. Open the project in your editor.'
-            : 'Open in GitHub Desktop as @'+model.login+'. Fetch and pull dev, then choose Current branch → New branch and name it '+editBranch+'. If you already pushed a feature, select that branch instead.';
+            : crossReview ? 'The Windows launcher opens '+ref+' in your own working branch '+editBranch+'. Desktop starts on team dev.' : 'Open in GitHub Desktop as @'+model.login+'. Fetch and pull dev, then choose Current branch → New branch and name it '+editBranch+'. If you already pushed a feature, select that branch instead.';
         if (work?.type === 'pull' && Array.isArray(work.files)) {
             const list = $('[data-remote-files]');
             list.hidden = false;
@@ -238,9 +267,9 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates) {
             review.onclick = e => { e.preventDefault(); showHandoff(); $('[data-feature]').focus(); };
         }
         $('[data-check]').textContent = 'Try it · ' + project.steps;
-        $('[data-launch]').textContent = project.launch + ' Resume feature opens the source in the browser editor. The Windows command opens a separate local workspace on first use and reuses it on your next visit.';
+        $('[data-launch]').textContent = project.launch + ' Browse source opens the browser editor. The Windows command opens a separate local workspace on first use and reuses it on your next visit.';
         $('[data-windows]').onclick = async () => {
-            const box = $('[data-command]'); box.value = crossReview ? windowsCommand(team,'dev',model.projects.shared,'shared',editBranch) : windowsCommand(repoName,ref,project,key,editBranch);
+            const box = $('[data-command]'); box.value = windowsCommand(repoName,ref,project,key,editBranch);
             try { await navigator.clipboard.writeText(box.value); $('[data-command-status]').textContent = 'Copied. Paste into Windows PowerShell to open your workspace.'; }
             catch { box.hidden = false; box.select(); $('[data-command-status]').textContent = 'Copy the selected command, then paste into Windows PowerShell.'; }
         };

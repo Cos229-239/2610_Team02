@@ -19,6 +19,13 @@ const projects = {
         steps: 'Create a working branch from dev. Run your feature in its project.',
         expected: 'Describe the visible result for a teammate to verify.'
     },
+    portfolio: {
+        name:'Native portfolio',accent:'#75dcd4',ref:'dev',path:'TowerFlow/TowerFlow.Native',file:'TowerFlow.Native.sln',
+        prior:'Windows portfolio application',launch:'Open the solution in Visual Studio, choose Debug and x64, and press F5.',
+        starter:'Improve the native portfolio',sample:'One portfolio with a sample holding.',
+        steps:'Open the native portfolio, run your changed action and check the displayed holding.',
+        expected:'The displayed result matches your sample.'
+    },
     operations: {
         name: 'Operations desk', accent: '#78e0ba', ref: 'dev',
         path: 'TowerFlow Files/TowerFlow (Malik modified)', file: 'TowerFlowGUI.cpp',
@@ -38,9 +45,9 @@ const projects = {
         expected: 'The scan finds Desk Lamp with its original barcode and price.'
     },
     interface: {
-        name: 'Interface workbench', accent: '#b8abff', ref: 'DaynaPersonal',
+        name: 'Interface workbench', accent: '#b8abff', ref: 'dev',
         path: '', file: 'DisplayHelper.h', revision: '7ba15b36369fb9872285604c87099030713b2b9e', prior: 'Shared console header',
-        launch: 'Open DisplayHelper.h on DaynaPersonal. Choose the console screen that will call TowerDisplay::PrintHeader().',
+        launch: 'Open tools/header-preview in Visual Studio with C++ CMake support. Set a breakpoint inside DisplayHelper.h and run the header demo.',
         starter: 'Use the shared inventory header', sample: 'One inventory menu opening with valid and invalid input.',
         steps: 'Open the changed menu. Enter an invalid choice, then a valid choice.',
         expected: 'The TowerFlow header appears on the chosen screen and the user can recover from the invalid choice.'
@@ -70,6 +77,7 @@ function sourceFile(file) {
         && /\.(?:cs|slnx?|csproj|h|hpp|cpp|cxx|js|cjs|mjs|css|html|ps1|sh|cmake)$/i.test(file);
 }
 function area(file, fallback) {
+    if (file.startsWith(projects.portfolio.path + '/')) return 'portfolio';
     if (file.startsWith(projects.forms.path + '/')) return 'forms';
     if (file.startsWith(projects.operations.path + '/')) return 'operations';
     if (file.startsWith('Towerflow_OW/')) return 'reporting';
