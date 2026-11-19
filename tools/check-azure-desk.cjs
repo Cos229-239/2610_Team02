@@ -112,7 +112,8 @@ async function main() {
         for (member of ['William','Omarion']) {
             const {stdout} = await execute(process.env.CHROME_BIN || 'google-chrome', ['--headless','--no-sandbox','--disable-gpu','--disable-background-networking',
                 '--user-data-dir='+path.join(room,'shared-browser'),'--dump-dom','--virtual-time-budget=10000','http://127.0.0.1:'+server.address().port+'/room/team02'],{timeout:35000});
-            assert.equal(stdout.match(/data-pilot="([^"]*)"/)?.[1],'passed',member+' browser pilot');
+            const verdict=stdout.match(/data-pilot="([^"]*)"/)?.[1];
+            if(verdict!=='passed') throw Error(member+' browser pilot: '+String(verdict)+'; DOM tail: '+stdout.slice(-3500));
             console.log(member+' passed account desk, history, feature handoff and shared web/native publication views.');
         }
     } finally {server.close();fs.rmSync(room,{recursive:true,force:true});}
