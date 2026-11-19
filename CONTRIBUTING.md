@@ -17,6 +17,46 @@ your IDE and create a branch from it, such as `feature/stock-alert`.
 Windows Forms work on `WilliamPersonal` has its own [C# solution](https://github.com/Cos229-239/2610_Team02/tree/WilliamPersonal/TowerFlowWindow/TowerFlowWinForm).
 Open it on that branch in Visual Studio with .NET desktop development and .NET 10 support. Press F5 and try the changed form.
 
+## Your Azure desk
+
+Enter the chamber and click the Azure button in the toolbar. Your desk uses your signed-in GitHub account. An open feature PR targeting dev takes precedence over a recent source commit on dev or your personal branch. Build output and merge commits are skipped. If GitHub activity is unavailable, Azure labels the recorded project starter. Choose a different workspace to try another teammate's template. Pin it on this browser or choose **Follow my work** to restore automatic selection.
+
+**Resume feature** opens the source in the browser editor. **Open Windows workspace…** copies a PowerShell command that clones a separate checkout on first use and opens the local project. Subsequent launches reopen that checkout and preserve local edits. Use Fetch/Pull in your IDE to bring it up to date. Forms debugging requires Visual Studio with the project's Windows desktop workload. The room cannot observe a desktop breakpoint.
+
+**New feature** prepares an editable title, sample, expected result and observed-result field. Push your branch and use **Prepare pull request** to open the draft text on GitHub for review. Entering the chamber is silent. Sound Garden, voice chat and the explicit Help voice retain their controls.
+
+## Windows host installation
+
+On the Team 02 host, run this block in PowerShell to install the desk from the review branch. It uses a temporary export and copies the install result to the clipboard. The installed bridge loads from the existing TowerFlow server on its next restart.
+
+```powershell
+& {
+    $repo = Join-Path $env:USERPROFILE 'Documents/GitHub/2610_Team02'
+    $room = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Towerflow_Team02_Private_Invite_Room/Towerflow_Collaboration_Room'
+    $temp = Join-Path ([IO.Path]::GetTempPath()) ('towerflow-desk-' + [guid]::NewGuid())
+    $log = @()
+    try {
+        if (!(Test-Path -LiteralPath (Join-Path $room 'server.js'))) { throw "Room missing at $room" }
+        git -C $repo fetch origin team/feature-handoff
+        if ($LASTEXITCODE) { throw 'Could not fetch the desk.' }
+        $rev = git -C $repo rev-parse FETCH_HEAD
+        New-Item -ItemType Directory -Path $temp -ErrorAction Stop | Out-Null
+        $zip = Join-Path $temp 'desk.zip'
+        git -C $repo archive --format=zip -o $zip $rev collaboration-room/azure-bridge
+        if ($LASTEXITCODE) { throw 'Could not export the desk.' }
+        Expand-Archive -LiteralPath $zip -DestinationPath $temp -ErrorAction Stop
+        $log += & node (Join-Path $temp 'collaboration-room/azure-bridge/install.cjs') $room 2>&1
+        if ($LASTEXITCODE) { throw 'Installer failed.' }
+        $log += "Installed desk from $rev. Restart the existing TowerFlow host with its usual launcher."
+    } catch { $log += "FAILED: $_" }
+    finally { if (Test-Path -LiteralPath $temp) { Remove-Item -LiteralPath $temp -Recurse -Force } }
+    $log | Out-Host
+    ($log -join [Environment]::NewLine) | Set-Clipboard
+}
+```
+
+After restarting, hard refresh the hosted team room and enter with your team account. Check that the Azure toolbar button opens your project and that entry is silent. To confirm which code the room used, inspect the room document's module URL in the browser Network panel. The Azure bridge serves the current graphics file at `/towerflow-entry.mjs` with the two legacy entry audio calls removed.
+
 ## Submit for review
 
 1. Use your IDE's source control to review changed files, commit the feature and push your branch. Include the source and intentional assets. Leave generated Debug, bin and obj output out of the change.

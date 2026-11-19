@@ -3,9 +3,12 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const {makeLoadouts} = require('./loadouts.cjs');
+const {quietEntry} = require('./quiet-entry.cjs');
 
 function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.now }) {
     const permissions = { writer: 30 * 60_000, reader: 5 * 60_000 };
+    const load = makeLoadouts();
     const grants = new Map();
     const records = new Map();
     const digest = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -21,13 +24,27 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
         next();
     };
     app.use(prefix, noCache);
-    app.get('/azure-bridge/desk.js', (req, res) => res.sendFile(path.join(__dirname, 'desk.js')));
+    for (const file of ['desk.js', 'loadout.js', 'loadout.css']) {
+        app.get('/azure-bridge/' + file, (req, res) => res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, file)));
+    }
+    app.get(prefix + '/loadout', auth, ensureMember, async (req, res, next) => {
+        try { res.json(await load(owned(req), req.session.token)); } catch (error) { next(error); }
+    });
+    // Keep relative module imports at the same directory depth as the original /room.js.
+    app.get('/towerflow-entry.mjs', async (req, res, next) => {
+        try {
+            const source = await fs.readFile(path.join(publicDir, 'room.js'), 'utf8');
+            res.set('Cache-Control', 'no-cache').type('application/javascript').send(quietEntry(source));
+        } catch (error) { next(error); }
+    });
     app.get('/room/team02', async (req, res, next) => {
         try {
             const html = await fs.readFile(path.join(publicDir, 'index.html'), 'utf8');
             if (!/<\/body\s*>/i.test(html)) return next();
             res.set('Cache-Control', 'no-cache').type('html').send(
-                html.replace(/<\/body\s*>/i, '<script src="/azure-bridge/desk.js" defer></script>$&')
+                html.replace(/(\bsrc=["'])\/room\.js(?=[?"'])/, '$1/towerflow-entry.mjs')
+                    .replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/azure-bridge/loadout.css">$&')
+                    .replace(/<\/body\s*>/i, '<script src="/azure-bridge/loadout.js" defer></script><script src="/azure-bridge/desk.js" defer></script>$&')
             );
         } catch (error) { next(error); }
     });

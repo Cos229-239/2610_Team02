@@ -343,7 +343,7 @@ function api(endpoint,opts={}){return fetch(endpoint,{headers:{'Content-Type':'a
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function setAuth(user){localUser=user;$('who').textContent=user?`@${user.login} • ${user.permission}`:'GUEST';$('loginBtn').hidden=!!user;$('logoutBtn').hidden=!user;$('authNote').textContent=user?`Authenticated as @${user.login}. Select Enter Chamber.`:'Sign in with GitHub to access the room.';}
 try{setAuth(await api('/api/me'));}catch{setAuth(null);}
-$('loginBtn').onclick=()=>location.href='/auth/github';$('logoutBtn').onclick=async()=>{await api('/auth/logout',{method:'POST'});location.reload()};$('enterBtn').onclick=()=>{if(!localUser){location.href='/auth/github';return;}running=true;$('welcome').hidden=true;$('hud').hidden=false;$('crosshair').style.display='block';connect();showToast('Welcome to the Team 02 chamber. Approach a workbench and press E.');say('Welcome to Towerflow. Can I assist you? Pun intended.',true)};
+$('loginBtn').onclick=()=>location.href='/auth/github';$('logoutBtn').onclick=async()=>{await api('/auth/logout',{method:'POST'});location.reload()};$('enterBtn').onclick=()=>{if(!localUser){location.href='/auth/github';return;}running=true;$('welcome').hidden=true;$('hud').hidden=false;$('crosshair').style.display='block';connect();showToast('Welcome to the Team 02 chamber. Approach a workbench and press E.')};
 $('helpIntro').onclick=()=>openPanel('help');$('closePanel').onclick=()=>closePanel();$('resume').onclick=()=>{$('menu').hidden=true};document.querySelectorAll('[data-panel]').forEach(b=>b.addEventListener('click',()=>openPanel(b.dataset.panel)));
 function closePanel(){activePanel='';$('panel').hidden=true;document.activeElement.blur()};
 function openPanel(id){activePanel=id;$('menu').hidden=true;$('panel').hidden=false;$('panelTag').textContent='INTERACTIVE WORKSTATION';$('panelTitle').textContent=({ide:'CODE NEXUS',ai:'AI FEATURE STUDIO',work:'TACTICAL BOARD',team:'TEAM PORTAL',music:'SOUND GARDEN',links:'LINK HUB',help:'AURA • CHAMBER GUIDE'})[id]||'WORKSTATION';$('panelContent').innerHTML='';({ide:idePanel,ai:aiPanel,work:workPanel,team:teamPanel,music:musicPanel,links:linksPanel,help:helpPanel})[id]?.();}
@@ -2442,9 +2442,6 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
     document.getElementById("areaName").textContent="FRONTIER • CONTROL CENTER";
     projectionOn=false;
     showToast("Welcome to Frontier. Click a wall to activate the projector.");
-    // The Rocky proposal is silent unless an authorized original film audio asset
-    // is explicitly configured. Never synthesize, clone, or swap a stand-in voice.
-    window.tfRockyGreeting?.onEnter();
     updateMetrics();
   };
   // TF_ROCKY_GREETING_PROPOSAL_V1_BEGIN

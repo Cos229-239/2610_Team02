@@ -16,6 +16,7 @@
     contribute.rel = 'noopener noreferrer';
     contribute.textContent = 'Contribute · Open VS Code';
     menu.prepend(contribute);
+    const personalDesk = window.tfAzureLoadout?.(button);
     let refreshTimer;
     function teammateWorkspace() {
         const section = document.createElement('section');
@@ -69,6 +70,7 @@
             }
             if (section.isConnected && !panel.hidden) setTimeout(readBuild, 15000);
         }
+        if (personalDesk) section.prepend(personalDesk.card());
         setTimeout(readBuild, 0);
         return section;
     }
