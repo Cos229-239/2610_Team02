@@ -10,6 +10,7 @@ const {execFile, spawn} = require('node:child_process');
 const {promisify} = require('node:util');
 const exec = promisify(execFile);
 const {projects} = require('../collaboration-room/azure-bridge/loadouts.cjs');
+const {sourceTarget} = require('../collaboration-room/azure-bridge/source-navigation.cjs');
 const REPO = 'https://github.com/Cos229-239/2610_Team02.git';
 const PORT = 4179;
 const maxBytes = 8192;
@@ -120,8 +121,18 @@ async function startEditor(project, entry, dir) {
     await launchProcess(editor,[entry]);
     return {editor:'Visual Studio',launched:true,verifiedDebugSession:false};
 }
+async function openSource(login,area){
+    const prepared=await prepare(login,'integration');
+    const target=await sourceTarget(prepared.dir,area);
+    if(process.platform!=='win32')throw Error('VS Code desktop navigation requires a Windows contributor PC.');
+    const candidates=[process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA,'Programs','Microsoft VS Code','Code.exe'),process.env.ProgramFiles && path.join(process.env.ProgramFiles,'Microsoft VS Code','Code.exe')];
+    const editor=candidates.find(p=>p && fs.existsSync(p));
+    if(!editor)throw Error('VS Code desktop was not found on this PC.');
+    await launchProcess(editor,['--new-window',prepared.dir,'--goto',target.fullPath+':'+target.line]);
+    return {area,file:target.file,line:target.line,editor:'VS Code',launched:true,verifiedDebugSession:false,workspace:prepared.branch};
+}
 function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('hex'),prepareWorkspace=prepare,
-    getStatus=status,getDiff=diff,launch=startEditor}={}) {
+    getStatus=status,getDiff=diff,launch=startEditor,openTarget=openSource}={}) {
     if (!acceptableOrigin(origin)) throw Error('Supply an exact HTTPS TowerFlow origin using --origin=https://your-room-host');
     if (!loginPattern.test(allowedLogin||'')) throw Error('Supply your GitHub username using --login=your-user');
     const fail=(res,code,msg)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});
@@ -139,13 +150,14 @@ function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('
         if(req.headers.authorization!=='Bearer '+token) return fail(res,401,'Pairing token required');
         const reply=value=>{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,...value}));};
         try {
-            if(req.method==='GET'&&req.url==='/health') return reply({version:1,capabilities:['prepare','open','status','diff']});
-            if(req.method!=='POST'||!['/status','/open','/diff'].includes(req.url)) return fail(res,404,'Unknown action');
+            if(req.method==='GET'&&req.url==='/health') return reply({version:1,capabilities:['prepare','open','status','diff','open-target']});
+            if(req.method!=='POST'||!['/status','/open','/diff','/open-target'].includes(req.url)) return fail(res,404,'Unknown action');
             if(!String(req.headers['content-type']||'').startsWith('application/json')) return fail(res,415,'JSON required');
             let body='';for await(const chunk of req) {body+=chunk; if(Buffer.byteLength(body)>maxBytes)return fail(res,413,'Request too large');}
             const input=JSON.parse(body),{login,project}=input;
-            if (login.toLowerCase()!==allowedLogin.toLowerCase()) return fail(res,403,'This companion belongs to another GitHub account.');
+            if (typeof login!=='string'||login.toLowerCase()!==allowedLogin.toLowerCase()) return fail(res,403,'This companion belongs to another GitHub account.');
             workspace(login,project); // Validate before accessing the filesystem.
+            if(req.url==='/open-target')return reply({target:await openTarget(login,input.area)});
             if(req.url==='/status')return reply({workspace:await getStatus(login,project)});
             if(req.url==='/diff')return reply({review:await getDiff(login,project)});
             const prepared=await prepareWorkspace(login,project);
@@ -169,4 +181,4 @@ async function main() {
     });
 }
 if(require.main===module)main().catch(e=>{console.error(e.message);process.exitCode=1;});
-module.exports={makeBridge,workspace,projectEntry,acceptableOrigin,folderRef,prepare,status,diff};
+module.exports={makeBridge,workspace,projectEntry,acceptableOrigin,folderRef,prepare,status,diff,openSource};
