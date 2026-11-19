@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a2b">
+  <title>TowerFlow | Retired Collaboration Prototype</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="mark">T</span><span>TowerFlow<small>SHARED WORKSPACE</small></span></a>
+    <div class="top-actions"><span id="connection" class="status">Not connected</span><button id="signOut" class="button secondary" hidden>Sign out</button></div>
+  </header>
+  <div class="legacy-banner" role="status"><strong>Retired prototype:</strong> This page uses the former Supabase implementation and is not part of the approved Towerflow architecture. Do not configure or deploy it. See <a href="./docs/ARCHITECTURE.md">the replacement multiplayer development workspace architecture</a>.</div>
+  <main class="layout">
+    <section id="authPanel" class="panel auth-panel">
+      <p class="eyebrow">YOUR WORKSPACE, TOGETHER</p>
+      <h1>Work on the same picture.</h1>
+      <p class="muted">Sign in to create a private room or join a workspace through an invitation.</p>
+      <form id="signInForm">
+        <label for="email">Email address</label>
+        <input id="email" type="email" autocomplete="email" placeholder="you@company.com" required>
+        <button class="button primary" type="submit">Send secure sign-in link</button>
+      </form>
+      <p id="authMessage" class="notice" role="status">A sign-in link will be sent to your email.</p>
+    </section>
+
+    <section id="appPanel" hidden>
+      <div class="welcome">
+        <div><p class="eyebrow">COLLABORATION / HOME</p><h1>Your rooms</h1><p class="muted">Persistent spaces for your team, company research, and decisions.</p></div>
+        <form id="createRoomForm" class="create-room"><input id="roomName" maxlength="100" placeholder="New room name" required aria-label="New room name"><button class="button primary" type="submit">Create room</button></form>
+      </div>
+      <div class="workspace-grid">
+        <aside class="panel room-panel"><div class="panel-heading"><h2>Workspaces</h2><span id="roomCount" class="muted">0</span></div><div id="roomList" class="room-list"><p class="muted">Loading rooms…</p></div></aside>
+        <section class="panel room-content">
+          <div id="emptyRoom" class="empty-state"><div class="empty-icon">↗</div><h2>Choose a room to begin</h2><p class="muted">Create a workspace or accept an invitation to collaborate.</p></div>
+          <div id="activeRoom" hidden>
+            <div class="room-header"><div><p class="eyebrow">SHARED WORKSPACE</p><h2 id="activeRoomName">Room</h2><p id="activeRoomRole" class="muted"></p></div><button id="inviteButton" class="button secondary">Invite people</button></div>
+            <div id="invitePanel" class="invite-panel" hidden><p>Invitation link <span id="inviteRoleLabel" class="muted"></span></p><div class="invite-row"><input id="inviteLink" readonly aria-label="Invitation link"><button id="copyInvite" class="button secondary">Copy</button></div><p id="inviteMessage" class="muted"></p></div>
+            <section class="team-panel">
+              <div class="team-columns">
+                <div><div class="section-heading"><h3>Room members</h3><span class="muted">Roles and access</span></div><div id="memberList" class="member-list"></div></div>
+                <div id="inviteAdminSection"><div class="section-heading"><h3>Invitation links</h3><span class="muted">Owner controls</span></div><div id="inviteAdminList" class="invite-admin-list"></div></div>
+              </div>
+            </section>
+            <div class="room-columns">
+              <section class="chat-section"><div class="section-heading"><h3>Room conversation</h3><span class="muted">Persistent messages</span></div><div id="messages" class="messages" aria-live="polite"></div><form id="messageForm" class="message-form"><input id="messageText" maxlength="5000" placeholder="Share an update with this room…" required aria-label="Message"><button class="button primary" type="submit">Send</button></form></section>
+              <aside class="activity-section"><div class="section-heading"><h3>Room activity</h3></div><div id="activityList" class="activity-list"></div><div class="collab-note"><strong>Collaboration foundation</strong><p>Rooms, role-based membership, invitations, persistent chat, and activity events are the first shared capabilities. Live document editing and AI participation are later milestones.</p></div></aside>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+  <footer> TOWERFLOW · COLLABORATIVE FOUNDATION <span>Private by default · Access controlled by room membership</span></footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
