@@ -75,6 +75,16 @@ async function main() {
         await presenter.locator('.tf-dev-review iframe').waitFor();
         await presenter.frameLocator('.tf-dev-review iframe').getByText('TowerFlow Command Center').waitFor();
         assert.match(await presenter.locator('.tf-dev-review').textContent(),/Not published/);
+        await presenter.locator('.tf-dev-example').filter({hasText:'Background: magenta'}).click();
+        await presenter.locator('.tf-dev-workspace .tf-dev-primary').first().click();
+        await presenter.waitForFunction(()=>document.querySelector('.tf-dev-change-summary')?.textContent.includes('TowerFlow/styles.css'));
+        await presenter.frameLocator('.tf-dev-review iframe').locator('body').waitFor();
+        const newBackground=await presenter.frameLocator('.tf-dev-review iframe').locator('body').evaluate(()=>{
+          return getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+        });
+        assert.equal(newBackground,'#d946ef','CSS request did not affect the actual preview style');
+        console.log('Real CSS transformation applied in the isolated web app preview.');
+
         console.log('Two-choice developer center navigates to real source and renders the actual changed dashboard.');
 
         for (const key of ['interface','forms','portfolio','operations','reporting','integration','shared']) {
