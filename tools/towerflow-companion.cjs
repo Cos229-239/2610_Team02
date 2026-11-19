@@ -182,10 +182,11 @@ async function openIDE(login,ide,area,{prepareWorkspace=prepare,launcher=launchP
     // Antigravity starts on the audited checkout; symbol jump is not claimed.
     args=[prepared.dir];
   }
+  const sourceSha256=target?crypto.createHash('sha256').update(await fs.promises.readFile(target.fullPath)).digest('hex'):null;
   const pid=await launcher(executable,args);
   return {id:ide,label:installedIDEs(paths,exists)[ide].label,launched:true,
     processId:Number.isInteger(pid)?pid:null,project:selected,
-    workspaceBranch:prepared.branch,area,source:target?.file||prepared.entry,
+    workspaceBranch:prepared.branch,area,source:target?.file||prepared.entry,sourceSha256,
     line:target?.line||null,debuggerVerified:false,openedSymbolVerified:false,
     note:'Local IDE process spawn observed; verify the project, source location and debugger in the IDE.'};
 }
