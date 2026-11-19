@@ -30,7 +30,7 @@ function installRoom(room) {
     ].join(newline);
     if (source.includes(marker) && !source.includes(hook)) throw Error('Existing Azure hook differs. Inspect server.js.');
     if (source.split(anchor).length !== 2) throw Error('Could not locate the room route exactly once in server.js.');
-    const scripts = ['studio.js','debug-demo.cjs','merged-preview.cjs','quiet-entry.cjs', 'team-updates.cjs', 'loadouts.cjs', 'loadout.js', 'desk.js', 'server.cjs'];
+    const scripts = ['studio.js','debug-demo.cjs','merged-preview.cjs','quiet-entry.cjs', 'team-updates.cjs', 'loadouts.cjs', 'loadout.js', 'desk.js', 'companion-client.js', 'two-mode-contribute.js', 'direct-integration.cjs', 'source-navigation.cjs', 'server.cjs'];
     for (const name of scripts) {
         execFileSync(process.execPath, ['--check', path.join(__dirname, name)], { windowsHide: true });
     }

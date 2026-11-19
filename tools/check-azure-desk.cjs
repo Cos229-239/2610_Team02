@@ -102,7 +102,9 @@ async function main() {
         if (!handler) return res.writeHead(404).end();
         const response = {
             set(k,v){res.setHeader(k,v);return this;},type(t){return this.set('Content-Type',t==='html'?'text/html':t);},
-            send:s=>res.end(s),sendFile:f=>{res.setHeader('Content-Type', f.endsWith('.css')?'text/css':'text/javascript');res.end(fs.readFileSync(f));}
+            send:s=>res.end(s),json:v=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(v));},
+            status:n=>{res.statusCode=n;return response;},sendStatus:n=>{res.statusCode=n;return res.end();},
+            sendFile:f=>{res.setHeader('Content-Type', f.endsWith('.css')?'text/css':'text/javascript');res.end(fs.readFileSync(f));}
         };
         await handler(req,response,()=>res.writeHead(500).end());
     });
