@@ -10,18 +10,77 @@
     button.type = 'button';
     button.textContent = 'Development Desk · Code, Debug & Git';
     menu.append(button);
-    const contribute = document.createElement('a');
-    contribute.href = 'https://codespaces.new/Cos229-239/2610_Team02?ref=dev';
-    contribute.target = '_blank';
-    contribute.rel = 'noopener noreferrer';
-    contribute.textContent = 'Contribute · Open VS Code';
+    const contribute = document.createElement('button');
+    contribute.type = 'button';
+    contribute.textContent = 'Contribute';
+    contribute.onclick = () => button.click();
     menu.prepend(contribute);
-    const personalDesk = window.tfAzureLoadout?.(button);
+    window.tfOpenMemberDesk = () => { button.click(); return true; };
+    const personalDesk = window.tfAzureLoadout?.(button, openUpdates);
     let refreshTimer;
+    const updatesButton = document.createElement('button');
+    updatesButton.type = 'button';
+    updatesButton.textContent = 'Team updates';
+    updatesButton.dataset.teamUpdates = '';
+    document.querySelector('#hud .toolbar')?.append(updatesButton);
+    function openUpdates() {
+        clearTimeout(refreshTimer);
+        menu.hidden = true;
+        panel.hidden = false;
+        document.getElementById('panelTag').textContent = 'TEAM REPOSITORY';
+        document.getElementById('panelTitle').textContent = 'TEAM UPDATES';
+        const section = document.createElement('section');
+        section.className = 'tf-azure-loadout tf-team-updates';
+        section.innerHTML = `<h3>What changed on dev?</h3><p>Everyone in the room sees the same team history. Open a change to see the exact files.</p>
+            <div class="row wrap"><a href="${repo}/commits/dev/" target="_blank" rel="noopener noreferrer">Full dev history</a>
+            <a href="${repo}/pulls?q=is%3Apr+is%3Amerged+base%3Adev" target="_blank" rel="noopener noreferrer">Merged pull requests and test notes</a>
+            <button type="button" data-my-desk>My workspace</button></div>
+            <p data-update-status role="status">Loading team changes…</p><ol data-updates-list></ol>`;
+        content.replaceChildren(section);
+        section.querySelector('[data-my-desk]').onclick = () => button.click();
+        const status = section.querySelector('[data-update-status]'), list = section.querySelector('ol');
+        let signature;
+        async function refresh() {
+            if (!section.isConnected || panel.hidden) return;
+            try {
+                const items = await api('/team-updates');
+                const next = JSON.stringify(items);
+                if (next !== signature) {
+                    const rows = items.map(item => {
+                        const row = document.createElement('li'), title = document.createElement('a');
+                        title.textContent = item.title; title.href = repo+'/commit/'+item.sha;
+                        title.target = '_blank'; title.rel = 'noopener noreferrer';
+                        const detail = document.createElement('small'), time = document.createElement('time');
+                        time.dateTime = item.at; time.textContent = new Date(item.at).toLocaleString();
+                        detail.append(item.author+' · ', time, ' · '+item.sha.slice(0,7));
+                        row.append(title,detail);
+                        const labels = [];
+                        if (!item.complete) labels.push('File details unavailable');
+                        if (item.web === 'match') {
+                            const app = document.createElement('a');
+                            app.href = '/towerflow/index.html?revision='+item.sha; app.target = '_blank'; app.rel = 'noopener noreferrer';
+                            app.textContent = 'Open published web app'; row.append(app);
+                            labels.push('Changed web files match the room');
+                        } else if (item.web === 'different') labels.push('Changed web files differ from the current room build');
+                        else if (item.web === 'unknown') labels.push('Web publication unconfirmed');
+                        if (item.native) labels.push('Native project · run this change in Visual Studio');
+                        if (item.room) labels.push('Room code · installation on the host needs separate verification');
+                        if (labels.length) { const text = document.createElement('p'); text.textContent = labels.join(' · '); row.append(text); }
+                        return row;
+                    });
+                    list.replaceChildren(...rows); signature = next;
+                }
+                status.textContent = items.length ? 'Recent changes on the shared dev branch' : 'No changes on dev yet.';
+            } catch { status.textContent = list.children.length ? 'Update unavailable. Showing the last loaded changes.' : 'Could not load team changes. Open Full dev history above.'; }
+            if (section.isConnected && !panel.hidden) refreshTimer = setTimeout(refresh, 60000);
+        }
+        refresh();
+    }
+    updatesButton.onclick = openUpdates;
     function teammateWorkspace() {
         const section = document.createElement('section');
         section.dataset.teammateWorkspace = 'true';
-        section.innerHTML = `<h3>Team contributions</h3>
+        section.innerHTML = `<details><summary>Team contributions and shared tools</summary>
             <div class="row wrap"><a href="https://codespaces.new/Cos229-239/2610_Team02?ref=dev" target="_blank" rel="noopener noreferrer">Contribute · Open VS Code</a>
             <a href="${repo}/compare/dev...dev" target="_blank" rel="noopener noreferrer">Submit feature</a>
             <a href="${repo}/pulls?q=is%3Apr+is%3Aopen+base%3Adev" target="_blank" rel="noopener noreferrer">Review features</a></div>
@@ -39,7 +98,7 @@
             <p data-build role="status">Checking the room’s published revision…</p>
             <a data-published-link hidden target="_blank" rel="noopener noreferrer">View published app commit</a>
             <p>The host publishes web changes after merge. Then refresh here or press Ctrl + Shift + R and try the feature.</p>
-            <button type="button" data-reload>Refresh room</button>`;
+            <button type="button" data-reload>Refresh room</button></details>`;
         section.querySelector('[data-commands]').textContent = [
             'git fetch origin', 'git switch -c my-contribution origin/dev',
             '# Edit and run your code, then check it:', 'node tools/check-contributions.cjs',

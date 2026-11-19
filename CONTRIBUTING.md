@@ -19,15 +19,15 @@ Open it on that branch in Visual Studio with .NET desktop development and .NET 1
 
 ## Your Azure desk
 
-Enter the chamber and click the Azure button in the toolbar. Your desk uses your signed-in GitHub account. An open feature PR targeting dev takes precedence over a recent source commit on dev or your personal branch. Build output and merge commits are skipped. If GitHub activity is unavailable, Azure labels the recorded project starter. Choose a different workspace to try another teammate's template. Pin it on this browser or choose **Follow my work** to restore automatic selection.
+Use the same room invite as the rest of the team. Sign in with your own GitHub account and choose **Contribute** in the menu or **Azure** in the toolbar. The desk shows your GitHub handle, repository, branch, Changes and History. In **Open in GitHub Desktop**, use the same account under File → Options → Accounts. Your desk uses your signed-in GitHub account. An open feature PR targeting dev takes precedence over a recent source commit on dev or your personal branch. Build output and merge commits are skipped. If GitHub activity is unavailable, Azure labels the recorded project starter. Choose a different workspace to try another teammate's template. Pin it on this browser or choose **Follow my work** to restore automatic selection.
 
-**Resume feature** opens the source in the browser editor. **Open Windows workspace…** copies a PowerShell command that clones a separate checkout on first use and opens the local project. Subsequent launches reopen that checkout and preserve local edits. Use Fetch/Pull in your IDE to bring it up to date. Forms debugging requires Visual Studio with the project's Windows desktop workload. The room cannot observe a desktop breakpoint.
+**Resume feature** opens the source in the browser editor. **Open Windows workspace…** copies a PowerShell command that clones a separate checkout on first use and opens the local project. Subsequent launches reopen that checkout and preserve local edits. Each Windows checkout lives under your own GitHub login in Documents/TowerFlow Workspaces. Use Fetch/Pull in your IDE to bring it up to date. Forms debugging requires Visual Studio with the project's Windows desktop workload. The room cannot observe a desktop breakpoint.
 
 **New feature** prepares an editable title, sample, expected result and observed-result field. Push your branch and use **Prepare pull request** to open the draft text on GitHub for review. Entering the chamber is silent. Sound Garden, voice chat and the explicit Help voice retain their controls.
 
 ## Windows host installation
 
-On the Team 02 host, run this block in PowerShell to install the desk from the review branch. It uses a temporary export and copies the install result to the clipboard. The installed bridge loads from the existing TowerFlow server on its next restart.
+On the Team 02 host, run this block in PowerShell once to install the desk from the team’s shared default branch, dev. Teammates only need the room invite. It uses a temporary export and copies the install result to the clipboard. The installed bridge loads from the existing TowerFlow server on its next restart.
 
 ```powershell
 & {
@@ -37,9 +37,11 @@ On the Team 02 host, run this block in PowerShell to install the desk from the r
     $log = @()
     try {
         if (!(Test-Path -LiteralPath (Join-Path $room 'server.js'))) { throw "Room missing at $room" }
-        git -C $repo fetch origin team/feature-handoff
+        git -C $repo fetch --no-tags https://github.com/Cos229-239/2610_Team02.git refs/heads/dev
         if ($LASTEXITCODE) { throw 'Could not fetch the desk.' }
         $rev = git -C $repo rev-parse FETCH_HEAD
+        git -C $repo cat-file -e "${rev}:collaboration-room/azure-bridge/team-updates.cjs"
+        if ($LASTEXITCODE) { throw 'The team desk has not reached dev yet.' }
         New-Item -ItemType Directory -Path $temp -ErrorAction Stop | Out-Null
         $zip = Join-Path $temp 'desk.zip'
         git -C $repo archive --format=zip -o $zip $rev collaboration-room/azure-bridge
@@ -55,7 +57,7 @@ On the Team 02 host, run this block in PowerShell to install the desk from the r
 }
 ```
 
-After restarting, hard refresh the hosted team room and enter with your team account. Check that the Azure toolbar button opens your project and that entry is silent. To confirm which code the room used, inspect the room document's module URL in the browser Network panel. The Azure bridge serves the current graphics file at `/towerflow-entry.mjs` with the two legacy entry audio calls removed.
+After restarting, hard refresh the hosted team room and enter with your team account. Check that Azure opens your project and **Team updates** opens the shared dev history. To confirm which code the room used, inspect the room document's module URL in the browser Network panel. The Azure bridge serves the current graphics file at `/towerflow-entry.mjs` with the two legacy entry audio calls removed.
 
 ## Submit for review
 
@@ -66,6 +68,8 @@ After restarting, hard refresh the hosted team room and enter with your team acc
 The contribution workflow checks tracked JavaScript syntax and Node tests, runs the C++ parts and operations tests, and checks saving and reopening an inventory item. A Windows UI change still needs a Windows run. Note any check left for a reviewer.
 
 ## See what changed
+
+Click **Team updates** in the room toolbar. The titles open the exact changes on GitHub. The feed includes direct pushes, direct merges and pull-request merges, and refreshes once a minute while open. **Open published web app** appears when the changed browser files on the host match the GitHub version. Later edits can cause an older entry to show a difference. Windows and room-server changes have their own run or installation steps. Click **Merged pull requests and test notes** for the reviewer's instructions. Use **Full dev history** for earlier changes.
 
 - [Awaiting review](https://github.com/Cos229-239/2610_Team02/pulls?q=is%3Apr+is%3Aopen+base%3Adev) shows proposed features and their check results.
 - [Merged features](https://github.com/Cos229-239/2610_Team02/pulls?q=is%3Apr+is%3Amerged+base%3Adev) keeps the handoff with each reviewed change. [Dev history](https://github.com/Cos229-239/2610_Team02/commits/dev/) also includes direct commits.

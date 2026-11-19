@@ -29,7 +29,14 @@ async function exercise(member) {
         document.querySelector('.toolbar button').click();
         await until(()=>document.querySelector('[data-title]')?.textContent === title);
         check(document.querySelector('[data-resume]').href.includes(william ? '/WilliamPersonal/TowerFlowWindow/' : '/dev/Towerflow_OW/'),'Wrong resume target');
+        const login = william ? 'Lopobunnie' : 'HyperRealmEnd';
+        check(document.querySelector('[data-name]').textContent.endsWith('@'+login),'Wrong signed-in handle');
+        check(document.querySelector('[data-desktop]').href.startsWith('x-github-client://openRepo/'),'Missing native Desktop action');
+        document.querySelector('[data-history]').click();
+        await until(()=>document.querySelector('[data-history-list]')?.textContent.includes(login));
+        document.querySelector('[data-changes]').click();
         document.querySelector('[data-new]').click();
+        await until(()=>document.querySelector('[data-branch]').value === 'feature/'+member.toLowerCase());
         const notes = document.querySelector('[data-notes]');
         check(notes.value.includes(william ? 'increases by 3' : 'TF-CHECK-407'),'Wrong review template');
         notes.value += '\nReviewed locally'; notes.dispatchEvent(new Event('input',{bubbles:true}));
@@ -38,7 +45,12 @@ async function exercise(member) {
         current.dispatchEvent(new Event('change'));
         document.querySelector('[data-pin]').click();
         document.querySelector('#menu button:last-child').click();
-        check(document.querySelector('[data-title]').textContent !== title,'Pin was lost');
+        await until(()=>document.querySelector('[data-title]')?.textContent === (william ? 'Inventory and reporting' : 'Forms studio'));
+        if (!william) {
+            check(new URL(document.querySelector('[data-desktop]').href).searchParams.get('branch')==='dev','Opened a peer branch for editing');
+            document.querySelector('[data-windows]').click();
+            check(document.querySelector('[data-command]').value.includes("$branch = 'work/HyperRealmEnd/forms'"),'Wrong Windows workspace');
+        }
         document.querySelector('[data-auto]').click();
         check(document.querySelector('[data-title]').textContent === title,'Follow my work did not return to member');
         check(document.querySelector('[data-notes]').value.endsWith('Reviewed locally'),'Handoff draft was lost');
@@ -47,6 +59,15 @@ async function exercise(member) {
         document.querySelector('[data-template]').requestSubmit();
         check(compared?.pathname.startsWith('/Cos229-239/2610_Team02/compare/dev...'),'Wrong PR base');
         check(compared.searchParams.get('body').endsWith('Reviewed locally'),'Missing handoff');
+        document.querySelector('[data-see-updates]').click();
+        await until(()=>document.querySelector('[data-updates-list]')?.childElementCount===3);
+        const rows=[...document.querySelectorAll('[data-updates-list] li')];
+        check(rows[0].textContent.includes('Open published web app') && rows[0].querySelector('a[href^="/towerflow/"]'),'Published web action missing');
+        check(rows[1].textContent.includes('differ') && !rows[1].querySelector('a[href^="/towerflow/"]'),'Pending web change shown as published');
+        check(rows[2].textContent.includes('Visual Studio') && !rows[2].querySelector('a[href^="/towerflow/"]'),'Native merge shown as live');
+        document.querySelector('[data-my-desk]').click();
+        await until(()=>document.querySelector('[data-title]')?.textContent===title);
+        if (william) { const select=document.querySelector('[data-select]');select.value='integration';select.dispatchEvent(new Event('change'));document.querySelector('[data-pin]').click(); }
         document.documentElement.dataset.pilot = 'passed';
     } catch (error) { document.documentElement.dataset.pilot = 'failed '+error.message; }
 }
@@ -69,8 +90,11 @@ async function main() {
         if (url === '/api/azure-bridge/loadout') {
             res.setHeader('Content-Type','application/json');
             return res.end(JSON.stringify({name:member,login:member==='William'?'Lopobunnie':'HyperRealmEnd',defaultProject:member==='William'?'forms':'reporting',
-                work:null,projects,available:true,checkedAt:Date.now()}));
+                personalRef:member==='William'?'WilliamPersonal':'OmarionPersonal',work:null,projects,available:true,checkedAt:Date.now()}));
         }
+        if (url === '/api/azure-bridge/branches') return res.end(JSON.stringify(['feature/'+member.toLowerCase()]));
+        if (url === '/api/azure-bridge/history') return res.end(JSON.stringify([{title:'Update source',author:member==='William'?'Lopobunnie':'HyperRealmEnd',sha:'e'.repeat(40)}]));
+        if (url === '/api/azure-bridge/team-updates') return res.end(JSON.stringify(['match','different',null].map((web,i)=>({sha:String(i).repeat(40),title:'Team change '+i,author:'TeamMember',at:'2026-11-18',complete:true,web,native:i===2}))));
         if (url === '/api/azure-bridge/mine') return res.end('null');
         if (url === '/pilot.js') return res.writeHead(200,{'Content-Type':'text/javascript'}).end(
             'window.addEventListener("load",()=>('+exercise.toString()+')('+JSON.stringify(member)+'));');
@@ -87,9 +111,9 @@ async function main() {
         await new Promise((r,j)=>{server.once('error',j);server.listen(0,'127.0.0.1',r);});
         for (member of ['William','Omarion']) {
             const {stdout} = await execute(process.env.CHROME_BIN || 'google-chrome', ['--headless','--no-sandbox','--disable-gpu','--disable-background-networking',
-                '--user-data-dir='+path.join(room,member),'--dump-dom','--virtual-time-budget=10000','http://127.0.0.1:'+server.address().port+'/room/team02'],{timeout:35000});
+                '--user-data-dir='+path.join(room,'shared-browser'),'--dump-dom','--virtual-time-budget=10000','http://127.0.0.1:'+server.address().port+'/room/team02'],{timeout:35000});
             assert.equal(stdout.match(/data-pilot="([^"]*)"/)?.[1],'passed',member+' browser pilot');
-            console.log(member+' passed silent entry, correct project, review template, pin, return and branch handoff.');
+            console.log(member+' passed account desk, history, feature handoff and shared web/native publication views.');
         }
     } finally {server.close();fs.rmSync(room,{recursive:true,force:true});}
 }

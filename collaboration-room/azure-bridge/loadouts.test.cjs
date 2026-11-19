@@ -46,7 +46,7 @@ test('William gets his open dev PR and its actual project ahead of commit histor
 });
 test('unavailable GitHub data returns the correct starter for each login and does not cross accounts', async () => {
     const load = makeLoadouts(async()=>{throw Error('offline');});
-    for (const [login,id] of [['Lopobunnie','forms'],['HyperRealmEnd','reporting'],['DaynaPerezColon','interface'],['SVN-760','operations'],['Dulskinator96','integration'],['NewTeammate','integration']]) {
+    for (const [login,id] of [['Lopobunnie','forms'],['HyperRealmEnd','reporting'],['DaynaPerezColon','interface'],['SVN-760','operations'],['Dulskinator96','integration'],['NewTeammate','shared']]) {
         const data = await load(login,'test-session');
         assert.deepEqual([data.available,data.work,data.defaultProject],[false,null,id]);
     }
@@ -68,8 +68,22 @@ test('upgrading an existing host installs the complete desk and keeps its graphi
     fs.writeFileSync(path.join(room,'public/room.js'),'// installed graphics');
     assert.equal(installRoom(room),true);
     assert.equal(installRoom(room),false);
-    for (const f of ['quiet-entry.cjs','loadouts.cjs','loadout.js','loadout.css','desk.js','server.cjs']) {
+    for (const f of ['quiet-entry.cjs','team-updates.cjs','loadouts.cjs','loadout.js','loadout.css','desk.js','server.cjs']) {
         assert.deepEqual(fs.readFileSync(path.join(room,'azure-bridge',f)),fs.readFileSync(path.join(__dirname,f)));
     }
     assert.equal(fs.readFileSync(path.join(room,'public/room.js'),'utf8'),'// installed graphics');
+});
+test('branch suggestions contain the signed-in member’s published work ahead of dev', async () => {
+    const {publishedBranches} = require('./loadouts.cjs');
+    const ref = (name,login)=>({name,target:{author:{user:{login}}}});
+    const read = async (url, options) => {
+        assert.equal(options.headers.Authorization,'Bearer fixture');
+        if (url.endsWith('/graphql')) return {ok:true,json:async()=>({data:{repository:{refs:{nodes:[
+            ref('dev','Lopobunnie'),ref('feature/parts','Lopobunnie'),ref('other-work','HyperRealmEnd'),
+            ref('WilliamPersonal','other'),ref('work/Lopobunnie/old','other')
+        ]}}}})};
+        assert.doesNotMatch(url,/other-work/);
+        return {ok:true,json:async()=>({ahead_by:url.includes('old')?0:1})};
+    };
+    assert.deepEqual(await publishedBranches('Lopobunnie','fixture',read),['feature/parts','WilliamPersonal']);
 });

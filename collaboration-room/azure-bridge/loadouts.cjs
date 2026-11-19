@@ -11,6 +11,14 @@ const members = {
 
 // Each starter is a reproducible task. Its example and expected result are not a test receipt.
 const projects = {
+    shared: {
+        name: 'Team workspace', accent: '#81b3ff', ref: 'dev',
+        path: '', file: 'README.md', prior: 'Shared Team 02 repository',
+        launch: 'Open the team repository in GitHub Desktop and select your editor.',
+        starter: 'Add a team feature', sample: 'One example that exercises your change.',
+        steps: 'Create a working branch from dev. Run your feature in its project.',
+        expected: 'Describe the visible result for a teammate to verify.'
+    },
     operations: {
         name: 'Operations desk', accent: '#78e0ba', ref: 'dev',
         path: 'TowerFlow Files/TowerFlow (Malik modified)', file: 'TowerFlowGUI.cpp',
@@ -88,7 +96,8 @@ async function recentWork(login, member, get) {
         const work = workFromFiles(files, preferred);
         if (work && pr.state === 'open' && pr.base.ref === 'dev' && pr.head.repo && pr.user.login.toLowerCase() === login.toLowerCase()) {
             return {...work, type: 'pull', number, title: pr.title, ref: pr.head.ref, repo: pr.head.repo.full_name,
-                revision: pr.head.sha, draft: Boolean(pr.draft)};
+                revision: pr.head.sha, draft: Boolean(pr.draft),
+                files: files.slice(0,100).map(f => ({path:f.filename, status:f.status}))};
         }
     }
     // Merge both histories by date so a stale personal branch cannot mask work already on dev.
@@ -117,7 +126,7 @@ function makeLoadouts(read = fetch, clock = Date.now) {
     const cache = new Map();
     return async function load(login, token) {
         const key = login.toLowerCase();
-        const member = Object.hasOwn(members, key) ? members[key] : [login, 'integration', 'dev'];
+        const member = Object.hasOwn(members, key) ? members[key] : [login, 'shared', 'dev'];
         const cached = cache.get(key);
         if (cached && clock() < cached.until) return cached.promise;
         const promise = (async () => {
@@ -136,7 +145,7 @@ function makeLoadouts(read = fetch, clock = Date.now) {
             const other = reviews.value?.find(pr => !pr.draft && pr.user.login.toLowerCase() !== key);
             const teamReview = other ? {number:other.number, title:other.title} : null;
             const available = activity.status === 'fulfilled', work = activity.value ?? null;
-            return {checkedAt:clock(), teamReview, login, name:member[0], defaultProject:member[1], projects, work, available};
+            return {checkedAt:clock(), teamReview, login, name:member[0], personalRef:member[2], defaultProject:member[1], projects, work, available};
         })();
         if (cache.size >= 100) cache.delete(cache.keys().next().value);
         cache.set(key, {until:clock()+60_000, promise});
@@ -144,4 +153,29 @@ function makeLoadouts(read = fetch, clock = Date.now) {
     };
 }
 
-module.exports = {teamRepo, projects, sourceFile, workFromFiles, recentWork, makeLoadouts};
+// Return published branches with work ahead of dev. Use only the signed-in member's
+// named branch, workspace namespace, or branch with a tip they authored.
+async function publishedBranches(login, token, read = fetch) {
+    const headers = {Authorization:'Bearer '+token,'User-Agent':'TowerFlow-Azure-Desk','Content-Type':'application/json'};
+    const signal = AbortSignal.timeout(10000);
+    const response = await read('https://api.github.com/graphql',{method:'POST',headers,signal,redirect:'error',
+        body:JSON.stringify({query:`query { repository(owner:"Cos229-239",name:"2610_Team02") {
+            refs(refPrefix:"refs/heads/",first:100,orderBy:{field:TAG_COMMIT_DATE,direction:DESC}) {
+                nodes {name target { ... on Commit {author {user {login}}} }}
+            } } }`})});
+    if (!response.ok) throw Error('Branch list unavailable');
+    const graph = await response.json();
+    const refs = graph.data?.repository?.refs?.nodes;
+    if (!Array.isArray(refs)) throw Error('Branch list unavailable');
+    const key = login.toLowerCase();
+    const personal = members[key]?.[2];
+    const candidates = refs.filter(r => r.name !== 'dev' && r.name !== 'main' &&
+        (r.name === personal || r.name.toLowerCase().startsWith('work/'+key+'/') || r.target?.author?.user?.login?.toLowerCase() === key)).slice(0,8);
+    const results = await Promise.all(candidates.map(async r => {
+        const res = await read('https://api.github.com/repos/'+teamRepo+'/compare/dev...'+encodeURIComponent(r.name)+'?per_page=1',{headers,signal,redirect:'error'});
+        if (!res.ok) return null;
+        return (await res.json()).ahead_by > 0 ? r.name : null;
+    }));
+    return results.filter(Boolean);
+}
+module.exports = {publishedBranches, teamRepo, projects, sourceFile, workFromFiles, recentWork, makeLoadouts};
