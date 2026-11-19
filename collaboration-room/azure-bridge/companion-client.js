@@ -55,7 +55,7 @@
         const response=await fetch(service+route,{method:payload?'POST':'GET',mode:'cors',
             headers:{Authorization:'Bearer '+token,...(payload?{'Content-Type':'application/json'}:{})},
             ...(payload?{body:JSON.stringify(payload)}:{}) ,
-            signal:AbortSignal.timeout(20000),cache:'no-store'});
+            signal:AbortSignal.timeout(route==='/ai-plan'?100000:20000),cache:'no-store'});
         const json=await response.json().catch(()=>({}));
         if(!response.ok || !json.ok)throw Error(json.error||'Local companion HTTP '+response.status);
         return json;
