@@ -56,3 +56,21 @@ Paste as one block into PowerShell on the TowerFlow host:
 8. Only after browser and scene preservation, two-account security, real IDE behavior and a reviewed release diff pass should the experimental branch be considered for promotion.
 
 **No Gemini CLI or paid external AI service is part of this release gate.** Provider-specific AI connections and private AscendenceAgent007 remain isolated.
+
+## Targeted activation after the read-only preflight
+
+Your November 19 host output showed the existing Azure Bridge mounted, but **no physical IDE station dispatch, no duplicated projector, and HTTP 404 for `ide-workstations.js` and `azure-ai-connect.js`**. That is not a Cloudflare problem; it is missing installed code/scene wiring on localhost.
+
+The reviewed `tools/towerflow-activate-dev-room.cjs` offers a preservation-verified **`--plan`** and an explicit **`--apply`**. It will not silently rewrite all of `public/room.js`: it requires audited projector and station handler anchors; inserts only reviewed code; checks each staged JavaScript source and the original 3D scene bytes; retains unrelated room source and CSS; and fails closed when a host customization no longer matches.
+
+For the same downloaded branch checkout, execute:
+
+```powershell
+node (Join-Path $stage 'tools\towerflow-activate-dev-room.cjs') $room --plan
+# Inspect all reviewed file paths before application.
+node (Join-Path $stage 'tools\towerflow-activate-dev-room.cjs') $room --apply
+```
+
+The updater keeps existing `server.js` and `dev` untouched, only modifies the reviewed host bridge/scene targets, and reverses completed writes if verification/write fails. It does **not** restart the running process. After a successful apply, use the user's original launcher to restart the identified TowerFlow process and repeat the read-only preflight, then test the physical room.
+
+**Caution:** A live scene may have legitimate custom code absent from the tested repository. When the updater reports an anchor mismatch, do not use `git reset`, force-push, overwrite `room.js`, or rerun the generic installer. Inspect the host-specific differences first.
