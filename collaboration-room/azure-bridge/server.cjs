@@ -91,7 +91,7 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
                     .replace(/<script\b[^>]*\bsrc=["']\/azure-bridge\/(?:desk|loadout|studio)\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script\s*>/gi, '')
                     .replace(/<link\b[^>]*\bhref=["']\/azure-bridge\/loadout\.css(?:\?[^"']*)?["'][^>]*>/gi, '')
                     .replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/azure-bridge/loadout.css">$&')
-                    .replace(/<\/body\s*>/i, '<script src="/azure-bridge/studio.js" defer></script><script src="/azure-bridge/loadout.js" defer></script><script src="/azure-bridge/desk.js" defer></script><script src="/azure-bridge/companion-client.js" defer></script><script src="/azure-bridge/desk.js" defer></script>$&')
+                    .replace(/<\/body\s*>/i, '<script src="/azure-bridge/studio.js" defer></script><script src="/azure-bridge/loadout.js" defer></script><script src="/azure-bridge/desk.js" defer></script><script src="/azure-bridge/companion-client.js" defer></script>$&')
             );
         } catch (error) { next(error); }
     });
