@@ -1,4 +1,8 @@
-/## Team Members
+# TowerFlow
+
+[Start a feature, find your project, or review what reached dev](CONTRIBUTING.md).
+
+## Team Members
 - Malik Brown
 - Dayna Perez Colon
 - Daniel Dusky

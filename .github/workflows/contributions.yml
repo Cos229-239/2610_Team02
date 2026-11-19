@@ -15,3 +15,11 @@ jobs:
         with:
           node-version: '24'
       - run: node tools/check-contributions.cjs
+      - name: Exercise William and Omarion desks in Chrome
+        run: node tools/check-azure-desk.cjs
+  inventory:
+    name: Inventory operations and persistence (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash tools/check-inventory.sh

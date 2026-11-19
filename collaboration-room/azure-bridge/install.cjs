@@ -30,12 +30,13 @@ function installRoom(room) {
     ].join(newline);
     if (source.includes(marker) && !source.includes(hook)) throw Error('Existing Azure hook differs. Inspect server.js.');
     if (source.split(anchor).length !== 2) throw Error('Could not locate the room route exactly once in server.js.');
-    for (const name of ['server.cjs', 'desk.js']) {
+    const scripts = ['quiet-entry.cjs', 'team-updates.cjs', 'loadouts.cjs', 'loadout.js', 'desk.js', 'server.cjs'];
+    for (const name of scripts) {
         execFileSync(process.execPath, ['--check', path.join(__dirname, name)], { windowsHide: true });
     }
     const target = path.join(room, 'azure-bridge');
     fs.mkdirSync(target, { recursive: true });
-    for (const name of ['server.cjs', 'desk.js']) {
+    for (const name of [...scripts, 'loadout.css']) {
         fs.copyFileSync(path.join(__dirname, name), path.join(target, name));
     }
     if (source.includes(hook)) return false;
