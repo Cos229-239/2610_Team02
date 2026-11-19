@@ -79,9 +79,14 @@ async function main() {
         await presenter.locator('.tf-dev-workspace .tf-dev-primary').first().click();
         await presenter.waitForFunction(()=>document.querySelector('.tf-dev-change-summary')?.textContent.includes('TowerFlow/styles.css'));
         await presenter.frameLocator('.tf-dev-review iframe').locator('body').waitFor();
-        const newBackground=await presenter.frameLocator('.tf-dev-review iframe').locator('body').evaluate(()=>{
-          return getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-        });
+        let newBackground='';
+        for(let attempt=0;attempt<30;attempt++){
+          newBackground=await presenter.frameLocator('.tf-dev-review iframe').locator('body').evaluate(()=>{
+            return getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+          });
+          if(newBackground==='#d946ef')break;
+          await new Promise(resolve=>setTimeout(resolve,150));
+        }
         assert.equal(newBackground,'#d946ef','CSS request did not affect the actual preview style');
         console.log('Real CSS transformation applied in the isolated web app preview.');
 
