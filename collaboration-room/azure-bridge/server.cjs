@@ -43,6 +43,8 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
             if (!/<\/body\s*>/i.test(html)) return next();
             res.set('Cache-Control', 'no-cache').type('html').send(
                 html.replace(/(\bsrc=["'])\/room\.js(?=[?"'])/, '$1/towerflow-entry.mjs')
+                    .replace(/<script\b[^>]*\bsrc=["']\/azure-bridge\/(?:desk|loadout)\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script\s*>/gi, '')
+                    .replace(/<link\b[^>]*\bhref=["']\/azure-bridge\/loadout\.css(?:\?[^"']*)?["'][^>]*>/gi, '')
                     .replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/azure-bridge/loadout.css">$&')
                     .replace(/<\/body\s*>/i, '<script src="/azure-bridge/loadout.js" defer></script><script src="/azure-bridge/desk.js" defer></script>$&')
             );

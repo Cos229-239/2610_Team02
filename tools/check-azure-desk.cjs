@@ -24,6 +24,7 @@ async function exercise(member) {
         document.querySelector('#enterBtn').click();
         const william = member === 'William', title = william ? 'Forms studio' : 'Inventory and reporting';
         await until(()=>document.querySelector('.toolbar button')?.textContent === 'Azure · '+title);
+        check(document.querySelectorAll('script[src="/azure-bridge/desk.js"]').length === 1,'Duplicate desk script');
         check(window.spoken === 0 && window.recordings === 0,'Entry played a voice');
         document.querySelector('.toolbar button').click();
         await until(()=>document.querySelector('[data-title]')?.textContent === title);
@@ -82,7 +83,7 @@ async function main() {
         await handler(req,response,()=>res.writeHead(500).end());
     });
     try {
-        fs.writeFileSync(path.join(room,'index.html'),shell.replace('</body>','<script defer src="/pilot.js"></script></body>'));
+        fs.writeFileSync(path.join(room,'index.html'),shell.replace('</body>','<script defer src="/azure-bridge/desk.js"></script><script defer src="/pilot.js"></script></body>'));
         await new Promise((r,j)=>{server.once('error',j);server.listen(0,'127.0.0.1',r);});
         for (member of ['William','Omarion']) {
             const {stdout} = await execute(process.env.CHROME_BIN || 'google-chrome', ['--headless','--no-sandbox','--disable-gpu','--disable-background-networking',

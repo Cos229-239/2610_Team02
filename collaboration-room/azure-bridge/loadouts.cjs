@@ -71,7 +71,9 @@ function area(file, fallback) {
 }
 function workFromFiles(files, preferred) {
     const paths = files.filter(f => f.status !== 'removed' && sourceFile(f.filename)).map(f => f.filename);
-    const file = paths.find(f => area(f) === preferred) ?? paths[0];
+    const own = paths.filter(f => area(f) === preferred);
+    const candidates = own.length ? own : paths;
+    const file = candidates.find(f => /\.(?:cs|cpp|js|cjs|mjs)$/i.test(f) && !/\.designer\.cs$/i.test(f)) ?? candidates[0];
     return file ? { project: area(file, preferred), file } : null;
 }
 
@@ -119,7 +121,7 @@ function makeLoadouts(read = fetch, clock = Date.now) {
         const cached = cache.get(key);
         if (cached && clock() < cached.until) return cached.promise;
         const promise = (async () => {
-            const timer = AbortSignal.timeout(8000);
+            const timer = AbortSignal.timeout(12000);
             const get = async route => {
                 const url = 'https://api.github.com' + (route.startsWith('/search/') ? '' : '/repos/' + teamRepo) + route;
                 const response = await read(url, {headers:{Authorization:'Bearer ' + token, Accept:'application/vnd.github+json',
