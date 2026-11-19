@@ -15,6 +15,7 @@ const PORT = 4179;
 const maxBytes = 8192;
 const names = new Set(Object.keys(projects));
 const loginPattern = /^[a-zA-Z0-9-]{1,39}$/;
+const LOOPBACK = '127.0.0.1';
 const acceptableOrigin = raw => {
     try {
         const url = new URL(raw);
@@ -73,7 +74,9 @@ async function status(login, project) {
     const dir=workspace(login,project);
     if (!(await exists(path.join(dir,'.git')))) return {ready:false,reason:'Workspace not installed',project};
     const current=await git(dir,'branch','--show-current');
-    const changed=(await git(dir,'status','--porcelain=v1','-uno')).split(/\r?\n/).filter(Boolean);
+    const origin=await git(dir,'remote','get-url','origin');
+    if (![REPO,REPO.replace('.git','')].includes(origin)) return {ready:false,reason:'Repository remote mismatch; no operation performed',project};
+    const changed=(await git(dir,'status','--porcelain=v1','--untracked-files=all')).split(/\r?\n/).filter(Boolean);
     const expected=folderRef(login,project);
     return {ready:current===expected,branch:current,expected,changed:changed.slice(0,100),
         changeCount:changed.length,project,reason:current===expected?null:'Branch mismatch: inspect existing work before continuing.'};
@@ -91,7 +94,13 @@ function launchProcess(binary,args) {
 }
 async function startEditor(project, entry, dir) {
     if (project==='integration' || project==='shared') {
-        const child=await launchProcess('code',[dir]);
+        const candidates=process.platform==='win32'
+            ? [process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA,'Programs','Microsoft VS Code','Code.exe'),
+                process.env.ProgramFiles && path.join(process.env.ProgramFiles,'Microsoft VS Code','Code.exe')]
+            : ['/usr/bin/code','/usr/local/bin/code'];
+        const editor=candidates.find(p=>p && fs.existsSync(p));
+        if (!editor) throw Error('VS Code not found. Install the desktop VS Code application.');
+        await launchProcess(editor,[dir]);
         return {editor:'VS Code',launched:true,verifiedDebugSession:false};
     }
     if (process.platform!=='win32') throw Error('Native Visual Studio requires Windows.');
@@ -103,9 +112,10 @@ async function startEditor(project, entry, dir) {
     await launchProcess(editor,[entry]);
     return {editor:'Visual Studio',launched:true,verifiedDebugSession:false};
 }
-function makeBridge({origin,token=crypto.randomBytes(24).toString('hex'),prepareWorkspace=prepare,
+function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('hex'),prepareWorkspace=prepare,
     getStatus=status,launch=startEditor}={}) {
     if (!acceptableOrigin(origin)) throw Error('Supply an exact HTTPS TowerFlow origin using --origin=https://your-room-host');
+    if (!loginPattern.test(allowedLogin||'')) throw Error('Supply your GitHub username using --login=your-user');
     const fail=(res,code,msg)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});
         res.end(JSON.stringify({ok:false,error:msg}));};
     const handler=async(req,res)=>{
@@ -126,6 +136,7 @@ function makeBridge({origin,token=crypto.randomBytes(24).toString('hex'),prepare
             if(!String(req.headers['content-type']||'').startsWith('application/json')) return fail(res,415,'JSON required');
             let body='';for await(const chunk of req) {body+=chunk; if(Buffer.byteLength(body)>maxBytes)return fail(res,413,'Request too large');}
             const input=JSON.parse(body),{login,project}=input;
+            if (login.toLowerCase()!==allowedLogin.toLowerCase()) return fail(res,403,'This companion belongs to another GitHub account.');
             workspace(login,project); // Validate before accessing the filesystem.
             if(req.url==='/status')return reply({workspace:await getStatus(login,project)});
             const prepared=await prepareWorkspace(login,project);
@@ -138,9 +149,10 @@ function makeBridge({origin,token=crypto.randomBytes(24).toString('hex'),prepare
 async function main() {
     const arg=process.argv.find(s=>s.startsWith('--origin='));
     const origin=arg?.slice('--origin='.length);
-    const bridge=makeBridge({origin});
+    const login=process.argv.find(s=>s.startsWith('--login='))?.slice('--login='.length);
+    const bridge=makeBridge({origin,allowedLogin:login});
     const server=http.createServer(bridge.handler);
-    server.listen(PORT,'127.0.0.1',()=>{
+    server.listen(PORT,LOOPBACK,()=>{
         console.log('TowerFlow companion listening on http://127.0.0.1:'+PORT);
         console.log('Allowed room origin: '+origin);
         console.log('Session pairing token (keep private): '+bridge.token);
