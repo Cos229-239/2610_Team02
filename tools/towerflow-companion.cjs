@@ -174,11 +174,12 @@ async function openIDE(login,ide,area,{prepareWorkspace=prepare,launcher=launchP
     if(!executable||!exists(executable))throw Error('Visual Studio Community installation not found by vswhere.');
     args=area==='native'?[prepared.entry]:['/Edit',target.fullPath];
   }else if(ide==='cursor'){
-    // Cursor's classic editor mode avoids routing the path to an agent-only window.
-    args=['--classic','--new-window',prepared.dir];
+    // Cursor's classic mode avoids routing the checkout to an agent-only window.
+    args=['--classic','--new-window',prepared.dir,'--goto',target.fullPath+':'+target.line];
+  }else if(ide==='vscode'){
+    args=['--new-window',prepared.dir,'--goto',target.fullPath+':'+target.line];
   }else{
-    // Antigravity's documented UI supports Open Folder; the desktop executable
-    // is launched with a selected checkout, never with model/CLI flags.
+    // Antigravity starts on the audited checkout; symbol jump is not claimed.
     args=[prepared.dir];
   }
   const pid=await launcher(executable,args);
