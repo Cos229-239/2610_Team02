@@ -2395,6 +2395,7 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
   const originalActivate=activateTFStation;
   activateTFStation=function frontierStation(id){
     if(id==="dev-business-projector"){openDevBusinessStudio();return;}
+    if(typeof id==="string"&&id.startsWith("dev-ide-")&&window.tfOpenIDEStation?.(id))return;
     if(id==="frontier-dashboard"){showToast("Click a room wall to activate the projector");return;}
     if(id==="frontier-ide"){openFrontierIDE();return;}
     if(id==="frontier-world"){openPanel("help");return;}
