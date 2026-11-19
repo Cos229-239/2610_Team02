@@ -129,3 +129,24 @@
 #hud .toolbar .tf-development-entry::before { content:'◆'; color:#c2f5ff; margin-right:.45rem; }
 #hud .toolbar .tf-development-entry:hover,#hud .toolbar .tf-development-entry:focus-visible { background:#286f85; outline:2px solid #ccf7ff; outline-offset:2px; }
 #hud .toolbar [data-app-hub] { border:1px solid #668ca4; color:#d9f6ff; }
+
+/* AZURE AI BRIDGE B: provider-specific handoff, not credential capture */
+#hud .toolbar .tf-ai-azure-entry { border:1.5px solid #a8c7ff; background:linear-gradient(130deg,#233c67,#1d2855); color:#edf6ff; font-weight:800; box-shadow:0 0 12px #779cff33; }
+#hud .toolbar .tf-ai-azure-entry:hover,#hud .toolbar .tf-ai-azure-entry:focus-visible { background:#344d85; outline:2px solid #dde7ff; outline-offset:2px; }
+.tf-ai-azure { padding:clamp(.85rem,2.3vw,1.6rem); margin:.5rem 0; border:1px solid #5a7ba2; border-radius:12px; background:linear-gradient(135deg,#0c1b30,#152a40); color:#f1f9ff; }
+.tf-ai-azure-head { margin-bottom:1.25rem; }
+.tf-ai-azure-kicker { color:#a3dff9; letter-spacing:.11em; font-weight:850; font-size:.8rem; }
+.tf-ai-azure-head h2 { margin:.5rem 0; line-height:1.25; font-size:clamp(1.35rem,2.8vw,2rem); }
+.tf-ai-azure-head p,.tf-ai-provider-info p,.tf-ai-handoff-form p { line-height:1.5; color:#bfd7e6; }
+.tf-ai-provider-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:.65rem; margin-bottom:.9rem; }
+.tf-ai-provider-card { display:grid; gap:.45rem; text-align:left; padding:.85rem; border-radius:9px; background:#163654; border:1px solid #4f718b; color:#eaf8ff; }
+.tf-ai-provider-card strong { font-size:1.1rem; }
+.tf-ai-provider-card small { color:#bcdae7; font-size:.8rem; }
+.tf-ai-provider-card[aria-pressed="true"] { border:2px solid #9eebff; background:#24527a; }
+.tf-ai-azure-links { display:flex; flex-wrap:wrap; align-items:center; gap:.65rem 1rem; margin:.7rem 0; }
+.tf-ai-azure-links a { color:#b1f3ff; }
+.tf-ai-handoff-form { display:grid; gap:.7rem; border-top:1px solid #3c607c; padding-top:1rem; }
+.tf-ai-handoff-form label { display:grid; gap:.45rem; font-weight:700; color:#dcf2ff; }
+.tf-ai-handoff-form textarea,.tf-ai-handoff-form select { box-sizing:border-box; width:100%; padding:.6rem; border:1px solid #60819c; border-radius:7px; background:#0b1a2b; color:#f5fdff; font:inherit; }
+.tf-ai-handoff-form textarea[readonly] { font-size:.82rem; line-height:1.4; }
+.tf-ai-azure button:focus-visible { outline:3px solid #b4edff; outline-offset:2px; }
