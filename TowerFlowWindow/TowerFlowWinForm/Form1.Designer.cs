@@ -34,6 +34,7 @@
             btnEditPart = new Button();
             btnListParts = new Button();
             btnCreatePart = new Button();
+            btnSearch = new Button();
             groupBox2 = new GroupBox();
             btnTotalStock = new Button();
             partsGrid = new DataGridView();
@@ -50,10 +51,15 @@
             label2 = new Label();
             label1 = new Label();
             refreshTimer = new System.Windows.Forms.Timer(components);
+            Search_Bar = new GroupBox();
+            txtSearchBar = new TextBox();
+            label6 = new Label();
+            btnQuit = new Button();
             Part_ManagementBox.SuspendLayout();
             groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)partsGrid).BeginInit();
             PartDetails.SuspendLayout();
+            Search_Bar.SuspendLayout();
             SuspendLayout();
             // 
             // Part_ManagementBox
@@ -64,14 +70,14 @@
             Part_ManagementBox.Controls.Add(btnCreatePart);
             Part_ManagementBox.Location = new Point(12, 12);
             Part_ManagementBox.Name = "Part_ManagementBox";
-            Part_ManagementBox.Size = new Size(109, 166);
+            Part_ManagementBox.Size = new Size(194, 166);
             Part_ManagementBox.TabIndex = 0;
             Part_ManagementBox.TabStop = false;
             Part_ManagementBox.Text = "Part_Management";
             // 
             // btnDeletePart
             // 
-            btnDeletePart.Location = new Point(13, 122);
+            btnDeletePart.Location = new Point(94, 125);
             btnDeletePart.Name = "btnDeletePart";
             btnDeletePart.Size = new Size(75, 23);
             btnDeletePart.TabIndex = 3;
@@ -91,7 +97,7 @@
             // 
             // btnListParts
             // 
-            btnListParts.Location = new Point(13, 64);
+            btnListParts.Location = new Point(13, 35);
             btnListParts.Name = "btnListParts";
             btnListParts.Size = new Size(75, 23);
             btnListParts.TabIndex = 1;
@@ -101,7 +107,7 @@
             // 
             // btnCreatePart
             // 
-            btnCreatePart.Location = new Point(13, 35);
+            btnCreatePart.Location = new Point(13, 64);
             btnCreatePart.Name = "btnCreatePart";
             btnCreatePart.Size = new Size(75, 23);
             btnCreatePart.TabIndex = 0;
@@ -109,10 +115,20 @@
             btnCreatePart.UseVisualStyleBackColor = true;
             btnCreatePart.Click += btnCreatePart_Click;
             // 
+            // btnSearch
+            // 
+            btnSearch.Location = new Point(6, 59);
+            btnSearch.Name = "btnSearch";
+            btnSearch.Size = new Size(75, 23);
+            btnSearch.TabIndex = 4;
+            btnSearch.Text = "SearchPart";
+            btnSearch.UseVisualStyleBackColor = true;
+            btnSearch.Click += btnSearch_Click;
+            // 
             // groupBox2
             // 
             groupBox2.Controls.Add(btnTotalStock);
-            groupBox2.Location = new Point(152, 12);
+            groupBox2.Location = new Point(227, 12);
             groupBox2.Name = "groupBox2";
             groupBox2.Size = new Size(145, 166);
             groupBox2.TabIndex = 1;
@@ -159,9 +175,9 @@
             PartDetails.Controls.Add(label3);
             PartDetails.Controls.Add(label2);
             PartDetails.Controls.Add(label1);
-            PartDetails.Location = new Point(12, 205);
+            PartDetails.Location = new Point(12, 184);
             PartDetails.Name = "PartDetails";
-            PartDetails.Size = new Size(200, 243);
+            PartDetails.Size = new Size(200, 264);
             PartDetails.TabIndex = 4;
             PartDetails.TabStop = false;
             PartDetails.Text = "Listing_Details";
@@ -204,7 +220,7 @@
             // label5
             // 
             label5.AutoSize = true;
-            label5.Location = new Point(0, 180);
+            label5.Location = new Point(-2, 180);
             label5.Name = "label5";
             label5.Size = new Size(56, 15);
             label5.TabIndex = 8;
@@ -250,13 +266,54 @@
             // 
             refreshTimer.Enabled = true;
             refreshTimer.Interval = 3000;
-            refreshTimer.Tick += refreshTimer_Tick;
+            // 
+            // Search_Bar
+            // 
+            Search_Bar.Controls.Add(btnSearch);
+            Search_Bar.Controls.Add(txtSearchBar);
+            Search_Bar.Controls.Add(label6);
+            Search_Bar.Location = new Point(227, 194);
+            Search_Bar.Name = "Search_Bar";
+            Search_Bar.Size = new Size(196, 167);
+            Search_Bar.TabIndex = 5;
+            Search_Bar.TabStop = false;
+            Search_Bar.Text = "Search_bar";
+            // 
+            // txtSearchBar
+            // 
+            txtSearchBar.Location = new Point(57, 23);
+            txtSearchBar.Name = "txtSearchBar";
+            txtSearchBar.Size = new Size(133, 23);
+            txtSearchBar.TabIndex = 1;
+            // 
+            // label6
+            // 
+            label6.AutoSize = true;
+            label6.Location = new Point(6, 26);
+            label6.Name = "label6";
+            label6.Size = new Size(45, 15);
+            label6.TabIndex = 0;
+            label6.Text = "Search:";
+            // 
+            // btnQuit
+            // 
+            btnQuit.BackColor = Color.Maroon;
+            btnQuit.ForeColor = SystemColors.Control;
+            btnQuit.Location = new Point(648, 408);
+            btnQuit.Name = "btnQuit";
+            btnQuit.Size = new Size(108, 30);
+            btnQuit.TabIndex = 6;
+            btnQuit.Text = "Quit";
+            btnQuit.UseVisualStyleBackColor = false;
+            btnQuit.Click += btnQuit_Click;
             // 
             // TowerFlow_NamePanel
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(btnQuit);
+            Controls.Add(Search_Bar);
             Controls.Add(PartDetails);
             Controls.Add(lblTotalStock);
             Controls.Add(partsGrid);
@@ -269,6 +326,8 @@
             ((System.ComponentModel.ISupportInitialize)partsGrid).EndInit();
             PartDetails.ResumeLayout(false);
             PartDetails.PerformLayout();
+            Search_Bar.ResumeLayout(false);
+            Search_Bar.PerformLayout();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -296,5 +355,10 @@
         private TextBox txtRevision;
         private TextBox txtName;
         private System.Windows.Forms.Timer refreshTimer;
+        private Button btnSearch;
+        private GroupBox Search_Bar;
+        private TextBox txtSearchBar;
+        private Label label6;
+        private Button btnQuit;
     }
 }

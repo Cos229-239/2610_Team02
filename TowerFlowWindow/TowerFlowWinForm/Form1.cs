@@ -19,7 +19,7 @@ namespace TowerFlowWinForm
             txtQuantity.Clear();
         }
 
-        private void RefreshGrid()
+        private void RefreshGrid(string filter = "")
         {
             var parts = PartData.GetPartsByName(filter);
             partsGrid.Rows.Clear();
@@ -54,7 +54,7 @@ namespace TowerFlowWinForm
         {
             if (int.TryParse(txtRevision.Text, out int revision) &&
                int.TryParse(txtPartNumber.Text, out int partNumber) &&
-        
+
                int.TryParse(txtQuantity.Text, out int quantity))
             {
                 int serialNumber = PartUtils.GenRandomSerialNumber(); // generates a unique serial number per new part
@@ -103,7 +103,7 @@ namespace TowerFlowWinForm
                 {
                     MessageBox.Show("Part updated successfully.");
                     RefreshGrid();
-                    
+
                 }
                 else
                 {
@@ -125,7 +125,7 @@ namespace TowerFlowWinForm
                 MessageBox.Show("Please enter valid numeric values for Part Number and Serial Number.");
                 return;
             }
-          // ClearInputs();
+            // ClearInputs();
             bool success = PartData.DeletePart(partNumber, serialNumber);
             if (!success)
             {
@@ -140,10 +140,25 @@ namespace TowerFlowWinForm
 
         }
 
-        private void refreshTimer_Tick(object sender, EventArgs e)
+        // private void refreshTimer_Tick(object sender, EventArgs e)
+        //{
+        //  PartData.LoadParts();
+        //RefreshGrid();
+        //}
+
+        private void btnSearch_Click(object sender, EventArgs e)
         {
-            PartData.LoadParts();
-            RefreshGrid();
+            RefreshGrid(txtSearchBar.Text);
+        }
+
+        private void btnQuit_Click(object sender, EventArgs e)
+        {
+            bool confirmQuit = MessageBox.Show("Are you sure you want to quit?", "Confirm Quit", MessageBoxButtons.YesNo) == DialogResult.Yes;
+
+            if (confirmQuit)
+            {
+                Application.Exit();
+            }
         }
     }
 }
