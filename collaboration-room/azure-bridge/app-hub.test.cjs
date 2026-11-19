@@ -8,6 +8,7 @@ test('areas are deliberate, source-backed, and safe',()=>{
   assert.equal(parseArea('TowerFlow-Area: ../../../other'),null);
   assert.equal(parseArea('TowerFlow-Area: market\nTowerFlow-Area: native'),null);
   assert.equal(classifyFiles([{filename:'TowerFlow/app.js'}]),'app');
+  assert.equal(classifyFiles([{filename:'README.md'}]),'other');
   assert.equal(classifyFiles([{filename:'collaboration-room/azure-bridge/desk.js'}]),'room');
   assert.equal(classifyFiles([{filename:'TowerFlow/TowerFlow.Native/Program.cpp'}]),'native');
 });
