@@ -9,11 +9,13 @@ const execute=promisify(execFile);
 const {areaFor,sourceTarget}=require('../collaboration-room/azure-bridge/source-navigation.cjs');
 const LIMIT=1200;
 function locateGemini(env=process.env,exists=fs.existsSync){
-  const custom=env.TF_GEMINI_CLI_PATH;
-  const paths=[custom,env.APPDATA&&path.join(env.APPDATA,'npm','node_modules','@google','gemini-cli','dist','index.js'),
+  const valid=p=>typeof p==='string'&&path.isAbsolute(p)&&p.endsWith('.js')&&exists(p);
+  // An explicitly configured CLI must never silently fall back to another executable.
+  if(env.TF_GEMINI_CLI_PATH!==undefined)return valid(env.TF_GEMINI_CLI_PATH)?env.TF_GEMINI_CLI_PATH:null;
+  const paths=[env.APPDATA&&path.join(env.APPDATA,'npm','node_modules','@google','gemini-cli','dist','index.js'),
     env.HOME&&path.join(env.HOME,'.npm-global','lib','node_modules','@google','gemini-cli','dist','index.js'),
     '/usr/local/lib/node_modules/@google/gemini-cli/dist/index.js'];
-  return paths.find(p=>p&&path.isAbsolute(p)&&p.endsWith('.js')&&exists(p))||null;
+  return paths.find(valid)||null;
 }
 function validateRequest(input){
   if(!input||typeof input!=='object')throw Error('Request body required.');
