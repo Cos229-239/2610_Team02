@@ -77,8 +77,14 @@ async function main() {
         assert.match(generated,/Cos229-239\/2610_Team02/);
         assert.match(generated,/FIRST: PROVE ACTUAL REPOSITORY ACCESS/);
         assert.match(generated,/Grok/);
+        const ideOpens=await presenter.evaluate(()=>window.tfOpenIDEStation?.('dev-ide-cursor'));
+        assert.equal(ideOpens,true);
+        await presenter.locator('.tf-dev-ide-station select').selectOption('markets');
+        await presenter.locator('.tf-dev-ide-station a[href*="TowerFlow/app.js"]').waitFor();
+        await presenter.getByRole('button',{name:'OPEN IN CURSOR IDE'}).click();
+        assert.match(await presenter.locator('.tf-dev-ide-station [role="status"]').last().textContent(),/pair|connected|not|bridge/i);
         await presenter.locator('.tf-development-entry').click();
-        console.log('Azure AI handoff provides the correct GitHub access verification instructions without credentials.');
+        console.log('Azure handoff and source-aware Cursor workstation expose real actions and fail closed without PC pairing.');
 
         // User journey: two prominently visible choices, exact source card and real preview.
         await presenter.locator('.tf-developer-center').waitFor();
