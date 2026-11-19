@@ -38,9 +38,10 @@
     const source=link('View source',repo+'/tree/dev/TowerFlow');
     const dev=element('button','Try merged web app');dev.type='button';
     const live=link('Open published app','/towerflow/index.html');live.href='/towerflow/index.html';
+    const browserEditor=link('Edit source in GitHub browser', 'https://github.dev/Cos229-239/2610_Team02');
     const myDesk=element('button','My development desk');myDesk.type='button';
     const team=link('All team PRs',repo+'/pulls?q=is%3Apr+base%3Adev');
-    actions.append(source,dev,live,myDesk,team);
+    actions.append(source,browserEditor,dev,live,myDesk,team);
     const form=element('form');
     const flabel=element('label','Feature title');
     const feature=element('input');feature.name='title';feature.required=true;feature.maxLength=120;
@@ -55,12 +56,14 @@
     const submit=element('button','Prepare PR to dev');submit.type='submit';
     const formStatus=element('p');formStatus.setAttribute('role','status');
     form.append(flabel,blabel,nlabel,submit,formStatus);
-    controls.append(areaTitle,desc,paths,actions,element('h4','Submit to this area'),form);
+    controls.append(areaTitle,desc,paths,actions,
+      element('p','To add code: open the source in your own authorized IDE or AI coding agent, commit and push your branch, then submit it below. A chat-only AI cannot edit GitHub unless its account has working repository tools.'),
+      element('h4','Submit to this area'),form);
     const htitle=element('h3','Team contributions');
     const feedStatus=element('p');
     const entries=element('ol');
     history.append(htitle,feedStatus,entries);
-    const areaKind={dashboard:'web',market:'web',portfolio:'web',analytics:'web',app:'web',room:'room',native:'native'};
+    const areaKind={dashboard:'web',market:'web',portfolio:'web',analytics:'web',app:'web',room:'room',native:'native',other:'other'};
     const areaKey=area=>areaKind[area]==='web'?'app':area;
     function match(pr,area){return pr.area===area || (areaKind[area]==='web'&&pr.area==='app') ||
       (area==='app'&&areaKind[pr.area]==='web');}
@@ -69,7 +72,8 @@
       areaTitle.textContent=area.label;
       desc.textContent=area.description;
       paths.textContent='Reviewed source: '+area.path+' · Base branch: dev';
-      source.href=repo+'/blob/dev/'+area.path.split('/').map(encodeURIComponent).join('/');
+      source.href=repo+'/'+(area.kind==='native'?'tree':'blob')+'/dev/'+area.path.split('/').map(encodeURIComponent).join('/');
+      browserEditor.href='https://github.dev/Cos229-239/2610_Team02/blob/dev/'+area.path.split('/').map(encodeURIComponent).join('/');
       dev.disabled=area.kind!=='web';
       dev.textContent=area.kind==='web'?'Try merged web app':'Native/room work: use team demonstration';
       live.hidden=area.kind!=='web';
