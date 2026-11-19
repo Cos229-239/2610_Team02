@@ -4,20 +4,52 @@ const crypto=require('node:crypto');
 const {SOURCE_AREAS}=require('./source-navigation.cjs');
 const REPO='Cos229-239/2610_Team02', OLD='<h1>Your money. <span>In motion.</span></h1>';
 const PREFIX='/api/azure-bridge/direct-preview/';
-function parsePrompt(raw){
-  if(typeof raw!=='string'||raw.length>240)throw Error('Use a short prompt (240 characters maximum).');
-  const m=/^(?:please\s+)?(?:change|set|update|replace)\s+(?:the\s+)?(?:dashboard\s+)?(?:headline|heading|main\s+title)\s+(?:to|with)\s+(.+?)\s*$/i.exec(raw.trim());
-  if(!m)throw Error('Prototype supports: Change the dashboard headline to TowerFlow Command Center. Other changes require a connected coding agent.');
-  const headline=m[1].trim().replace(/^[“"']|[”"']$/g,'').replace(/\.$/,'').trim();
-  if(!headline||headline.length>75||/[\x00-\x1f\x7f]/.test(headline))throw Error('Headline must be 1–75 printable characters.');
-  return {headline};
-}
+const COLORS=Object.freeze({blue:'#2563eb',magenta:'#d946ef',purple:'#a855f7',red:'#ef4444',green:'#22c55e',yellow:'#eab308',orange:'#f97316',black:'#080b12',white:'#ffffff',teal:'#0d9488',cyan:'#06b6d4',pink:'#ec4899'});
+const DESIGNS=Object.freeze([
+ {kind:'headline',area:'dashboard',file:'TowerFlow/index.html',label:'Dashboard headline',
+  pattern:/<h1>Your money\. <span>In motion\.<\/span><\/h1>/g,
+  output:value=>'<h1>'+escapeHtml(value)+'</h1>',max:75},
+ {kind:'subtitle',area:'dashboard',file:'TowerFlow/index.html',label:'Dashboard introduction',
+  pattern:/<p>Track holdings, review activity, and model your next move\.<\/p>/g,
+  output:value=>'<p>'+escapeHtml(value)+'</p>',max:120},
+ {kind:'holdingsTitle',area:'portfolio',file:'TowerFlow/index.html',label:'Holdings section title',
+  pattern:/<h2>Holdings<\/h2>/g,output:value=>'<h2>'+escapeHtml(value)+'</h2>',max:55},
+ {kind:'accent',area:'ui',file:'TowerFlow/styles.css',label:'Application accent color',
+  pattern:/--accent:#[0-9a-fA-F]{3,8}(?=;)/g,output:value=>'--accent:'+value,color:true},
+ {kind:'background',area:'ui',file:'TowerFlow/styles.css',label:'Application background color',
+  pattern:/--bg:#[0-9a-fA-F]{3,8}(?=;)/g,output:value=>'--bg:'+value,color:true}
+]);
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function parsePrompt(raw){
+  if(typeof raw!=='string'||raw.length>240)throw Error('Use a short change request (240 characters maximum).');
+  const prompt=raw.trim();
+  let kind,value;
+  const text=/^(?:please\s+)?(?:change|set|update|replace|rename)\s+(?:the\s+)?(?:dashboard\s+)?(headline|heading|main\s+title|subtitle|introduction|description|holdings\s+(?:section\s+)?title)\s+(?:to|with)\s+(.+?)\s*$/i.exec(prompt);
+  const color=/^(?:please\s+)?(?:change|set|update|make)\s+(?:the\s+)?(?:(?:app|application|dashboard|ui|interface|theme)\s+)?(background(?:\s+color)?|accent(?:\s+color)?|highlight(?:\s+color)?)\s+(?:to\s+|with\s+)?(.+?)\s*$/i.exec(prompt);
+  if(text){
+    kind=/holdings/i.test(text[1])?'holdingsTitle':/subtitle|introduction|description/i.test(text[1])?'subtitle':'headline';
+    value=text[2].trim().replace(/^[“"']|[”"']$/g,'').replace(/\.$/,'').trim();
+  }else if(color){
+    kind=/background/i.test(color[1])?'background':'accent';
+    value=color[2].trim().replace(/^[“"']|[”"']$/g,'').replace(/\.$/,'').trim().toLowerCase();
+    value=COLORS[value]||value;
+    if(!/^#[a-f0-9]{6}$/i.test(value))throw Error('Use a named color (blue, magenta, purple, green, etc.) or a six-digit hex color (#123abc).');
+  }else throw Error('Supported: dashboard headline, subtitle, holdings title, app accent color, or app background color. Choose an example below.');
+  const design=DESIGNS.find(item=>item.kind===kind);
+  if(!value||(!design.color&&value.length>design.max)||/[\x00-\x1f\x7f]/.test(value))throw Error('Invalid text for '+design.label+'.');
+  return {kind,value,...(kind==='headline'?{headline:value}:{})};
+}
+function resolve(idea){const d=DESIGNS.find(x=>x.kind===(idea.kind|| (idea.headline!==undefined?'headline':null)));if(!d)throw Error('Unsupported change.');return d;}
 function transform(bytes,idea){
-  if(!Buffer.isBuffer(bytes))throw Error('Source bytes required.');
-  const html=bytes.toString('utf8');
-  if(html.split(OLD).length!==2)throw Error('Dashboard headline changed upstream. No source was modified.');
-  return Buffer.from(html.replace(OLD,'<h1>'+escapeHtml(idea.headline)+'</h1>'),'utf8');
+  if(!Buffer.isBuffer(bytes))throw Error('Verified source bytes required.');
+  const d=resolve(idea),original=bytes.toString('utf8');
+  const matches=[...original.matchAll(d.pattern)];
+  if(matches.length!==1)throw Error(d.label+' source anchor changed. No files modified.');
+  const value=idea.value??idea.headline;
+  if(typeof value!=='string')throw Error('Invalid change data.');
+  const after=d.output(value);
+  if(matches[0][0]===after)throw Error('Requested change is already present.');
+  return Buffer.from(original.replace(d.pattern,()=>after),'utf8');
 }
 function sha(bytes){return crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');}
 function previewKey(url){const m=/^\/api\/azure-bridge\/preview-files\/([a-f0-9]{48})\/index\.html$/.exec(url);if(!m)throw Error('Unrecognized verified preview URL.');return m[1];}
@@ -33,17 +65,20 @@ function makeDirect({preview,now=Date.now,read=fetch,nonce=()=>crypto.randomByte
   async function plan({token,owner,prompt}){
     const idea=parsePrompt(prompt),base=await preview.open(token);
     if(!/^[a-f0-9]{40}$/.test(base.revision))throw Error('Invalid dev revision.');
-    const baseKey=previewKey(base.url),source=preview.file(baseKey,'index.html');
-    if(!source?.bytes||!source.sha||sha(source.bytes)!==source.sha)throw Error('Dashboard source failed Git hash verification.');
+    const d=resolve(idea),baseKey=previewKey(base.url),name=d.file.replace('TowerFlow/',''),source=preview.file(baseKey,name);
+    if(!source?.bytes||!source.sha||sha(source.bytes)!==source.sha)throw Error('Requested source failed Git hash verification.');
+    const matches=[...source.bytes.toString('utf8').matchAll(d.pattern)];
+    if(matches.length!==1)throw Error(d.label+' source anchor changed.');
+    const before=matches[0][0];
     const bytes=transform(source.bytes,idea);
     if(bytes.equals(source.bytes))throw Error('No change generated.');
     const key=nonce();if(!/^[a-f0-9]{48}$/.test(key)||plans.has(key))throw Error('Invalid unique preview ID.');
     for(const [id,p] of plans)if(p.expires<=now())plans.delete(id);
     if(plans.size>=48)plans.delete(plans.keys().next().value);
-    plans.set(key,{key,owner,idea,revision:base.revision,sourceSha:source.sha,bytes,baseKey,
+    plans.set(key,{key,owner,idea,file:d.file,sourceName:name,revision:base.revision,sourceSha:source.sha,bytes,baseKey,
       expires:now()+15*60000,writing:false,submitted:null});
-    return {key,revision:base.revision,area:'dashboard',file:'TowerFlow/index.html',
-      before:'Your money. In motion.',after:idea.headline,
+    return {key,revision:base.revision,area:d.area,file:d.file,
+      before:before.replace(/<[^>]+>/g,''),after:idea.value,
       previewUrl:PREFIX+key+'/index.html',expiresAt:new Date(now()+15*60000).toISOString()};
   }
   async function submit({key,token,owner,login}){
@@ -63,14 +98,15 @@ function makeDirect({preview,now=Date.now,read=fetch,nonce=()=>crypto.randomByte
     try{
       const ref=await gh('/git/ref/heads/dev');
       if(ref.object?.sha!==p.revision)throw Object.assign(Error('Dev moved since preview. Regenerate your change.'),{status:409});
-      const branch='work/'+login.toLowerCase()+'/dashboard-'+key.slice(0,10);
+      const branch='work/'+login.toLowerCase()+'/'+(p.idea.kind||'headline')+'-'+key.slice(0,10);
       await gh('/git/refs','POST',{ref:'refs/heads/'+branch,sha:p.revision});
-      await gh('/contents/TowerFlow/index.html','PUT',{
-        message:'Update dashboard headline via TowerFlow reviewed preview',
+      await gh('/contents/'+p.file,'PUT',{
+        message:'Update '+(p.idea.kind||'headline')+' via TowerFlow reviewed preview',
         content:p.bytes.toString('base64'),sha:p.sourceSha,branch});
-      const pr=await gh('/pulls','POST',{title:'Dashboard: '+p.idea.headline,head:branch,base:'dev',draft:true,
-        body:'TowerFlow-Area: dashboard\n\nRequested headline: '+p.idea.headline+
-          '\nSource: TowerFlow/index.html\nBase SHA: '+p.revision+
+      const design=resolve(p.idea);
+      const pr=await gh('/pulls','POST',{title:design.label+': '+p.idea.value,head:branch,base:'dev',draft:true,
+        body:'TowerFlow-Area: '+design.area+'\n\nRequested change: '+p.idea.value+
+          '\nSource: '+p.file+'\nBase SHA: '+p.revision+
           '\n\nReview the diff and run browser checks. Publishing the live app is separate.'});
       p.submitted={number:pr.number,url:pr.html_url,branch,status:'draft',published:false};
       return p.submitted;
@@ -78,7 +114,7 @@ function makeDirect({preview,now=Date.now,read=fetch,nonce=()=>crypto.randomByte
   }
   function asset(key,name){
     const p=getPlan(key);if(!p||typeof name!=='string'||name.includes('/')||name.includes('\\')||name.includes('..'))return null;
-    if(name==='index.html')return {bytes:p.bytes,type:'text/html'};
+    if(name===p.sourceName)return {bytes:p.bytes,type:name.endsWith('.css')?'text/css':'text/html'};
     const f=preview.file(p.baseKey,name);return f?.bytes?{bytes:f.bytes,type:f.type||'application/octet-stream'}:null;
   }
   return {plan,submit,asset,getPlan};
@@ -111,4 +147,4 @@ function mount(app,{auth,ensureMember,sameOrigin,publicOrigin,preview,direct=mak
     res.set('Access-Control-Allow-Origin','*').set('X-Content-Type-Options','nosniff').type(file.type).send(file.bytes);
   });
 }
-module.exports={parsePrompt,transform,sha,makeDirect,mount};
+module.exports={parsePrompt,transform,sha,makeDirect,mount,COLORS,DESIGNS};
