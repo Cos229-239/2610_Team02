@@ -11,12 +11,12 @@ namespace dashboard {
 <style>
 :root {
     color-scheme: light;
-    --ink: #14292b;
-    --subtle: #49605e;
-    --line: #d8e3de;
-    --paper: #f2f6f3;
-    --green: #126445;
-    --green-light: #e2f2e8;
+    --ink: #182c40;
+    --subtle: #5b6c7c;
+    --line: #dce5ec;
+    --paper: #f4f7fa;
+    --green: #00746d;
+    --green-light: #e0f1ed;
     --warn: #7d4405;
     --warn-light: #fbefdc;
     font-family: "Geist", "Inter", "Segoe UI", sans-serif;
@@ -25,26 +25,26 @@ namespace dashboard {
 }
 * { box-sizing: border-box; }
 body { margin: 0; }
-header { color: white; background: #123e38; }
+header { color: white; background: #122a3d; }
 .header-inner, main { width: min(1280px, calc(100% - 72px)); margin: 0 auto; }
 .header-inner { display: flex; align-items: center; justify-content: space-between; min-height: 64px; gap: 16px; }
 .brand { display: flex; align-items: center; gap: 11px; font-size: 1.17rem; font-weight: 700; letter-spacing: -.03em; }
-.mark { display: grid; place-content: center; place-items: center; gap: 3px; width: 30px; height: 30px; border: 1px solid #569984; border-radius: 7px; }
-.mark span { height: 2px; background: #bcf0d4; width: 15px; border-radius: 1px; }
+.mark { display: grid; place-content: center; place-items: center; gap: 3px; width: 30px; height: 30px; border: 1px solid #71a5a8; border-radius: 7px; }
+.mark span { height: 2px; background: #a8e4d9; width: 15px; border-radius: 1px; }
 .mark span:first-child { width: 7px; }
 .mark span:nth-child(2) { width: 11px; }
-.snapshot { color: #d6eee7; font-size: .84rem; }
+.snapshot { color: #b2cbd3; font-size: .84rem; }
 main { padding: 36px 0 56px; }
 h1, h2, p { margin: 0; }
 h1 { font-size: clamp(2rem, 4.2vw, 3rem); letter-spacing: -.055em; line-height: 1.06; }
 h2 { font-size: 1.2rem; letter-spacing: -.025em; }
 label { display: grid; gap: 7px; font-size: .85rem; font-weight: 600; }
 input, select, button { color: inherit; font: inherit; font-size: .92rem; min-height: 39px; }
-input, select { width: 100%; min-width: 0; background: white; border: 1px solid #b8cbc2; border-radius: 7px; padding: 7px 10px; }
-button { cursor: pointer; border: 1px solid #b8cbc2; border-radius: 7px; background: white; padding: 7px 13px; font-weight: 650; }
-button:hover { background: #edf5f0; }
+input, select { width: 100%; min-width: 0; background: white; border: 1px solid #bdcdd8; border-radius: 7px; padding: 7px 10px; }
+button { cursor: pointer; border: 1px solid #bdcdd8; border-radius: 7px; background: white; padding: 7px 13px; font-weight: 650; }
+button:hover { background: #e8f3f1; }
 button:disabled { cursor: default; opacity: .55; }
-:focus-visible { outline: 3px solid #2b8a67; outline-offset: 3px; }
+:focus-visible { outline: 3px solid #00746d; outline-offset: 3px; }
 .filters { display: grid; grid-template-columns: minmax(170px, 2fr) minmax(155px, 1fr) minmax(110px, .9fr) auto; align-items: end; gap: 12px; margin: 24px 0 18px; }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .metric { padding: 18px; min-width: 0; background: white; border: 1px solid var(--line); border-radius: 10px; }
@@ -57,7 +57,7 @@ button:disabled { cursor: default; opacity: .55; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: .9rem; }
 th, td { padding: 12px 16px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
-th { color: var(--subtle); background: #f5f8f6; font-size: .79rem; font-weight: 650; white-space: nowrap; }
+th { color: var(--subtle); background: #f7fafc; font-size: .79rem; font-weight: 650; white-space: nowrap; }
 th.number, td.number { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 td small { display: block; margin-top: 3px; color: var(--subtle); }
 .locations { color: var(--subtle); min-width: 135px; }
@@ -79,7 +79,7 @@ td small { display: block; margin-top: 3px; color: var(--subtle); }
 <body>
 <header>
   <div class="header-inner">
-    <div class="brand"><span class="mark" aria-hidden="true"><span></span><span></span><span></span></span>TowerFlow</div>
+    <div class="brand"><span class="mark" aria-hidden="true"><span></span><span></span><span></span></span><span id="brand-name">TowerFlow</span></div>
     <span class="snapshot" id="snapshot">Inventory snapshot</span>
   </div>
 </header>
@@ -147,7 +147,9 @@ td small { display: block; margin-top: 3px; color: var(--subtle); }
 <script>
 'use strict';
 
-const { generatedAt, products, movements } = JSON.parse(document.getElementById('inventory-data').textContent);
+const { generatedAt, business, products, movements } = JSON.parse(document.getElementById('inventory-data').textContent);
+document.getElementById('brand-name').textContent = business || 'TowerFlow';
+document.title = (business || 'TowerFlow') + ' | Inventory dashboard';
 const control = id => document.getElementById(id);
 const number = new Intl.NumberFormat('en-US');
 const snapshotFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });

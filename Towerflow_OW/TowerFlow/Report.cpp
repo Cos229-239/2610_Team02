@@ -97,12 +97,15 @@ std::string inventoryListValue(const Inventory& inventory) {
     return value.str();
 }
 
-bool exportDashboard(const Inventory& inventory, const std::filesystem::path& destination) {
+bool exportDashboard(const Inventory& inventory, const std::filesystem::path& destination,
+    std::string_view businessName) {
     return writeFileAtomically(destination, FileWriteMode::Create, [&](std::ostream& out) {
         const auto generatedAt = std::chrono::floor<std::chrono::seconds>(
             std::chrono::system_clock::now()).time_since_epoch().count();
 
-        out << dashboard::start << "{\"generatedAt\":" << generatedAt << ",\"products\":[";
+        out << dashboard::start << "{\"generatedAt\":" << generatedAt << ",\"business\":";
+        jsonString(out, businessName);
+        out << ",\"products\":[";
         writeProducts(out, inventory);
         out << "],\"movements\":[";
         writeMovements(out, inventory);
