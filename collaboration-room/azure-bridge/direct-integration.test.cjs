@@ -2,12 +2,24 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {parsePrompt,transform,sha,makeDirect}=require('./direct-integration.cjs');
 const {SOURCE_AREAS,sourceLine,areaFor}=require('./source-navigation.cjs');
+const fs=require('node:fs'),path=require('node:path');
 const old='<h1>Your money. <span>In motion.</span></h1>';
 test('explicit source registry covers every app area with known anchors',()=>{
   for(const key of ['ui','dashboard','markets','watchlist','portfolio','holdings','trading','analytics','charts','settings','backend','room'])assert.ok(areaFor(key).file);
   assert.throws(()=>areaFor('../secrets'),/Unknown source/);
   assert.equal(sourceLine('x\nfunction marketTick(){\n','markets'),2);
   assert.throws(()=>sourceLine('function marketTickMissing(){}','markets'),/Source anchor missing/);
+});
+test('all navigation targets still exist in the checked-out repository at their anchors',()=>{
+  const root=path.resolve(__dirname,'../..');
+  for(const [area,entry] of Object.entries(SOURCE_AREAS)){
+    const filename=path.resolve(root,entry.file);
+    assert.ok(fs.existsSync(filename),'Missing source file for '+area+': '+entry.file);
+    const text=fs.readFileSync(filename,'utf8');
+    const line=sourceLine(text,area);
+    assert.ok(line>=1,'Unresolved anchor for '+area);
+    assert.equal(entry.file.startsWith('..'),false);
+  }
 });
 test('prompt interpretation is restricted, refuses arbitrary code, and escapes HTML',()=>{
   assert.deepEqual(parsePrompt('Change the dashboard headline to TowerFlow Command Center.'),{headline:'TowerFlow Command Center'});
