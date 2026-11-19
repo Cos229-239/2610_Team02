@@ -83,37 +83,6 @@ function mount(){
   const notice=make('p','No files have been committed, merged or published.');
   details.append(before,after,proof,frame,submit,notice);
   right.append(generate,resultStatus,details);
-  const aiBox=make('section',undefined,'tf-ai-planner');
-  aiBox.append(make('h4','Analyze any change with my local AI'),
-    make('p','Free-first Gemini CLI planning. Read-only: it inspects the selected component and suggests a patch, but cannot silently modify files or the running room.'));
-  const aiAreaLabel=make('label','Where should the AI look?');
-  const aiArea=make('select');aiArea.setAttribute('aria-label','AI source area');
-  for(const [id,label] of [['dashboard','Dashboard'],['ui','UI / Interface'],['markets','Markets'],['watchlist','Watchlist'],['portfolio','Portfolio'],['holdings','Holdings'],['trading','Trading'],['analytics','Analytics'],['charts','Charts'],['settings','Settings'],['backend','Backend / API'],['room','Collaboration Room']]){
-    aiArea.add(new Option(label,id));
-  }
-  aiAreaLabel.append(aiArea);
-  const analyze=make('button','Analyze with my local AI');analyze.type='button';
-  const aiStatus=make('p','Connect the companion on this PC and install Gemini CLI to enable AI analysis.');
-  aiStatus.setAttribute('role','status');
-  const aiResult=make('pre');aiResult.hidden=true;aiResult.className='tf-ai-plan-output';
-  aiBox.append(aiAreaLabel,analyze,aiStatus,aiResult);
-  right.append(aiBox);
-  analyze.onclick=async()=>{
-    if(typeof window.tfLocalAIPlan!=='function'){aiStatus.textContent='No local AI companion is available. Connect it in your development workspace below.';return;}
-    const prompt=input.value.trim();
-    if(prompt.length<8){aiStatus.textContent='Describe the change above first (at least eight characters).';return;}
-    analyze.disabled=true;aiResult.hidden=true;aiStatus.textContent='Inspecting source and preparing a read-only plan…';
-    try{
-      const result=await window.tfLocalAIPlan(aiArea.value,prompt);
-      if(result.mode!=='read-only-plan'||result.codeModified!==false)throw Error('Unexpected agent permissions or result; no plan accepted.');
-      aiResult.textContent=result.plan+(result.truncated?'\n[Output truncated.]':'')+
-        '\n\nSource: '+result.source+' (line '+result.line+')'+
-        '\nStatus: PLANNED ONLY · No code edits, tests, pull requests or deployments.';
-      aiResult.hidden=false;aiStatus.textContent='AI plan generated. Review it, then use VS Code to implement and test changes.';
-    }catch(error){aiStatus.textContent='AI analysis unavailable: '+error.message;}
-    finally{analyze.disabled=false;}
-  };
-
   let planned=null,busy=false;
   generate.onclick=async()=>{
     if(busy)return;
