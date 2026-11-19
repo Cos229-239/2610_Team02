@@ -49,7 +49,7 @@ function fetchText(url,{timeout=4000}={}){
   const lib=u.protocol==='https:'?https:http;
   const req=lib.get(u,{timeout,headers:{'Cache-Control':'no-cache'}},res=>{
     const chunks=[];let bytes=0;
-    res.on('data',chunk=>{bytes+=chunk.length;if(bytes<=256000)chunks.push(chunk);else req.destroy(Error('Response exceeds 256k'));});
+    res.on('data',chunk=>{bytes+=chunk.length;if(bytes<=2*1024*1024)chunks.push(chunk);else req.destroy(Error('Response exceeds 2 MiB'));});
     res.on('end',()=>resolve({status:res.statusCode,text:Buffer.concat(chunks).toString('utf8')}));
   });
   req.on('error',reject);req.on('timeout',()=>req.destroy(Error('Timeout')));
