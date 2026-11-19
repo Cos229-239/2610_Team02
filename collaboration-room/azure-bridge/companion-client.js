@@ -99,6 +99,15 @@
         const result=await call('/open-target',{login,project:'integration',area});
         return result.target;
     };
+    window.tfLocalAIPlan=async (area,prompt)=>{
+        if(!token)throw Error('Pair your local companion before using an AI agent.');
+        const {login}=current();
+        const capabilities=await call('/ai-capabilities');
+        if(!capabilities.ai?.available)throw Error('Gemini CLI not installed or configured on this computer.');
+        if(capabilities.ai.mode!=='read-only-plan')throw Error('Unexpected AI permission mode; operation blocked.');
+        const result=await call('/ai-plan',{login,project:'integration',area,prompt});
+        return result.ai;
+    };
     open.onclick=()=>perform('open');
     refresh.onclick=()=>perform('status');
     review.onclick=async()=>{try{const result=await call('/diff',current());diff.textContent=(result.review.patch||'No tracked source changes to display.')+(result.review.truncated?'\n[Diff shortened at 32 KiB.]':'')+'\n'+result.review.note;diff.hidden=false;state.textContent='Read-only local diff loaded. Nothing has been committed or pushed.';}catch(err){state.textContent='Cannot review: '+err.message;}};
