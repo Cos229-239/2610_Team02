@@ -38,9 +38,9 @@ function mount(){
     el('strong','Open & edit TowerFlow'),
     el('span','Dashboard, Markets, Portfolio, UI, and more — jump to the correct code.'),
     el('span','CHOOSE COMPONENT  →','tf-dev-choice-cta'));
-  prompt.append(el('span','OPTION 02  /  QUICK CHANGE','tf-dev-choice-kicker'),
+  prompt.append(el('span','OPTION 02  /  REAL EDITS + PREVIEW','tf-dev-choice-kicker'),
     el('strong','Describe a change'),
-    el('span','Preview a supported update in the actual app before submitting it.'),
+    el('span','Change dashboard text, titles, backgrounds or accent colors. See the actual result before submitting.'),
     el('span','OPEN CHANGE BUILDER  →','tf-dev-choice-cta'));
   choices.append(source,prompt);center.append(choices);
   const section=el('div',undefined,'tf-dev-main');
@@ -125,20 +125,26 @@ function mount(){
   const changeTitle=el('h3','Describe the result you want','tf-dev-section-title');changeTitle.tabIndex=-1;
   const changeSub=el('p','Changes are prepared in a separate preview. Nothing is applied to the shared live room or dev automatically.');
   const supported=el('div',undefined,'tf-dev-scope');
-  supported.append(el('strong','AVAILABLE NOW  ·  Dashboard headline'),
-    el('p','You can rename the main dashboard headline. Other natural-language code edits are not enabled yet; the app will tell you when a request is unsupported.'));
+  supported.append(el('strong','AVAILABLE NOW  ·  5 SOURCE-VERIFIED CHANGES'),
+    el('p','Dashboard headline, dashboard description, holdings title, app background color, and accent color. The system edits verified HTML/CSS and previews the actual files. General-purpose AI coding is not connected.'));
   const examples=el('div',undefined,'tf-dev-examples');
   examples.append(el('span','TRY AN EXAMPLE:'));
   const textLabel=el('label','Your change request');
-  const input=el('textarea');input.rows=3;input.maxLength=240;input.placeholder='Change the dashboard headline to TowerFlow Command Center.';
+  const input=el('textarea');input.rows=3;input.maxLength=240;input.placeholder='Change dashboard background to magenta';
   textLabel.append(input);
-  for(const example of ['Change the dashboard headline to TowerFlow Command Center.','Change the dashboard headline to My Investment Dashboard.']){
-    const b=el('button',example.replace('Change the dashboard headline to ','').replace(/\.$/,''),'tf-dev-example');
+  for(const [name,example] of [
+    ['Dashboard title','Change the dashboard headline to TowerFlow Command Center.'],
+    ['Background: magenta','Change dashboard background to magenta'],
+    ['Accent: blue','Change app accent color to blue'],
+    ['Subtitle','Change dashboard subtitle to Your investments at a glance'],
+    ['Holdings title','Rename holdings title to My Assets']
+  ]){
+    const b=el('button',name,'tf-dev-example');
     b.type='button';b.onclick=()=>{input.value=example;input.focus();};examples.append(b);
   }
   const generate=el('button','GENERATE PREVIEW  →','tf-dev-primary');
   generate.type='button';
-  const changeMessage=el('p','Choose an example or describe your own headline.','tf-dev-status');
+  const changeMessage=el('p','Choose a working example or describe one of the five supported changes.','tf-dev-status');
   changeMessage.setAttribute('role','status');changeMessage.setAttribute('aria-live','polite');
   const process=el('div',undefined,'tf-dev-process');
   process.append(el('span','1  Describe'),el('span','2  Preview'),el('span','3  Review'),el('span','4  Submit draft PR'));
@@ -168,7 +174,7 @@ function mount(){
         el('small','Verified source: '+result.file+' · dev revision '+result.revision.slice(0,10)+' · Not published'));
       frame.src=result.previewUrl;review.hidden=false;submit.disabled=false;
       changeMessage.textContent='Preview ready. Interact with the app below; submit only when the result is correct.';
-    }catch(error){changeMessage.textContent='Cannot generate this change: '+error.message;}
+    }catch(error){changeMessage.textContent='Change not generated: '+error.message+' Your other work is unchanged.';}
     finally{busy=false;generate.disabled=false;}
   };
   submit.onclick=async()=>{
