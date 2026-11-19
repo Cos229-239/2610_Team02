@@ -131,8 +131,67 @@ async function openSource(login,area){
     await launchProcess(editor,['--new-window',prepared.dir,'--goto',target.fullPath+':'+target.line]);
     return {area,file:target.file,line:target.line,editor:'VS Code',launched:true,verifiedDebugSession:false,workspace:prepared.branch};
 }
+
+// Real, local IDE launch adapter. The browser cannot start native processes remotely.
+// Never accept a browser-supplied executable name, filesystem path or process args.
+const IDE_NAMES=Object.freeze(['vscode','vscommunity','cursor','antigravity']);
+function localIDEPaths(env=process.env){
+  const local=env.LOCALAPPDATA||'',pf=env.ProgramFiles||'',pf86=env['ProgramFiles(x86)']||'';
+  return {
+    vscode:[local&&path.join(local,'Programs','Microsoft VS Code','Code.exe'),pf&&path.join(pf,'Microsoft VS Code','Code.exe')],
+    cursor:[local&&path.join(local,'Programs','cursor','Cursor.exe'),local&&path.join(local,'Programs','Cursor','Cursor.exe'),pf&&path.join(pf,'Cursor','Cursor.exe')],
+    antigravity:[local&&path.join(local,'Programs','Antigravity','Antigravity.exe'),local&&path.join(local,'Programs','Google Antigravity','Antigravity.exe'),pf&&path.join(pf,'Google Antigravity','Antigravity.exe')],
+    vscommunity:[pf86&&path.join(pf86,'Microsoft Visual Studio','Installer','vswhere.exe')]
+  };
+}
+function installedIDEs(paths=localIDEPaths(),exists=fs.existsSync){
+  return Object.fromEntries(IDE_NAMES.map(name=>[
+    name,{id:name,label:({vscode:'Visual Studio Code',vscommunity:'Visual Studio Community',
+      cursor:'Cursor',antigravity:'Google Antigravity'})[name],
+      available:(paths[name]||[]).some(p=>p&&exists(p)),
+      status:'Detected local executable only; launch and debugger must be verified separately.'}
+  ]));
+}
+async function openIDE(login,ide,area,{prepareWorkspace=prepare,launcher=launchProcess,paths=localIDEPaths(),exists=fs.existsSync,execNative=exec}={}){
+  if(!IDE_NAMES.includes(ide))throw Error('Unknown IDE; choose one of the four supported workstations.');
+  if(process.platform!=='win32')throw Error('Desktop IDE launch needs a Windows contributor computer.');
+  // Use the contributor's isolated branch; never open or change the host's checkout.
+  const selected=ide==='vscommunity'&&area==='native'?'portfolio':'integration';
+  const prepared=await prepareWorkspace(login,selected);
+  let target=null;
+  if(area!=='native')target=await sourceTarget(prepared.dir,area);
+  if(area==='native'&&ide!=='vscommunity')throw Error('Select the Visual Studio Community workstation for native solutions.');
+  let executable=(paths[ide]||[]).find(p=>p&&exists(p));
+  if(!executable)throw Error(({vscode:'VS Code',cursor:'Cursor IDE',antigravity:'Google Antigravity IDE',
+    vscommunity:'Visual Studio Community'})[ide]+' is not installed or not detectable on this PC.');
+  let args;
+  if(ide==='vscommunity'){
+    const vswhere=executable;
+    const {stdout}=await execNative(vswhere,['-latest','-products','*','-requires',
+      'Microsoft.VisualStudio.Component.CoreEditor','-property','productPath'],
+      {windowsHide:true,timeout:15000});
+    executable=stdout.trim();
+    if(!executable||!exists(executable))throw Error('Visual Studio Community installation not found by vswhere.');
+    args=area==='native'?[prepared.entry]:['/Edit',target.fullPath];
+  }else if(ide==='cursor'){
+    // Cursor's classic editor mode avoids routing the path to an agent-only window.
+    args=['--classic','--new-window',prepared.dir];
+  }else{
+    // Antigravity's documented UI supports Open Folder; the desktop executable
+    // is launched with a selected checkout, never with model/CLI flags.
+    args=[prepared.dir];
+  }
+  const pid=await launcher(executable,args);
+  return {id:ide,label:installedIDEs(paths,exists)[ide].label,launched:true,
+    processId:Number.isInteger(pid)?pid:null,project:selected,
+    workspaceBranch:prepared.branch,area,source:target?.file||prepared.entry,
+    line:target?.line||null,debuggerVerified:false,openedSymbolVerified:false,
+    note:'Local IDE process spawn observed; verify the project, source location and debugger in the IDE.'};
+}
+
 function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('hex'),prepareWorkspace=prepare,
-    getStatus=status,getDiff=diff,launch=startEditor,openTarget=openSource}={}) {
+    getStatus=status,getDiff=diff,launch=startEditor,openTarget=openSource,
+    listIDEs=installedIDEs,launchIDE=openIDE}={}) {
     if (!acceptableOrigin(origin)) throw Error('Supply an exact HTTPS TowerFlow origin using --origin=https://your-room-host');
     if (!loginPattern.test(allowedLogin||'')) throw Error('Supply your GitHub username using --login=your-user');
     const fail=(res,code,msg)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store'});
@@ -150,13 +209,18 @@ function makeBridge({origin,allowedLogin,token=crypto.randomBytes(24).toString('
         if(req.headers.authorization!=='Bearer '+token) return fail(res,401,'Pairing token required');
         const reply=value=>{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,...value}));};
         try {
-            if(req.method==='GET'&&req.url==='/health') return reply({version:1,capabilities:['prepare','open','status','diff','open-target']});
-            if(req.method!=='POST'||!['/status','/open','/diff','/open-target'].includes(req.url)) return fail(res,404,'Unknown action');
+            if(req.method==='GET'&&req.url==='/health') return reply({version:1,capabilities:['prepare','open','status','diff','open-target','ide-capabilities','launch-ide']});
+            if(req.method==='GET'&&req.url==='/ide-capabilities')return reply({ides:listIDEs(),location:'this computer',verifiedDebugger:false});
+            if(req.method!=='POST'||!['/status','/open','/diff','/open-target','/launch-ide'].includes(req.url)) return fail(res,404,'Unknown action');
             if(!String(req.headers['content-type']||'').startsWith('application/json')) return fail(res,415,'JSON required');
             let body='';for await(const chunk of req) {body+=chunk; if(Buffer.byteLength(body)>maxBytes)return fail(res,413,'Request too large');}
             const input=JSON.parse(body),{login,project}=input;
             if (typeof login!=='string'||login.toLowerCase()!==allowedLogin.toLowerCase()) return fail(res,403,'This companion belongs to another GitHub account.');
             workspace(login,project); // Validate before accessing the filesystem.
+            if(req.url==='/launch-ide'){
+                if(project!=='integration')return fail(res,403,'Use your verified TowerFlow development workspace.');
+                return reply({ide:await launchIDE(login,input.ide,input.area)});
+            }
             if(req.url==='/open-target')return reply({target:await openTarget(login,input.area)});
             if(req.url==='/status')return reply({workspace:await getStatus(login,project)});
             if(req.url==='/diff')return reply({review:await getDiff(login,project)});
@@ -181,4 +245,4 @@ async function main() {
     });
 }
 if(require.main===module)main().catch(e=>{console.error(e.message);process.exitCode=1;});
-module.exports={makeBridge,workspace,projectEntry,acceptableOrigin,folderRef,prepare,status,diff,openSource};
+module.exports={makeBridge,workspace,projectEntry,acceptableOrigin,folderRef,prepare,status,diff,openSource,openIDE,localIDEPaths,installedIDEs,IDE_NAMES};
