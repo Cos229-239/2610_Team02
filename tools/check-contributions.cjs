@@ -1,0 +1,10 @@
+'use strict';
+const path = require('node:path');
+const {execFileSync} = require('node:child_process');
+const root = path.resolve(__dirname, '..');
+const tracked = execFileSync('git', ['ls-files','-z'], {cwd:root,encoding:'utf8'}).split('\0').filter(Boolean);
+const scripts = tracked.filter(file => /\.(?:js|cjs|mjs)$/.test(file));
+for (const file of scripts) execFileSync(process.execPath, ['--check',path.join(root,file)], {stdio:'inherit'});
+const tests = tracked.filter(file => /\.test\.(?:cjs|mjs|js)$/.test(file));
+if (tests.length) execFileSync(process.execPath, ['--test',...tests], {cwd:root,stdio:'inherit'});
+console.log('Contribution checks passed: '+scripts.length+' JavaScript files, '+tests.length+' test files.');
