@@ -104,6 +104,7 @@ function display(station){
      if(output?.id!==conf.id||output?.launched!==true)throw Error('The companion did not confirm the process launch.');
      evidence.textContent='Launch observed: '+output.label+' · Personal branch: '+output.workspaceBranch+
        ' · Source: '+output.source+(output.line?' · Reference line '+output.line:'')+
+       (typeof output.sourceSha256==='string'?' · SHA-256 '+output.sourceSha256.slice(0,12):'')+
        '. Debugger and loaded source must be verified in the desktop IDE.';
      void refresh();
    }catch(error){
