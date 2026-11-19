@@ -15,9 +15,9 @@ const DESIGNS=Object.freeze([
  {kind:'holdingsTitle',area:'portfolio',file:'TowerFlow/index.html',label:'Holdings section title',
   pattern:/<h2>Holdings<\/h2>/g,output:value=>'<h2>'+escapeHtml(value)+'</h2>',max:55},
  {kind:'accent',area:'ui',file:'TowerFlow/styles.css',label:'Application accent color',
-  pattern:/--accent:#[0-9a-fA-F]{3,8}(?=;)/g,output:value=>'--accent:'+value,color:true},
+  pattern:/:root\{[^}]*?--accent:#[0-9a-fA-F]{3,8}(?=;)/g,output:(value,before)=>before.replace(/--accent:#[0-9a-fA-F]{3,8}$/, '--accent:'+value),color:true},
  {kind:'background',area:'ui',file:'TowerFlow/styles.css',label:'Application background color',
-  pattern:/--bg:#[0-9a-fA-F]{3,8}(?=;)/g,output:value=>'--bg:'+value,color:true}
+  pattern:/:root\{[^}]*?--bg:#[0-9a-fA-F]{3,8}(?=;)/g,output:(value,before)=>before.replace(/--bg:#[0-9a-fA-F]{3,8}$/, '--bg:'+value),color:true}
 ]);
 function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function parsePrompt(raw){
@@ -47,7 +47,7 @@ function transform(bytes,idea){
   if(matches.length!==1)throw Error(d.label+' source anchor changed. No files modified.');
   const value=idea.value??idea.headline;
   if(typeof value!=='string')throw Error('Invalid change data.');
-  const after=d.output(value);
+  const after=d.output(value,matches[0][0]);
   if(matches[0][0]===after)throw Error('Requested change is already present.');
   return Buffer.from(original.replace(d.pattern,()=>after),'utf8');
 }
@@ -78,7 +78,7 @@ function makeDirect({preview,now=Date.now,read=fetch,nonce=()=>crypto.randomByte
     plans.set(key,{key,owner,idea,file:d.file,sourceName:name,revision:base.revision,sourceSha:source.sha,bytes,baseKey,
       expires:now()+15*60000,writing:false,submitted:null});
     return {key,revision:base.revision,area:d.area,file:d.file,
-      before:before.replace(/<[^>]+>/g,''),after:idea.value,
+      before:d.color?(before.match(/--(?:bg|accent):#[a-f\d]{3,8}$/i)?.[0]||'current theme value'):before.replace(/<[^>]+>/g,''),after:idea.value,
       previewUrl:PREFIX+key+'/index.html',expiresAt:new Date(now()+15*60000).toISOString()};
   }
   async function submit({key,token,owner,login}){
