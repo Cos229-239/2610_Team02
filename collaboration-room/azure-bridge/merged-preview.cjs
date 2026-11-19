@@ -53,7 +53,10 @@ function mergedPreview(read=fetch, clock=Date.now) {
                 await checking;
             }
             active.until=clock()+30*60000;
-            return {revision:active.sha,url:prefix+active.key+'/index.html'};
+            const base=prefix+active.key+'/';
+            const demos=[...active.files.keys()].filter(name=>/^demos\/[^/]+\.(?:jpe?g|png|webp)$/i.test(name)).sort()
+                .map(name=>({name:name.slice('demos/'.length),url:base+name.split('/').map(encodeURIComponent).join('/')}));
+            return {revision:active.sha,url:base+'index.html',demos};
         },
         file(key,name) {
             const build=builds.get(key);

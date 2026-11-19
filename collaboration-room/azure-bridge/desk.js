@@ -39,13 +39,14 @@
         const section = document.createElement('section');
         section.className = 'tf-azure-loadout tf-team-updates';
         section.innerHTML = `<h3>What changed on dev?</h3><p>Everyone in the room sees the same team history. Open a change to see the exact files.</p>
-            <div class="row wrap"><button data-try-dev>Try merged web app</button><button data-demo>Live debug demo</button><a href="${repo}/commits/dev/" target="_blank" rel="noopener noreferrer">Full dev history</a>
+            <div class="row wrap"><button data-try-dev>Try merged web app</button><button data-demo>Live debug demo</button><button data-saved>Saved demos</button><a href="${repo}/commits/dev/" target="_blank" rel="noopener noreferrer">Full dev history</a>
             <a href="${repo}/pulls?q=is%3Apr+is%3Amerged+base%3Adev" target="_blank" rel="noopener noreferrer">Merged pull requests and test notes</a>
             <button type="button" data-my-desk>My workspace</button></div>
             <p data-update-status role="status">Loading team changes…</p><ol data-updates-list></ol>`;
         content.replaceChildren(section);
         section.querySelector('[data-try-dev]').onclick=studio.openPreview;
         section.querySelector('[data-demo]').onclick=studio.openDemo;
+        section.querySelector('[data-saved]').onclick=()=>studio.openPreview(true);
         section.querySelector('[data-my-desk]').onclick = () => button.click();
         const status = section.querySelector('[data-update-status]'), list = section.querySelector('ol');
         let signature;

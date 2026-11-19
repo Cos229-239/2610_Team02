@@ -45,6 +45,7 @@ window.tfStudio = function studio({show,back}) {
                     }
                     const res=await post('frame',{id,image});
                     if (!res.ok) throw Error();
+                    s.lastImage=image;
                     if (sharing===s) s.timer=setTimeout(send,1100);
                 } catch { if (sharing===s) {stop();status.textContent='The room lost the feed. Choose your window to share again.';} }
             }
@@ -54,12 +55,31 @@ window.tfStudio = function studio({show,back}) {
             status.textContent=error.name==='NotAllowedError'?'Window sharing was cancelled or blocked.':error.message;
         } finally {starting=false;}
     }
+    async function saveImage(status) {
+        const image=sharing?.lastImage;
+        if (!image) return;
+        try {
+            let file;
+            if (window.showSaveFilePicker) file=await window.showSaveFilePicker({suggestedName:'feature-demo.jpg',
+                types:[{description:'JPEG demo image',accept:{'image/jpeg':['.jpg']}}]});
+            if (file) {
+                const data=await (await fetch(image)).blob();
+                const stream=await file.createWritable();await stream.write(data);await stream.close();
+            } else {
+                const a=document.createElement('a');a.href=image;a.download='feature-demo.jpg';a.click();
+            }
+            status.textContent='Include the image under TowerFlow/demos in your feature commit. After merge, everyone can open Saved demos.';
+        } catch(error) { status.textContent=error.name==='AbortError'?'Save cancelled.':'Could not save the image. Try again.'; }
+    }
     function openDemo() {
         const page=show('LIVE DEBUG DEMO');
-        page.innerHTML='<div class="row wrap"><button type="button" data-back>Back to my desk</button><button type="button" data-share>Share my debug window</button></div><p>Choose your running app or IDE window. Room members can watch while you keep control. Only the latest frame is held in memory.</p><p role="status" data-action></p><p data-presenter></p><img class="tf-demo-image" hidden alt="Selected window from the presenting teammate">';
+        page.innerHTML='<div class="row wrap"><button type="button" data-back>Back to my desk</button><button type="button" data-share>Share my debug window</button><button type="button" data-save hidden>Save a demo image…</button><button type="button" data-saved>Saved demos</button></div><p>Choose your running app or IDE window. Room members can watch while you keep control. Only the latest frame is held in memory.</p><p role="status" data-action></p><p data-presenter></p><img class="tf-demo-image" hidden alt="Selected window from the presenting teammate">';
         page.querySelector('[data-back]').onclick=back;
         const action=page.querySelector('[data-action]'), label=page.querySelector('[data-presenter]'), image=page.querySelector('img'), button=page.querySelector('[data-share]');
         button.onclick=()=>share(action);
+        const save=page.querySelector('[data-save]');
+        save.onclick=()=>saveImage(action);save.title='Save in TowerFlow/demos inside your feature checkout and include it in the same commit.';
+        page.querySelector('[data-saved]').onclick=()=>openPreview(true);
         let version='';
         async function poll() {
             if (!page.isConnected || document.getElementById('panel').hidden) return;
@@ -72,21 +92,38 @@ window.tfStudio = function studio({show,back}) {
                 if (current?.image) {image.src=current.image;image.hidden=false;}
                 version=current?.version || '';
             } catch {version='';image.hidden=true;image.removeAttribute('src');label.textContent='Demo unavailable. Reconnecting…';}
+            save.hidden=!sharing?.lastImage;
             button.textContent=sharing?'Stop sharing my window':'Share my debug window';
             if (page.isConnected && !document.getElementById('panel').hidden) setTimeout(poll,1250);
         }
         poll();
     }
-    async function openPreview() {
-        const page=show('MERGED WEB APP');
+    async function openPreview(gallery=false) {
+        gallery=gallery===true;
+        const page=show(gallery?'SAVED FEATURE DEMOS':'MERGED WEB APP');
         page.innerHTML='<div class="row wrap"><button type="button" data-back>Back to my desk</button><button type="button" data-reload>Check latest dev</button></div><p role="status">Loading the merged web app…</p>';
-        page.querySelector('[data-back]').onclick=back;page.querySelector('[data-reload]').onclick=openPreview;
+        page.querySelector('[data-back]').onclick=back;page.querySelector('[data-reload]').onclick=()=>openPreview(gallery);
         const status=page.querySelector('p');
         try {
             const response=await fetch(root+'merged-preview',{cache:'no-store'});
             if (!response.ok) throw Error();
-            const {url,revision}=await response.json();
+            const {url,revision,demos=[]}=await response.json();
             if (!/^\/api\/azure-bridge\/preview-files\/[a-f0-9]{48}\/index\.html$/.test(url) || !/^[a-f0-9]{40}$/.test(revision)) throw Error();
+            if (gallery) {
+                if (!demos.length) {
+                    status.textContent='No demo images on dev yet. Save a debug window image in TowerFlow/demos and include it with your feature.';
+                    return;
+                }
+                const select=document.createElement('select'),label=document.createElement('label'),image=document.createElement('img');
+                const base=url.slice(0,-'index.html'.length)+'demos/';
+                for (const demo of demos) {
+                    if (demo.url===base+encodeURIComponent(demo.name) && !demo.name.includes('/')) select.add(new Option(demo.name,demo.url));
+                }
+                image.className='tf-demo-image';
+                select.onchange=()=>{image.src=select.value;image.alt=select.selectedOptions[0].textContent;};
+                label.append('Feature image ',select);page.append(label,image);select.onchange();
+                status.textContent='Demo images included in team dev · '+revision.slice(0,8);return;
+            }
             const frame=document.createElement('iframe');
             frame.className='tf-merged-app';frame.title='Interactive app from shared dev';frame.setAttribute('sandbox','allow-scripts allow-forms allow-downloads');
             frame.referrerPolicy='no-referrer';frame.src=url;

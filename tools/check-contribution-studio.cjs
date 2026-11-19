@@ -15,17 +15,23 @@ const {projects}=require('../collaboration-room/azure-bridge/loadouts.cjs');
 const root=path.resolve(__dirname,'..');
 
 async function previewFixture() {
-    const entries=[],data=new Map(),revision='f'.repeat(40),tree='a'.repeat(40);
+    const entries=[],data=new Map(),tree='a'.repeat(40);
+    let revision='f'.repeat(40),now=0;
     for (const name of ['index.html','styles.css','app.js']) {
         const bytes=await fs.readFile(path.join(root,'TowerFlow',name));
         const sha=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
         entries.push({type:'blob',mode:'100644',path:'TowerFlow/'+name,size:bytes.length,sha});data.set(sha,bytes);
     }
-    return mergedPreview(async url=>{
+    const preview=mergedPreview(async url=>{
         const last=url.split('/').pop();
         const value=url.includes('/git/blobs/')?{content:data.get(last).toString('base64')}:last==='dev'?{sha:revision,commit:{tree:{sha:tree}}}:{tree:entries};
         return {ok:true,json:async()=>value};
-    });
+    },()=>now);
+    return {preview,includeDemo(bytes) {
+        const sha=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
+        entries.push({type:'blob',mode:'100644',path:'TowerFlow/demos/stock-check.jpg',size:bytes.length,sha});
+        data.set(sha,bytes);revision='b'.repeat(40);now+=31000;
+    }};
 }
 
 async function main() {
@@ -46,7 +52,8 @@ async function main() {
         app.get('/api/azure-bridge/loadout',auth,(req,res)=>res.json({name:req.sessionID,login:req.sessionID,defaultProject:'integration',projects,available:true}));
         await fs.copyFile(path.join(root,'collaboration-room/live-room/public/index.html'),path.join(dir,'index.html'));
         await fs.writeFile(path.join(dir,'room.js'),"document.getElementById('enterBtn').onclick=()=>{document.getElementById('hud').hidden=false;document.getElementById('welcome').hidden=true};");
-        mount(app,{auth,ensureMember:auth,publicOrigin:origin,publicDir:dir,preview:await previewFixture()});
+        const repo=await previewFixture();
+        mount(app,{auth,ensureMember:auth,publicOrigin:origin,publicDir:dir,preview:repo.preview});
         browser=await chromium.launch({executablePath:process.env.CHROME_BIN||'/usr/bin/google-chrome',headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
         const member=async name=>{
             const ctx=await browser.newContext();await ctx.addCookies([{name:'pilot',value:name,url:origin}]);
@@ -80,6 +87,7 @@ async function main() {
 
         // The window picker belongs to the OS. Supply a generated video track at that boundary.
         await presenter.evaluate(()=>{
+            window.showSaveFilePicker=async()=>({createWritable:async()=>({write:async blob=>{window.savedJpeg=Array.from(new Uint8Array(await blob.arrayBuffer()));},close:async()=>{}})});
             navigator.mediaDevices.getDisplayMedia=async()=>{
                 const canvas=document.createElement('canvas');canvas.width=100;canvas.height=60;
                 const ctx=canvas.getContext('2d');ctx.fillStyle='#12bb55';ctx.fillRect(0,0,100,60);
@@ -92,8 +100,15 @@ async function main() {
         await presenter.locator('[data-share]').click();
         await viewer.waitForFunction(()=>document.querySelector('img.tf-demo-image')?.naturalWidth>0);
         assert.match(await viewer.locator('[data-presenter]').textContent(),/William/);
+        await presenter.locator('[data-save]').click();
+        await presenter.waitForFunction(()=>window.savedJpeg?.length>0);
+        repo.includeDemo(Buffer.from(await presenter.evaluate(()=>window.savedJpeg)));
         await presenter.getByRole('button',{name:'Stop sharing my window'}).first().click();
         await viewer.waitForFunction(()=>document.querySelector('img.tf-demo-image')?.hidden && document.querySelector('[data-presenter]').textContent.includes('No teammate'));
+        await viewer.locator('[data-saved]').click();
+        await viewer.waitForFunction(()=>document.querySelector('img.tf-demo-image')?.naturalWidth>0);
+        assert.equal(await viewer.locator('.tf-demo-image').getAttribute('alt'),'stock-check.jpg');
+        console.log('The saved JPEG in the next fixture dev commit is viewable after the presenter stops.');
         console.log('Independent presenter and viewer sessions delivered, decoded and cleared a debugger-demo frame.');
     } finally {await browser?.close();server?.close();web.kill();await fs.rm(dir,{recursive:true,force:true});}
 }
