@@ -93,6 +93,12 @@
         }
     };
     disconnect.onclick=()=>{token='';pairing.value='';pairing.hidden=false;connect.hidden=false;disconnect.hidden=true;open.disabled=true;refresh.disabled=true;review.disabled=true;diff.hidden=true;diff.textContent='';files.replaceChildren();state.textContent='Disconnected; the local companion is still running on your PC.';};
+    window.tfLocalCompanionOpenTarget=async area=>{
+        if(!token)throw Error('Pair the local development companion below first.');
+        const {login}=current();
+        const result=await call('/open-target',{login,project:'integration',area});
+        return result.target;
+    };
     open.onclick=()=>perform('open');
     refresh.onclick=()=>perform('status');
     review.onclick=async()=>{try{const result=await call('/diff',current());diff.textContent=(result.review.patch||'No tracked source changes to display.')+(result.review.truncated?'\n[Diff shortened at 32 KiB.]':'')+'\n'+result.review.note;diff.hidden=false;state.textContent='Read-only local diff loaded. Nothing has been committed or pushed.';}catch(err){state.textContent='Cannot review: '+err.message;}};
