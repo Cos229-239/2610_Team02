@@ -5,6 +5,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const {mountDemo} = require('./debug-demo.cjs');
 const {mountPreview} = require('./merged-preview.cjs');
+const {mount: mountAppHub} = require('./app-hub.cjs');
 const {makeTeamUpdates} = require('./team-updates.cjs');
 const {makeLoadouts, publishedBranches} = require('./loadouts.cjs');
 const {quietEntry, memberEntry} = require('./quiet-entry.cjs');
@@ -30,7 +31,8 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     app.use(prefix, noCache);
     mountDemo(app,{auth,ensureMember,sameOrigin,now});
     mountPreview(app,{auth,ensureMember,publicOrigin},preview);
-    for (const file of ['studio.js','desk.js', 'loadout.js', 'loadout.css']) {
+    mountAppHub(app,{auth,ensureMember});
+    for (const file of ['studio.js','desk.js', 'loadout.js', 'app-hub.js', 'loadout.css']) {
         app.get('/azure-bridge/' + file, (req, res) => res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, file)));
     }
     // Reuse the host's OAuth state and callback. Only change the official authorization redirect.
@@ -91,7 +93,7 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
                     .replace(/<script\b[^>]*\bsrc=["']\/azure-bridge\/(?:desk|loadout|studio)\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script\s*>/gi, '')
                     .replace(/<link\b[^>]*\bhref=["']\/azure-bridge\/loadout\.css(?:\?[^"']*)?["'][^>]*>/gi, '')
                     .replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/azure-bridge/loadout.css">$&')
-                    .replace(/<\/body\s*>/i, '<script src="/azure-bridge/studio.js" defer></script><script src="/azure-bridge/loadout.js" defer></script><script src="/azure-bridge/desk.js" defer></script>$&')
+                    .replace(/<\/body\s*>/i, '<script src="/azure-bridge/studio.js" defer></script><script src="/azure-bridge/loadout.js" defer></script><script src="/azure-bridge/desk.js" defer></script><script src="/azure-bridge/app-hub.js" defer></script>$&')
             );
         } catch (error) { next(error); }
     });
