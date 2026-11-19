@@ -48,13 +48,14 @@ async function remoteExists(ref) {
         const {stdout} = await exec('git',['ls-remote','--heads',REPO,'refs/heads/'+ref],
             {windowsHide:true,timeout:20000});
         return Boolean(stdout.trim());
-    } catch (e) { throw Error('Cannot check GitHub. Check Git credentials/network. ' + e.message); }
+    } catch (e) { if (e.code===2) return false; throw Error('Cannot check GitHub. Check Git credentials/network. ' + e.message); }
 }
 async function prepare(login, project) {
     const dir = workspace(login,project), desired = folderRef(login,project);
     if (!(await exists(dir))) {
         await fs.promises.mkdir(path.dirname(dir),{recursive:true});
-        const start = await remoteExists(desired) ? desired : 'dev';
+        const base=projects[project].ref && projects[project].ref!=='dev' ? projects[project].ref : 'dev';
+        const start = await remoteExists(desired) ? desired : base;
         await exec('git',['clone','--branch',start,'--',REPO,dir],
             {windowsHide:true,timeout:120000,maxBuffer:1024*1024});
         if (start !== desired) await git(dir,'switch','-c',desired);
@@ -81,10 +82,16 @@ function locateVS() {
     const p=process.env['ProgramFiles(x86)'];
     return p && path.join(p,'Microsoft Visual Studio','Installer','vswhere.exe');
 }
+function launchProcess(binary,args) {
+    return new Promise((resolve,reject)=>{
+        const child=spawn(binary,args,{detached:true,stdio:'ignore',windowsHide:true});
+        child.once('error',reject);
+        child.once('spawn',()=>{child.unref();resolve(child.pid);});
+    });
+}
 async function startEditor(project, entry, dir) {
     if (project==='integration' || project==='shared') {
-        const child=spawn('code',[dir],{detached:true,stdio:'ignore',windowsHide:true});
-        child.on('error',()=>{}); child.unref();
+        const child=await launchProcess('code',[dir]);
         return {editor:'VS Code',launched:true,verifiedDebugSession:false};
     }
     if (process.platform!=='win32') throw Error('Native Visual Studio requires Windows.');
@@ -93,8 +100,7 @@ async function startEditor(project, entry, dir) {
     const {stdout}=await exec(vswhere,['-latest','-products','*','-requires','Microsoft.VisualStudio.Component.CoreEditor','-property','productPath'],{windowsHide:true,timeout:15000});
     const editor=stdout.trim();
     if (!editor || !(await exists(editor))) throw Error('Visual Studio IDE is unavailable. Install the project workload.');
-    const child=spawn(editor,[entry],{detached:true,stdio:'ignore',windowsHide:true});
-    child.on('error',()=>{}); child.unref();
+    await launchProcess(editor,[entry]);
     return {editor:'Visual Studio',launched:true,verifiedDebugSession:false};
 }
 function makeBridge({origin,token=crypto.randomBytes(24).toString('hex'),prepareWorkspace=prepare,
@@ -108,6 +114,7 @@ function makeBridge({origin,token=crypto.randomBytes(24).toString('hex'),prepare
         res.setHeader('Access-Control-Allow-Origin',origin);
         res.setHeader('Vary','Origin');
         res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
+        if(req.headers['access-control-request-private-network']==='true') res.setHeader('Access-Control-Allow-Private-Network','true');
         res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');
         res.setHeader('Cache-Control','no-store');
         if(req.method==='OPTIONS') {res.writeHead(204);return res.end();}
