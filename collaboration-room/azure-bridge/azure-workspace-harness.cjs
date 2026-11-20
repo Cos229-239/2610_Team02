@@ -53,12 +53,14 @@ function matchArea(prompt){
  return {area:score[0].id,candidates:score.map(x=>x.id),reason:null};
 }
 function planRequest(body,{now=Date.now}={}){
- const prompt=body?.prompt,editor=body?.editor;
+ const prompt=body?.prompt,editor=body?.editor,selectedArea=body?.area;
  if(typeof prompt!=='string'||prompt.trim().length<3||prompt.length>1800)
    throw Object.assign(Error('Describe a task using 3–1800 characters.'),{status:400});
  if(!Object.hasOwn(EDITORS,editor))
    throw Object.assign(Error('Select a supported desktop IDE.'),{status:400});
- const matched=matchArea(prompt);
+ if(selectedArea!==undefined&&(!Object.hasOwn(SOURCE_AREAS,selectedArea)||typeof selectedArea!=='string'))
+   throw Object.assign(Error('Unknown source target; select a registered component.'),{status:400});
+ const matched=selectedArea?{area:selectedArea,candidates:[selectedArea],reason:null}:matchArea(prompt);
  const kind=/\b(open|show|find|locate|navigate|inspect|read|view|debug|breakpoint)\b/i.test(prompt) &&
   !/\b(change|add|implement|build|fix|remove|update|refactor|create|integrate)\b/i.test(prompt)?
   'INSPECT_SOURCE':'PROPOSE_CHANGE';
@@ -69,6 +71,9 @@ function planRequest(body,{now=Date.now}={}){
   schema:'towerflow-azure-workspace-plan/v1',
   intentSha256:id,createdAt:new Date(now()).toISOString(),
   originalPrompt:prompt,mode:kind,
+  intake:{source:'USER_DIRECT',preserved:crypto.createHash('sha256').update(prompt).digest('hex'),
+    framework:{megan:'BOUNDED_PROPOSAL',laura:'PRESERVE_AND_GOVERN',pixi:'CONTEXT_AND_CAPABILITY_GATE'},
+    verifications:['Repository source proof','IDE availability','Debugger evidence','Changes preview','Team review']},
   state:confirmed?'READY_FOR_SOURCE_VERIFICATION':'NEEDS_TARGET_SELECTION',
   target:matched.area,choices:matched.candidates,
   editor,station:EDITORS[editor].station,
@@ -80,6 +85,7 @@ function planRequest(body,{now=Date.now}={}){
   next:'Verify the source in the signed-in GitHub account; then open it in the chosen PC IDE. A plan is not an edit.',
   constraints:['Private Laura, Pixi and Megan implementations are not copied into Team 02.',
    'No arbitrary shell, local filesystem write, auto-merge, or model-generated code execution.',
+   'Azure is an orchestrator using the authenticated room and member-owned IDE; without a compatible model it cannot invent general-purpose code.',
    'A separate AI web tab has no GitHub permissions from the TowerFlow browser.']
  };
 }
@@ -99,8 +105,20 @@ async function githubSourceProof(plan,token,{request}={}){
  const found=await get('/contents/'+file.split('/').map(encodeURIComponent).join('/')+'?ref=dev');
  if(found?.type!=='file'||!(/^[a-f0-9]{40}$/.test(found.sha||''))||found.path!==file)
    throw Error('Actual dev source is missing or does not match registry');
+ let referenceLine=null,contentSha256=null;
+ if(typeof found.content==='string'&&found.encoding==='base64'){
+   const raw=Buffer.from(found.content.replace(/\\s+/g,''),'base64');
+   if(raw.length>1024*1024)throw Error('Source content exceeds safe verification bound');
+   const code=raw.toString('utf8');
+   const anchor=SOURCE_AREAS[plan.target]?.anchor;
+   if(!anchor||code.indexOf(anchor)<0||
+     code.indexOf(anchor,code.indexOf(anchor)+anchor.length)>=0)
+     throw Error('Source anchor missing or ambiguous in actual GitHub file');
+   referenceLine=code.slice(0,code.indexOf(anchor)).split('\\n').length;
+   contentSha256=crypto.createHash('sha256').update(raw).digest('hex');
+ }
  return {status:'SOURCE_READ_VERIFIED',repo:REPO,branch:'dev',path:file,
-  blobSha:found.sha,editor:plan.editor,station:plan.station,
+  blobSha:found.sha,referenceLine,contentSha256,editor:plan.editor,station:plan.station,
   note:'Verified GitHub file existence and source revision with member credentials, NOT write permissions or model execution.'};
 }
 function mount(app,{auth,ensureMember,sameOrigin,verify=githubSourceProof,clock=Date.now,modelInventory=localInventory,modelPropose=localPropose}={}){
