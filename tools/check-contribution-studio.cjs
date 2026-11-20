@@ -186,6 +186,10 @@ async function main() {
                 const timer=setInterval(()=>ctx.fillRect(0,0,100,60),300);track.onended=()=>clearInterval(timer);return stream;
             };
         });
+        for(const page of [presenter,viewer]){
+            const details=page.locator('.tf-dev-legacy-details');
+            if(!(await details.evaluate(el=>el.open)))await details.locator(':scope > summary').click();
+        }
         await presenter.locator('[data-demo]').click();await viewer.locator('[data-demo]').click();
         await presenter.locator('[data-share]').click();
         await viewer.waitForFunction(()=>document.querySelector('img.tf-demo-image')?.naturalWidth>0);
