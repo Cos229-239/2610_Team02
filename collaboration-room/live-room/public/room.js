@@ -1798,6 +1798,7 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
       const btn=document.createElement("button");btn.type="button";btn.textContent=label;
       btn.onclick=run;actions.append(btn);return btn;
     };
+    // TF_DEV_BUSINESS_APP_ENTRY_V1_BEGIN
     makeButton("OPEN TOWERFLOW APP",()=>{
       const frame=document.createElement("iframe");
       frame.title="Actual TowerFlow Business Application";
@@ -1807,6 +1808,7 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
     });
     makeButton("WORLD SALES",()=>window.tfOpenWorldSalesPanel?.());
     makeButton("AZURE · AI",()=>window.tfOpenAzureAIConnect?.());
+    // TF_DEV_BUSINESS_APP_ENTRY_V1_END
     makeButton("CONTRIBUTE  →",()=>window.tfOpenMemberDesk?.());
     makeButton("APP INTEGRATIONS  →",()=>window.tfOpenAppIntegrationHub?.());
     makeButton("CONNECT MY AI  →",()=>{
