@@ -56,9 +56,10 @@ test('integration changes only five scoped host files; old Azure UI is never ove
   const originalCustom=fs.readFileSync(custom);
   const originalServer=fs.readFileSync(path.join(host,'server.js'));
   const changes=makePlan(host);
-  assert.equal(changes.length,7);
+  assert.equal(changes.length,8);
   assert.deepEqual(changes.map(c=>path.relative(host,c.file)).sort(),[
     'azure-bridge/azure-workspace-harness.cjs','azure-bridge/azure-workspace-harness.js',
+    'azure-bridge/azure-local-reasoner.cjs',
     'azure-bridge/business-signals.cjs','azure-bridge/server.cjs',
     'azure-bridge/team-stations.cjs','azure-bridge/team-stations.js','public/room.js'
   ]);
