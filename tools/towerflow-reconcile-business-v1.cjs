@@ -75,6 +75,8 @@ function integrateScene(current,reviewed){
  return result;
 }
 function integrateServer(current){
+ const newline=current.includes('\r\n')?'\r\n':'\n';
+ current=current.replace(/\r\n/g,'\n');
  const steps=[];
  const include=(anchor,insert,label)=>{
   if(current.includes(insert))return;
@@ -105,7 +107,7 @@ function integrateServer(current){
  include('<script src="/azure-bridge/ide-workstations.js" defer></script>',
    '<script src="/azure-bridge/team-stations.js" defer></script>',
    'team public page script');
- return current;
+ return newline==='\r\n'?current.replace(/\n/g,'\r\n'):current;
 }
 function makePlan(host){
  if(!path.isAbsolute(host)||!fs.existsSync(path.join(host,'server.js'))||
@@ -116,8 +118,10 @@ function makePlan(host){
  const beforeScene=read(scenePath),beforeBridge=read(bridgePath);
  if(!read(path.join(host,'server.js')).toString('utf8').includes("require('./azure-bridge/server.cjs').mount(app"))
    throw Error('Host Azure Bridge mount missing, no changes attempted.');
- const review=read(SRC_SCENE).toString('utf8');
- const scene=Buffer.from(integrateScene(beforeScene.toString('utf8'),review));
+ const sceneText=beforeScene.toString('utf8');
+ const eol=sceneText.includes('\r\n')?'\r\n':'\n';
+ const review=read(SRC_SCENE).toString('utf8').replace(/\r\n/g,'\n').replace(/\n/g,eol);
+ const scene=Buffer.from(integrateScene(sceneText,review));
  const bridge=Buffer.from(integrateServer(beforeBridge.toString('utf8')));
  const plans=[{file:scenePath,old:beforeScene,new:scene},{file:bridgePath,old:beforeBridge,new:bridge}];
  for(const name of EXTRA){
