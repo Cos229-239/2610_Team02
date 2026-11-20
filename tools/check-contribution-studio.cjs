@@ -134,7 +134,7 @@ async function main() {
         // Returning from the compact workflow keeps legacy tools collapsed by default.
         // Expand them deliberately before testing their preserved functions.
         const advanced=presenter.locator('.tf-dev-legacy-details');
-        if(!(await advanced.evaluate(el=>el.open)))await advanced.locator('summary').click();
+        if(!(await advanced.evaluate(el=>el.open)))await advanced.locator(':scope > summary').click();
         for (const key of ['interface','forms','portfolio','operations','reporting','integration','shared']) {
             await presenter.locator('[data-select]').selectOption(key);
             await presenter.locator('[data-windows]').click();
