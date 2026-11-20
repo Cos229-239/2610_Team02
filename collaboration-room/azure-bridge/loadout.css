@@ -191,7 +191,7 @@
 .tf-ai-azure-head { margin-bottom:.8rem; }
 .tf-ai-azure-head h2 { margin:.15rem 0 .35rem; font-size:clamp(1.15rem,2.5vw,1.55rem); }
 .tf-ai-azure-head > p { margin:.15rem 0 .7rem; }
-.tf-ai-azure .tf-ai-provider-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:.45rem; margin:.55rem 0 .65rem; }
+.tf-ai-azure .tf-ai-provider-grid { grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:.45rem; margin:.55rem 0 .65rem; }
 .tf-ai-azure .tf-ai-provider-card { padding:.55rem .65rem; min-height:60px; border-radius:7px; }
 .tf-ai-azure .tf-ai-provider-card strong { font-size:.95rem; }
 .tf-ai-azure .tf-ai-provider-card small { font-size:.7rem; }
@@ -212,6 +212,13 @@
 .tf-ai-azure .tf-ai-proof > p { margin:.25rem 0; font-size:.83rem; }
 .tf-ai-azure .tf-ai-proof input[type="number"] { width:140px; padding:.55rem; background:#101d2b; color:#fff; border:1px solid #617c91; border-radius:6px; }
 @media(max-width:680px) { .tf-ai-azure .tf-ai-provider-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
+.tf-dev-ide-station .tf-ide-related-files { display:flex; flex-wrap:wrap; gap:.35rem .8rem; border:1px solid #35586b; padding:.5rem; margin:.5rem 0; border-radius:6px; }
+.tf-dev-ide-station .tf-ide-related-files strong { flex:1 1 100%; font-size:.86rem; overflow-wrap:anywhere; }
+.tf-dev-ide-station .tf-ide-related-files a { font-size:.78rem; }
+.tf-dev-ide-station .tf-ide-debug-guide { margin:.4rem 0; padding:.5rem; border:1px solid #42627a; border-radius:6px; }
+.tf-dev-ide-station .tf-ide-debug-guide summary { cursor:pointer; font-weight:750; }
+.tf-dev-ide-station .tf-ide-debug-guide p { line-height:1.5; color:#c8deeb; }
 
 /* Actionable in-world IDE workstations: no change to the 3D room materials. */
 .tf-dev-ide-station { padding:clamp(.9rem,2vw,1.5rem); margin:.5rem 0; border:1px solid #5b849e; border-radius:12px; color:#ebfaff; background:linear-gradient(145deg,#0c1b2b,#14334a); }
