@@ -46,6 +46,7 @@ function makeHandoff({provider,area,request,identity}){
   'Create your OWN feature branch from origin/dev; never reset, force push, overwrite teammate changes or merge to dev without approval.',
   'Implement scoped changes, show the exact diff, run relevant validation and report actual pass/fail results.',
   'Open a DRAFT pull request to dev when permitted; do not auto-merge or deploy. Live TowerFlow publication requires a separate approval.',
+  '6. Return the actual PR number to the member. TowerFlow has a Verify My PR step that independently checks your account, branch, changed source files and dev target. Never claim this proves AI authorship.',
   '',
   'MANDATORY EVIDENCE RESPONSE:',
   'GitHub tool name and authenticated identity; repository read verified YES/NO; exact revision; files read;',
@@ -107,6 +108,45 @@ function mount(){
    const example=elt('button','Use example: Add my name to Dashboard','tf-dev-secondary');example.type='button';
    example.onclick=()=>{select.value='dashboard';request.value='Add my authenticated GitHub display name to the dashboard. Preserve existing calculations and show the result in a working preview.';};
    fields.insertBefore(example,rlabel);
+   // Third step: observe a real GitHub artifact produced using the member's own
+   // authorized coding tools. We do NOT attest to which AI authored the code.
+   const proof=elt('section',undefined,'tf-ai-proof');
+   proof.append(elt('h3','Verify my AI-assisted contribution'),
+     elt('p','After your AI or coding tool creates a draft PR to Team 02 dev, enter its PR number. TowerFlow will check GitHub directly using your room session. This cannot prove the AI is connected, only the contribution.'));
+   const prRow=elt('div',undefined,'tf-ai-azure-links');
+   const prInput=elt('input');prInput.type='number';prInput.min='1';prInput.max='1000000';prInput.step='1';
+   prInput.placeholder='Your draft PR number';prInput.setAttribute('aria-label','Draft pull request number');
+   const checkPr=elt('button','VERIFY MY PR','tf-dev-primary');checkPr.type='button';
+   const prStatus=elt('p','No GitHub contribution verified.');prStatus.setAttribute('role','status');
+   const prResults=elt('div',undefined,'tf-ai-proof-result');
+   prRow.append(prInput,checkPr);
+   proof.append(prRow,prStatus,prResults);fields.append(proof);
+   checkPr.onclick=async()=>{
+      checkPr.disabled=true;prResults.replaceChildren();
+      const number=Number(prInput.value);
+      if(!Number.isSafeInteger(number)||number<1||number>1000000){
+         prStatus.textContent='Enter a valid PR number between 1 and 1000000.';
+         checkPr.disabled=false;return;
+      }
+      prStatus.textContent='Checking actual GitHub author, dev target, commit and changed files…';
+      try{
+         const response=await fetch('/api/azure-bridge/ai-contribution-proof/'+number,{credentials:'same-origin',cache:'no-store'});
+         const payload=await response.json();
+         if(!response.ok)throw Error(payload.error||'GitHub returned HTTP '+response.status);
+         prStatus.textContent=payload.accepted?
+           'VERIFIED: This signed-in contributor submitted source changes to Team 02 dev for review. AI authorship and runtime connection are NOT verified.':
+           'NOT VERIFIED: GitHub did not confirm a valid contribution for this member and dev.';
+         if(payload.pr?.html_url){
+           const a=link('Open reviewed PR #'+number+' ↗',payload.pr.html_url);
+           prResults.append(a);
+         }
+         const detail=elt('p','Files: '+(payload.pr?.files?.map(f=>f.name).join(', ')||'none'));
+         prResults.append(detail);
+         for(const warning of payload.warnings||[])prResults.append(elt('p','BLOCK: '+warning));
+      }catch(error){prStatus.textContent='Verification unavailable: '+error.message;}
+      finally{checkPr.disabled=false;}
+   };
+
    function renderProvider(){
      for(const [key,card] of providerButtons)card.setAttribute('aria-pressed',String(key===selected));
      const p=PROVIDERS[selected];instructions.textContent=p.instructions;links.replaceChildren();
