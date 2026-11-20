@@ -94,8 +94,8 @@ async function main() {
         // The new Azure harness is actual source routing, not a model or IDE execution claim.
         assert.equal(await presenter.evaluate(()=>window.tfOpenAzureWorkspace?.()),true);
         await presenter.locator('.tf-azure-harness textarea').fill('Inspect the Dashboard source');
-        await presenter.locator('.tf-azure-harness select').selectOption('antigravity');
-        await presenter.locator('.tf-azure-harness button').filter({hasText:'Find code'}).click();
+        await presenter.getByLabel('Choose your IDE').selectOption('antigravity');
+        await presenter.getByRole('button',{name:'Locate source'}).click();
         await presenter.locator('.tf-azure-harness').getByText('TowerFlow/index.html',{exact:true}).waitFor();
         assert.match(await presenter.locator('.tf-azure-harness [role="status"]').textContent(),/GitHub access\/source proof is unavailable/i);
         assert.equal(await presenter.locator('.tf-azure-harness').getByText('Open in Google Antigravity').count(),1);
