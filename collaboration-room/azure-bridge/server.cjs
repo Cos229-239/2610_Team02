@@ -8,6 +8,8 @@ const {mountPreview,mergedPreview} = require('./merged-preview.cjs');
 const {mount:mountDirect} = require('./direct-integration.cjs');
 const {mount:mountAppHub} = require('./app-hub.cjs');
 const {mount:mountAIProof} = require('./ai-contribution-proof.cjs');
+const {mount:mountTeamStations} = require('./team-stations.cjs');
+const {mount:mountBusinessSignals} = require('./business-signals.cjs');
 const {makeTeamUpdates} = require('./team-updates.cjs');
 const {makeLoadouts, publishedBranches} = require('./loadouts.cjs');
 const {quietEntry, memberEntry} = require('./quiet-entry.cjs');
@@ -37,6 +39,8 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     mountDirect(app,{auth,ensureMember,sameOrigin,publicOrigin,preview:sharedPreview});
     mountAppHub(app,{auth,ensureMember});
     mountAIProof(app,{auth,ensureMember});
+    mountTeamStations(app,{auth,ensureMember});
+    mountBusinessSignals(app,{auth,ensureMember});
 
     // Read-only, credential-free environment evidence for external AI handoff.
     // Hashes describe ACTUAL host files, not a guessed Git branch or cloud tunnel.
@@ -72,7 +76,7 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
         }
     });
 
-    for (const file of ['studio.js','desk.js', 'loadout.js', 'companion-client.js', 'two-mode-contribute.js', 'app-hub.js', 'azure-ai-connect.js', 'ide-workstations.js', 'loadout.css']) {
+    for (const file of ['studio.js','desk.js', 'loadout.js', 'companion-client.js', 'two-mode-contribute.js', 'app-hub.js', 'azure-ai-connect.js', 'ide-workstations.js', 'team-stations.js', 'loadout.css']) {
         app.get('/azure-bridge/' + file, (req, res) => res.set('Cache-Control', 'no-cache').sendFile(path.join(__dirname, file)));
     }
     // Reuse the host's OAuth state and callback. Only change the official authorization redirect.
@@ -133,7 +137,7 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
                     .replace(/<script\b[^>]*\bsrc=["']\/azure-bridge\/(?:desk|loadout|studio)\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script\s*>/gi, '')
                     .replace(/<link\b[^>]*\bhref=["']\/azure-bridge\/loadout\.css(?:\?[^"']*)?["'][^>]*>/gi, '')
                     .replace(/<\/head\s*>/i, '<link rel="stylesheet" href="/azure-bridge/loadout.css">$&')
-                    .replace(/<\/body\s*>/i, '<script src="/azure-bridge/studio.js" defer></script><script src="/azure-bridge/loadout.js" defer></script><script src="/azure-bridge/desk.js" defer></script><script src="/azure-bridge/companion-client.js" defer></script><script src="/azure-bridge/two-mode-contribute.js" defer></script><script src="/azure-bridge/app-hub.js" defer></script><script src="/azure-bridge/azure-ai-connect.js" defer></script><script src="/azure-bridge/ide-workstations.js" defer></script>$&')
+                    .replace(/<\/body\s*>/i, '<script src="/azure-bridge/studio.js" defer></script><script src="/azure-bridge/loadout.js" defer></script><script src="/azure-bridge/desk.js" defer></script><script src="/azure-bridge/companion-client.js" defer></script><script src="/azure-bridge/two-mode-contribute.js" defer></script><script src="/azure-bridge/app-hub.js" defer></script><script src="/azure-bridge/azure-ai-connect.js" defer></script><script src="/azure-bridge/ide-workstations.js" defer></script><script src="/azure-bridge/team-stations.js" defer></script>$&')
             );
         } catch (error) { next(error); }
     });
