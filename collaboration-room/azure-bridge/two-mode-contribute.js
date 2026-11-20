@@ -20,28 +20,24 @@ function mount(){
   center.dataset.twoModes='';
   center.setAttribute('aria-label','TowerFlow Development Center');
   const top=el('header',undefined,'tf-dev-header');
-  const eyebrow=el('span','TOWERFLOW  /  MY DEVELOPMENT CENTER','tf-dev-eyebrow');
-  const title=el('h2','What would you like to build?');
-  const intro=el('p','Choose a feature and open its code, or describe a supported change and see the real result before sharing it with your team.');
+  const eyebrow=el('span','DEVELOPMENT CENTER','tf-dev-eyebrow');
+  const title=el('h2','Contribute to TowerFlow');
+  const intro=el('p','Open code or describe a change.');
   const identity=el('div',undefined,'tf-dev-identity');
   const githubLogin=host.querySelector('[data-name]')?.textContent?.match(/@([a-zA-Z0-9-]{1,39})/)?.[1];
   identity.append(el('span','GitHub account: '+(githubLogin?'@'+githubLogin:'checking sign-in…')),
     el('span','Your work stays in your own branch'));
-  top.append(eyebrow,title,intro,identity);center.append(top);
+  top.append(eyebrow,title,intro);center.append(top);
   const choices=el('div',undefined,'tf-dev-choices');
   const source=el('button',undefined,'tf-dev-choice');
   const prompt=el('button',undefined,'tf-dev-choice');
   source.type=prompt.type='button';
   source.setAttribute('aria-controls','tf-dev-source-panel');
   prompt.setAttribute('aria-controls','tf-dev-prompt-panel');
-  source.append(el('span','OPTION 01  /  CODE','tf-dev-choice-kicker'),
-    el('strong','Open & edit TowerFlow'),
-    el('span','Dashboard, Markets, Portfolio, UI, and more — jump to the correct code.'),
-    el('span','CHOOSE COMPONENT  →','tf-dev-choice-cta'));
-  prompt.append(el('span','OPTION 02  /  REAL EDITS + PREVIEW','tf-dev-choice-kicker'),
-    el('strong','Describe a change'),
-    el('span','Change dashboard text, titles, backgrounds or accent colors. See the actual result before submitting.'),
-    el('span','OPEN CHANGE BUILDER  →','tf-dev-choice-cta'));
+  source.append(el('strong','Open code'),
+    el('span','Choose a component →','tf-dev-choice-cta'));
+  prompt.append(el('strong','Describe a change'),
+    el('span','Preview a supported edit →','tf-dev-choice-cta'));
   choices.append(source,prompt);center.append(choices);
   const section=el('div',undefined,'tf-dev-main');
   const codePane=el('section',undefined,'tf-dev-workspace');
@@ -49,17 +45,25 @@ function mount(){
   codePane.id='tf-dev-source-panel';changePane.id='tf-dev-prompt-panel';
   codePane.hidden=changePane.hidden=true;section.append(codePane,changePane);center.append(section);
   const footer=el('div',undefined,'tf-dev-footer');
-  const appHub=el('button','Explore all App Integrations  →','tf-dev-secondary');
+  const appHub=el('button','App integrations','tf-dev-secondary');
   appHub.type='button';
   appHub.onclick=()=>{if(typeof window.tfOpenAppIntegrationHub==='function')window.tfOpenAppIntegrationHub();else window.alert('The App Integration Hub is not installed on this room host.');};
-  const toolsJump=el('button','Connection & other team tools  ↓','tf-dev-secondary');
+  const toolsJump=el('button','Additional tools ↓','tf-dev-secondary');
   toolsJump.type='button';
   const teamTools=el('div',undefined,'tf-dev-legacy');
-  teamTools.append(el('strong','Your existing Team Contributions, GitHub history, debugging and collaboration tools remain below.'));
-  toolsJump.onclick=()=>{const companion=host.querySelector('.tf-local-companion');(companion||host.querySelector('.tf-contribute-guide')||teamTools).scrollIntoView({behavior:'smooth',block:'start'});};
-  footer.append(appHub,toolsJump);center.append(footer,teamTools);
+  teamTools.append(el('span','Existing GitHub, debugging and contribution tools are retained.'));
+
+  footer.append(appHub,toolsJump);center.append(footer);
   const marker=host.querySelector('.tf-repo-bar')||host.querySelector('.tf-contribute-guide');
   if(marker)marker.before(center);else host.prepend(center);
+  const legacy=el('details',undefined,'tf-dev-legacy-details');
+  legacy.append(el('summary','Workspace details & team tools'));
+  const content=el('div',undefined,'tf-dev-legacy-content');
+  for(const child of Array.from(host.children))if(child!==center)content.append(child);
+  content.append(teamTools);
+  legacy.append(content);
+  host.append(legacy);
+  toolsJump.onclick=()=>{legacy.open=true;legacy.scrollIntoView({behavior:'smooth',block:'nearest'});};
   function select(which){
     const isCode=which==='source';
     codePane.hidden=!isCode;changePane.hidden=isCode;
@@ -123,10 +127,11 @@ function mount(){
 
   // OPTION 2: make real supported scope explicit; never misrepresent it as open-ended AI.
   const changeTitle=el('h3','Describe the result you want','tf-dev-section-title');changeTitle.tabIndex=-1;
-  const changeSub=el('p','Changes are prepared in a separate preview. Nothing is applied to the shared live room or dev automatically.');
+  const changeSub=el('p','Preview first. Shared code stays unchanged until team review.');
   const supported=el('div',undefined,'tf-dev-scope');
-  supported.append(el('strong','AVAILABLE NOW  ·  5 SOURCE-VERIFIED CHANGES'),
-    el('p','Dashboard headline, dashboard description, holdings title, app background color, and accent color. The system edits verified HTML/CSS and previews the actual files. General-purpose AI coding is not connected.'));
+  const supportedSummary=el('summary','Supported changes & limitations');
+  supported.append(supportedSummary,el('p','Dashboard headline, description, holdings title, background and accent color. Other requests require your authorized coding tools.'));
+  supported.classList.add('tf-dev-scope-compact');
   const examples=el('div',undefined,'tf-dev-examples');
   examples.append(el('span','TRY AN EXAMPLE:'));
   const textLabel=el('label','Your change request');
@@ -159,7 +164,11 @@ function mount(){
   const submit=el('button','SUBMIT FOR TEAM REVIEW  →','tf-dev-primary');submit.type='button';
   const receipt=el('p','No GitHub changes have been submitted.');receipt.setAttribute('role','status');
   actions.append(revise,submit);review.append(summary,frame,actions,receipt);
-  changePane.append(changeTitle,changeSub,supported,examples,textLabel,generate,changeMessage,process,review);
+  const scopeDetails=el('details',undefined,'tf-dev-scope-details');
+  scopeDetails.append(...Array.from(supported.childNodes));
+  const guide=el('details',undefined,'tf-dev-examples-guide');
+  guide.append(el('summary','Try a supported example'),examples);
+  changePane.append(changeTitle,changeSub,textLabel,generate,changeMessage,guide,scopeDetails,review);
   let plan=null,busy=false;
   generate.onclick=async()=>{
     if(busy)return;
