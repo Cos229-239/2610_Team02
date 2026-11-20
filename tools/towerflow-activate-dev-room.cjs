@@ -58,6 +58,15 @@ function editServer(current){
     !current.includes("app.get('/room/team02',")||!current.includes("for (const file of ["))
    throw Error('Installed Azure Bridge server is not a recognized release. Changes blocked.');
  let s=current;
+ if(!s.includes("const {mount:mountAIProof} = require('./ai-contribution-proof.cjs');")){
+   const ref="const {mount:mountAppHub} = require('./app-hub.cjs');";
+   if(!s.includes(ref))throw Error('AI proof import anchor missing');
+   s=splice(s,ref,"\nconst {mount:mountAIProof} = require('./ai-contribution-proof.cjs');","AI proof import");
+ }
+ if(!s.includes('    mountAIProof(app,{auth,ensureMember});')){
+   s=splice(s,'    mountAppHub(app,{auth,ensureMember});',
+     "\n    mountAIProof(app,{auth,ensureMember});",'AI proof endpoint');
+ }
  for(const name of ['azure-ai-connect.js','ide-workstations.js']){
    if(!s.includes("'"+name+"'")){
      // Append the missing script to the known static file allowlist.
@@ -132,7 +141,7 @@ function plan(room){
  stage(path.join(installed,'server.cjs'),editServer);
  stage(path.join(installed,'companion-client.js'),editClient);
  stage(path.join(installed,'loadout.css'),editCSS);
- for(const file of ['ide-workstations.js','azure-ai-connect.js']){
+ for(const file of ['ide-workstations.js','azure-ai-connect.js','ai-contribution-proof.cjs']){
    const source=fs.readFileSync(path.join(bridgeRoot,file));
    stage(path.join(installed,file),()=>source.toString('utf8'),true);
  }
