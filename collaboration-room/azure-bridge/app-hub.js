@@ -21,13 +21,19 @@
     document.getElementById('panelTitle').textContent='APP INTEGRATION HUB';
     const host=element('section',undefined,'tf-azure-loadout tf-app-hub');
     content.replaceChildren(host);
-    host.append(element('h3','One place for Team 02 contributions'),
-      element('p','Choose where your work belongs, connect your contribution, and see review, preview, and publication separately. Merging never edits the live app automatically.'));
+    host.append(element('h3','App integrations'),
+      element('p','Choose a component, open its source, or submit a change for review.'));
     const box=element('div',undefined,'tf-app-hub-grid');
     const controls=element('section',undefined,'tf-app-hub-editor');
     const history=element('section',undefined,'tf-app-hub-feed');
-    host.append(box,controls,history);
-    const status=element('p','Loading Team 02 integration status…');status.setAttribute('role','status');
+    const browser=element('details',undefined,'tf-app-hub-browse');
+    browser.append(element('summary','Browse all components'),box);
+    const submission=element('details',undefined,'tf-app-hub-submit');
+    submission.append(element('summary','Submit a contribution'));
+    const activity=element('details',undefined,'tf-app-hub-history');
+    activity.append(element('summary','Team contribution history'));
+    host.append(controls,browser,submission,activity);
+    const status=element('p','Checking GitHub…');status.setAttribute('role','status');
     host.prepend(status);
     let data,login,selected='dashboard',workingBranch='';
     const select=element('select');select.setAttribute('aria-label','Choose TowerFlow feature area');
@@ -41,7 +47,14 @@
     const browserEditor=link('Edit source in GitHub browser', 'https://github.dev/Cos229-239/2610_Team02');
     const myDesk=element('button','My development desk');myDesk.type='button';
     const team=link('All team PRs',repo+'/pulls?q=is%3Apr+base%3Adev');
-    actions.append(source,browserEditor,dev,live,myDesk,team);
+    const shortcuts=element('div',undefined,'tf-app-hub-shortcuts');
+    shortcuts.append(browserEditor,dev);
+    const more=element('details',undefined,'tf-app-hub-more');
+    more.append(element('summary','More actions'));
+    const moreButtons=element('div',undefined,'row wrap');
+    moreButtons.append(source,live,myDesk,team);
+    more.append(moreButtons);
+    actions.append(shortcuts,more);
     const form=element('form');
     const flabel=element('label','Feature title');
     const feature=element('input');feature.name='title';feature.required=true;feature.maxLength=120;
@@ -56,13 +69,13 @@
     const submit=element('button','Prepare PR to dev');submit.type='submit';
     const formStatus=element('p');formStatus.setAttribute('role','status');
     form.append(flabel,blabel,nlabel,submit,formStatus);
-    controls.append(areaTitle,desc,paths,actions,
-      element('p','To add code: open the source in your own authorized IDE or AI coding agent, commit and push your branch, then submit it below. A chat-only AI cannot edit GitHub unless its account has working repository tools.'),
-      element('h4','Submit to this area'),form);
+    controls.append(areaTitle,desc,paths,actions);
+    submission.append(element('p','Push your own branch, then submit it for review against dev.'),form);
     const htitle=element('h3','Team contributions');
     const feedStatus=element('p');
     const entries=element('ol');
     history.append(htitle,feedStatus,entries);
+    activity.append(history);
     const areaKind={dashboard:'web',market:'web',portfolio:'web',analytics:'web',app:'web',room:'room',native:'native',other:'other'};
     const areaKey=area=>areaKind[area]==='web'?'app':area;
     function match(pr,area){return pr.area===area || (areaKind[area]==='web'&&pr.area==='app') ||
@@ -130,12 +143,14 @@
         card.onclick=()=>{selected=id;select.value=id;render();};
         box.append(card);
       }
-      controls.prepend(select);
+      const selectorLabel=element('label','Component');
+      selectorLabel.className='tf-app-hub-component-select';
+      selectorLabel.append(select);
+      controls.prepend(selectorLabel);
       select.onchange=()=>{selected=select.value;render();};
       const receipt=await get('/towerflow/towerflow-build.json').catch(()=>null);
       const published=/^[a-f\d]{40}$/i.test(receipt?.revision||'')?receipt.revision.slice(0,10):'unavailable';
-      status.textContent='GitHub: '+(login?'@'+login:'identity unavailable')+' · PR index updated '+new Date(d.checkedAt).toLocaleString()+
-        ' · Host published app receipt: '+published+' (not proof a specific PR is live).';
+      status.textContent=login?'Connected as @'+login+' · dev · Published revision: '+published:'Sign in to view source and submissions.';
       render();
     }catch(err){status.textContent=err.message;controls.hidden=true;history.hidden=true;}
   }
