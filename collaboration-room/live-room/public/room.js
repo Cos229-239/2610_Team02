@@ -1808,6 +1808,7 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
     });
     makeButton("WORLD SALES",()=>window.tfOpenWorldSalesPanel?.());
     makeButton("AZURE · AI",()=>window.tfOpenAzureAIConnect?.());
+    makeButton("AZURE · WORKSPACE",()=>window.tfOpenAzureWorkspace?.());
     // TF_DEV_BUSINESS_APP_ENTRY_V1_END
     makeButton("CONTRIBUTE  →",()=>window.tfOpenMemberDesk?.());
     makeButton("APP INTEGRATIONS  →",()=>window.tfOpenAppIntegrationHub?.());
@@ -3798,6 +3799,7 @@ window.addEventListener("message",event=>{
  if(action==="connect-ai")window.tfOpenAzureAIConnect?.();
  else if(action==="world-sales")window.tfOpenWorldSalesPanel?.();
  else if(action==="code")window.tfOpenIDEStation?.("dev-ide-code");
+ else if(action==="azure-workspace")window.tfOpenAzureWorkspace?.();
  else if(action==="business")window.tfBusinessProjector?.open();
  else if(action==="team"){
    openPanel("team");
