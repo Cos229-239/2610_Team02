@@ -1,3 +1,9 @@
+//This file contains the application for the TowerFlow inventory system software in a Windows Forms environment
+//Once again press Ctrl+F5 to run the program without debugging
+//Press F5 to run the program with debugging
+
+
+
 namespace TowerFlowWinForm
 {
     public partial class TowerFlow_NamePanel : Form

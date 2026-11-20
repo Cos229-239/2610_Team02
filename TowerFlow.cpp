@@ -14,6 +14,11 @@
 // The goal is to provide a simple and intuitive interface for users to manage their products, track sales, and generate reports.
 
 
+//Running this file will start the TowerFlow inventory system within the Terminal or command window
+//Hit Ctrl+F5 to run the program without debugging
+//Hit F5 to run the program with debugging
+
+
 int main() {
 
 	bool PowerOn = true;
