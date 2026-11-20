@@ -74,7 +74,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
                 '. Live activity unavailable ('+reason+'). GitHub will verify the branch when opened.';
             const actions=document.createElement('div');actions.className='row wrap tf-fallback-actions';
             actions.append(web('Open Team 02 source ↗',repo+'/tree/dev'),
-                web('Create contribution ↗',repo+'/compare/dev...dev'),
+                web('Create contribution ↗',branch?repo+'/compare/dev...'+encodeURIComponent(branch):repo+'/branches'),
                 web('Review team PRs ↗',repo+'/pulls'));
             if(branch){
                 actions.prepend(web('My branch ↗',repo+'/tree/'+encodeURIComponent(branch)));
