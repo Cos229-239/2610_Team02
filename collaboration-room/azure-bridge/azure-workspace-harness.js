@@ -22,12 +22,39 @@ function show(){
    ['cursor','Cursor'],['antigravity','Google Antigravity']];
  for(const [value,label] of choices){const opt=make('option',label);opt.value=value;ide.append(opt);}
  const planButton=make('button','Find code');planButton.type='button';
- row.append(ide,planButton);
+ const reasonButton=make('button','Ask local Azure AI');reasonButton.type='button';reasonButton.hidden=true;
+ row.append(ide,planButton,reasonButton);
  const status=make('p','Ready to inspect a real source target.');status.setAttribute('role','status');
  const results=make('section');
  const more=make('details');more.append(make('summary','Architecture and integration limits'),
   make('p','Azure plans work and routes to a verified source file. An IDE must be paired to your own PC. ChatGPT, Grok, Gemini and Venice need their own GitHub-enabled coding tools. No private Megan/Laura/Pixi code is exposed to teammates.'));
  root.append(title,subtitle,prompt,row,status,results,more);
+ void fetch('/api/azure-bridge/azure-harness/capabilities',{credentials:'same-origin',cache:'no-store'})
+  .then(r=>r.ok?r.json():null).then(data=>{
+    if(data?.model?.state==='MODEL_AVAILABLE'){
+      reasonButton.hidden=false;reasonButton.title='Local Ollama structured intent suggestion. Never edits files.';
+    }
+  }).catch(()=>{});
+ reasonButton.onclick=async()=>{
+   reasonButton.disabled=true;status.textContent='Asking configured local model for a bounded source suggestion…';
+   try{
+     const response=await fetch('/api/azure-bridge/azure-harness/reason',{
+       method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({prompt:prompt.value})
+     });
+     const data=await response.json();
+     if(!response.ok)throw Error(data.error||'Model unavailable');
+     if(data.state!=='MODEL_SUGGESTION_NOT_VERIFIED'||!data.proposal)
+       throw Error(data.reason||data.state);
+     results.replaceChildren();
+     const suggestion=make('p','Suggested source: '+data.proposal.area+' · '+data.proposal.reason);
+     const approve=make('button','Use this source suggestion');approve.type='button';
+     approve.onclick=()=>{prompt.value='Inspect '+data.proposal.area+' source. Original request: '+prompt.value;void find();};
+     results.append(suggestion,approve);
+     status.textContent='Local model generated a suggestion, NOT a verified code edit.';
+   }catch(error){status.textContent='Local reasoning unavailable: '+error.message;}
+   finally{reasonButton.disabled=false;}
+ };
  host.replaceChildren(root);
  async function find(){
    planButton.disabled=true;
@@ -76,7 +103,28 @@ function show(){
      const link=make('a','View verified file on GitHub ↗');
      link.href='https://github.com/Cos229-239/2610_Team02/blob/dev/'+source.path.split('/').map(encodeURIComponent).join('/');
      link.target='_blank';link.rel='noopener noreferrer';
-     actions.append(open,link);
+     const copy=make('button','Copy coding task');copy.type='button';
+     copy.onclick=async()=>{
+       const instruction=[
+         'TOWERFLOW CODING TASK — USER-DIRECTED',
+         'Original request (preserve exactly): '+output.originalPrompt,
+         'Repository: Cos229-239/2610_Team02',
+         'Team base branch: dev. Create only a personal working branch or draft PR; do not merge automatically.',
+         'Selected code area: '+output.target,
+         'Actual source: '+source.path,
+         'GitHub source state: '+(exact?'VERIFIED blob '+output.sourceProof.blobSha:'UNVERIFIED'),
+         'Related files: '+source.related.join(', '),
+         'Editor: '+output.editor+'; F5 debugger session must be separately demonstrated.',
+         'Before changing code: use your own authorized GitHub/IDE tools to read source, inspect existing tests, and verify write permissions.',
+         'Preserve existing room.js graphics, OAuth, source changes, and teammates work. No force push or shared-host edits.',
+         'Implement minimum scoped diff. Run syntax/unit/browser tests and report actual PASS/FAIL evidence.',
+         'Produce a draft PR to dev for team review, do not auto-deploy.',
+         'Do not claim AI/repo connection from this prompt alone. If you lack code tools, report missing access instead of guessing.'
+       ].join('\\n');
+       try{await navigator.clipboard.writeText(instruction);status.textContent='Task copied for your own authorized coding AI.';}
+       catch{status.textContent='Clipboard unavailable; copy directly from the preview field.';const field=make('textarea');field.readOnly=true;field.value=instruction;field.rows=10;results.append(field);field.select();}
+     };
+     actions.append(open,link,copy);
      const limit=make('p','This is a navigation receipt, not a completed code change or attached debugger.');
      results.append(header,path,revision,actions,limit);
    }catch(error){status.textContent='Azure could not verify the request: '+error.message;}
