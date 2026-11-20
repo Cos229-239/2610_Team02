@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),
  fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {transform,plan,apply,oldFetch,oldCatch}=require('./towerflow-repair-member-desk.cjs');
-const source=fs.readFileSync(path.join(__dirname,'../collaboration-room/azure-bridge/loadout.js'),'utf8');
+const source=fs.readFileSync(path.join(__dirname,'../collaboration-room/azure-bridge/loadout.js'),'utf8').replace(/\r\n/g,'\n');
 const mark='    // TF_MEMBER_DESK_RECOVERY_V1_BEGIN',end='    // TF_MEMBER_DESK_RECOVERY_V1_END';
 function previous(){
  const start=source.indexOf(mark),stop=source.indexOf(end,start)+end.length+1;
@@ -28,6 +28,14 @@ test('member recovery changes only reviewed snippets and preserves all existing 
  assert.ok(repaired.includes('WilliamPersonal'));
  assert.equal(transform(repaired),repaired);
  assert.throws(()=>transform(old.replace(oldFetch,'// different local route')),/anchor/);
+});
+test('Windows CRLF source is patched without altering existing line endings or teammate customizations',()=>{
+ const original=(previous()+'\n// WINDOWS TEAMMATE NOTES\n').replace(/\n/g,'\r\n');
+ const result=transform(original);
+ assert.ok(result.includes('TF_MEMBER_DESK_RECOVERY_V1_BEGIN\r\n'));
+ assert.ok(result.endsWith('// WINDOWS TEAMMATE NOTES\r\n'));
+ assert.equal(result.replace(/\r\n/g,'' ).includes('\n'),false,'No stray LF endings introduced');
+ assert.equal(transform(result),result,'Idempotent CRLF update');
 });
 test('review-only and applied mode alter one file, never scene/server; second run is idempotent',()=>{
  const room=fixture(previous());
