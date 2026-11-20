@@ -1,7 +1,8 @@
 'use strict';
 // Read-only, authenticated business events. No fabricated stock-exchange location,
 // broker profit, or global transactions when the approved ledger is unavailable.
-const fs=require('node:fs/promises'),path=require('node:path');
+const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto');
+const ID_SALT=crypto.randomBytes(32);
 const MAX_BYTES=1024*1024,MAX_EVENTS=80,WINDOW=24*60*60*1000;
 const clean=x=>typeof x==='string'&&x.length<=120&&/^[\w.:/@ -]+$/.test(x);
 function normalize(raw,now=Date.now()){
@@ -15,10 +16,9 @@ function normalize(raw,now=Date.now()){
  if(!Number.isFinite(ts)||ts>now+60000||ts<now-WINDOW)return null;
  const state=kind==='refund'||kind==='return'||net_revenue_cents<0?'red':
    net_revenue_cents===0?'yellow':'green';
- return {id:event_id,state,lat:Math.round(latitude*10)/10,lon:Math.round(longitude*10)/10,
-  occurredAt:new Date(ts).toISOString(),netRevenueCents:net_revenue_cents,
-  currency:raw.currency==='USD'?'USD':null,
-  source:'APPROVED_BUSINESS_LEDGER'};
+ return {id:crypto.createHmac('sha256',ID_SALT).update(event_id).digest('hex').slice(0,20),state,lat:Math.round(latitude*10)/10,lon:Math.round(longitude*10)/10,
+  occurredAt:new Date(ts).toISOString(),
+  source:'CONFIGURED_BUSINESS_FILE'};
 }
 function parseLedger(body,now=Date.now()){
  const seen=new Set(),out=[];
@@ -35,14 +35,14 @@ function parseLedger(body,now=Date.now()){
 function makeReader({file=process.env.TOWERFLOW_BUSINESS_EVENTS_FILE,read=fs.readFile,stat=fs.stat,now=Date.now}={}){
  return async()=>{
   if(typeof file!=='string'||!file||!path.isAbsolute(file))return {
-   mode:'UNCONFIGURED',events:[],reason:'No approved business transaction ledger connected.'};
+   mode:'UNCONFIGURED',events:[],reason:'No approved business transaction file connected.'};
   try{
    const info=await stat(file);
    if(info.size>MAX_BYTES)throw Error('Ledger too large; rotate the file or reduce to 1 MiB.');
    const body=await read(file,'utf8');
-   return {mode:'VERIFIED_LEDGER',events:parseLedger(body,now()),
-    reason:'Events from an approved configured business ledger. Locations are rounded; no customer coordinates.'};
-  }catch(e){return {mode:'UNAVAILABLE',events:[],reason:'Approved business ledger is unreadable or invalid.'};}
+   return {mode:'CONFIGURED_LEDGER',events:parseLedger(body,now()),
+    reason:'File-backed events only. Upstream authenticity and financial accounting have not been independently verified. Region coordinates are rounded; customer IDs and amounts are withheld.'};
+  }catch(e){return {mode:'UNAVAILABLE',events:[],reason:'Configured transaction file is unreadable or invalid.'};}
  };
 }
 function mount(app,{auth,ensureMember,reader=makeReader()}={}){
