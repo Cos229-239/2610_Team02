@@ -23,7 +23,7 @@ const make=(type,label,cls)=>{
  if(cls)el.className=cls;return el;
 };
 const anchor=(text,url)=>{const a=make('a',text);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;};
-function display(station){
+function display(station,requestedArea){
  if(!Object.hasOwn(IDE,station))return false;
  const panel=document.getElementById('panel'),content=document.getElementById('panelContent'),menu=document.getElementById('menu');
  if(!panel||!content)return false;
@@ -64,7 +64,7 @@ function display(station){
    for(const [key,meta] of Object.entries(entries)){
      area.add(new Option(meta.label,key));
    }
-   area.value=conf.defaultArea;
+   area.value=requestedArea&&Object.hasOwn(entries,requestedArea)?requestedArea:conf.defaultArea;
    if(!area.value)area.selectedIndex=0;
    label.append(area);
    updateLink(entries);
