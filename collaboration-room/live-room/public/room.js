@@ -3783,3 +3783,35 @@ window.tfBusinessWorld=Object.freeze({
 });
 }());
 // TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_END
+
+// TF_AZURE_BUSINESS_BRIDGE_V1_BEGIN
+// Same-origin, trusted iframe only. This is an action registry, NOT a model API.
+window.addEventListener("message",event=>{
+ if(event.origin!==location.origin||!running||!localUser)return;
+ const authorized=Array.from(document.querySelectorAll("#panel iframe")).some(frame=>{
+   if(frame.contentWindow!==event.source)return false;
+   try{return new URL(frame.src,location.href).pathname==="/towerflow/index.html";}
+   catch{return false;}
+ });
+ if(!authorized||event.data?.type!=="TOWERFLOW_AZURE_BUSINESS_ACTION")return;
+ const action=event.data.action;
+ if(action==="connect-ai")window.tfOpenAzureAIConnect?.();
+ else if(action==="world-sales")window.tfOpenWorldSalesPanel?.();
+ else if(action==="code")window.tfOpenIDEStation?.("dev-ide-code");
+ else if(action==="business")window.tfBusinessProjector?.open();
+ else if(action==="team"){
+   openPanel("team");
+   const host=document.getElementById("panelContent");
+   host.replaceChildren();
+   const h=document.createElement("h3");h.textContent="Team 02 · Member Stations";host.append(h);
+   for(const [login,label] of [
+     ["lopobunnie","Lopobunnie 💜"],["svn-760","Malik"],
+     ["hyperrealmend","Omarion"],["daynaperezcolon","Dayna"],
+     ["dulskinator96","Dan"]
+   ]){
+     const b=document.createElement("button");b.type="button";b.textContent=label;
+     b.onclick=()=>window.tfOpenMemberStation?.(login);host.append(b);
+   }
+ }
+});
+// TF_AZURE_BUSINESS_BRIDGE_V1_END
