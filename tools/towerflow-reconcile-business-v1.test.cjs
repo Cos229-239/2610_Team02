@@ -11,7 +11,8 @@ function oldScene(){
  const segments=[
   {prefix:'  ',start:'// TF_DEV_BUSINESS_WALL_ROUTING_V1_BEGIN',end:'// TF_DEV_BUSINESS_WALL_ROUTING_V1_END'},
   {prefix:'    ',start:'// TF_DEV_BUSINESS_APP_ENTRY_V1_BEGIN',end:'// TF_DEV_BUSINESS_APP_ENTRY_V1_END'},
-  {prefix:'\n',start:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_BEGIN',end:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_END'}
+  {prefix:'\n',start:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_BEGIN',end:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_END'},
+  {prefix:'\n',start:'// TF_AZURE_BUSINESS_BRIDGE_V1_BEGIN',end:'// TF_AZURE_BUSINESS_BRIDGE_V1_END'}
  ];
  let s=reviewed;
  for(const x of segments){
@@ -32,6 +33,7 @@ test('exact reviewed Business Studio scene injection preserves all original cust
  const before=oldScene(),after=integrateScene(before,reviewed);
  assert.ok(after.includes('CUSTOM SCENE FEATURE: preserved after integration'));
  assert.match(after,/TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_BEGIN/);
+ assert.match(after,/TF_AZURE_BUSINESS_BRIDGE_V1_BEGIN/);
  assert.match(after,/TF_DEV_BUSINESS_WALL_ROUTING_V1_BEGIN/);
  assert.match(after,/TF_DEV_BUSINESS_APP_ENTRY_V1_BEGIN/);
  assert.equal(integrateScene(after,reviewed),after,'running twice does not duplicate features');
