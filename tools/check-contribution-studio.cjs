@@ -66,7 +66,8 @@ async function main() {
         const presenter=await member('William'),viewer=await member('Omarion');
         // Azure Bridge B must produce an actionable provider-specific handoff.
         await presenter.locator('[data-azure-ai]').click();
-        assert.equal(await presenter.locator('.tf-ai-provider-card').count(),4);
+        assert.equal(await presenter.locator('.tf-ai-provider-card').count(),5);
+        assert.equal(await presenter.locator('.tf-ai-provider-card').filter({hasText:'Gemini'}).count(),1);
         await presenter.locator('.tf-ai-provider-card').filter({hasText:'Grok'}).click();
         await presenter.locator('.tf-ai-handoff-form textarea:not([readonly])').fill(
             'Add an authenticated display name to the dashboard without changing portfolio calculations.'
