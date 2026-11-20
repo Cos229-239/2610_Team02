@@ -41,7 +41,7 @@ test('Proof reads only expected Team 02 dev file through member GitHub credentia
  assert.equal(proof.station,'dev-ide-code');
  assert.equal(called,'/contents/TowerFlow/index.html?ref=dev');
  assert.equal(JSON.stringify(proof).includes('PRIVATE_SERVER_TOKEN'),false);
- await assert.rejects(()=>githubSourceProof(task,'token',{request:async()=>({
+ await assert.rejects(()=>githubSourceProof(task,'PRIVATE_SERVER_TOKEN',{request:async()=>({
   type:'file',sha:'f'.repeat(40),path:'TowerFlow/fake.html'
  })}),/missing or does not match/);
 });
