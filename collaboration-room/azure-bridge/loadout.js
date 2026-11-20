@@ -6,6 +6,8 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
     const shortcut = document.createElement('button');
     shortcut.type = 'button';
     shortcut.textContent = 'Contribute';
+    shortcut.classList.add('tf-development-entry');
+    shortcut.setAttribute('aria-label','Open TowerFlow Development Center');
     shortcut.onclick = () => openDesk.click();
     hud?.querySelector('.toolbar')?.prepend(shortcut);
     let model, pending, pin, chosen, visibleCard;

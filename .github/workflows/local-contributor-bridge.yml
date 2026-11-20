@@ -1,0 +1,32 @@
+name: Local contributor bridge checks
+on:
+  push:
+    branches:
+      - feature/contribution-workspace-bridge-20261118
+  pull_request:
+    paths:
+      - 'tools/towerflow-companion*'
+      - 'collaboration-room/azure-bridge/companion-client.js'
+      - 'collaboration-room/azure-bridge/server.cjs'
+      - 'collaboration-room/azure-bridge/install.cjs'
+      - '.github/workflows/local-contributor-bridge.yml'
+jobs:
+  companion:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source syntax
+        run: |
+          node --check tools/towerflow-companion.cjs
+          node --check collaboration-room/azure-bridge/companion-client.js
+          node --check collaboration-room/azure-bridge/server.cjs
+          node --check collaboration-room/azure-bridge/install.cjs
+      - name: Verify companion isolation and local workflow
+        run: node --test tools/towerflow-companion.test.cjs
