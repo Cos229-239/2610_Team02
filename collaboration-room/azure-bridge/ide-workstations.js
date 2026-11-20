@@ -48,10 +48,15 @@ function display(station){
  const connect=make('button','CONNECT THIS COMPUTER','tf-dev-secondary');connect.type='button';
  const web=anchor('EDIT SOURCE IN BROWSER ↗','https://github.dev/'+REPO);
  actions.append(launch,connect,web);
+ const sourceLinks=make('div',undefined,'tf-ide-related-files');
+ const debug=make('details',undefined,'tf-ide-debug-guide');
+ debug.append(make('summary','Debugger (F5)'));
+ const debugMessage=make('p','Select the source area to see the matching debugger preset.');
+ debug.append(debugMessage);
  const evidence=make('p','No IDE has been launched or debugger verified.');evidence.setAttribute('role','status');
  const steps=make('div',undefined,'tf-ide-steps');
  steps.append(make('strong','How this works'),make('p','1. Connect your PC once in Contribute.  2. Select a component.  3. Open your locally installed IDE.  4. Run and test there.  5. Return to Team Contributions to review and submit.'));
- root.append(info,label,actions,evidence,steps);
+ root.append(info,label,sourceLinks,actions,debug,evidence,steps);
  content.replaceChildren(root);
  const setAreas=entries=>{
    area.replaceChildren();
@@ -68,6 +73,26 @@ function display(station){
  function updateLink(entries){
    const selected=entries[area.value];
    web.href=selected?'https://github.dev/'+REPO+'/blob/dev/'+selected.file.split('/').map(encodeURIComponent).join('/'):'https://github.com/'+REPO+'/tree/dev/TowerFlow/TowerFlow.Native';
+   sourceLinks.replaceChildren();
+   if(selected){
+     sourceLinks.append(make('strong','Primary source: '+selected.file));
+     const related=Array.isArray(selected.related)?selected.related:[];
+     for(const file of related.slice(0,5)){
+       if(typeof file!=='string'||file.startsWith('/')||file.includes('..'))continue;
+       const url='https://github.com/'+REPO+'/blob/dev/'+file.split('/').map(encodeURIComponent).join('/');
+       sourceLinks.append(anchor('Related: '+file+' ↗',url));
+     }
+   }else sourceLinks.append(make('strong','Native solution: TowerFlow/TowerFlow.Native/TowerFlow.Native.sln'));
+   const profile=selected?.debugProfile||'web';
+   const instruction=area.value==='native'?
+     'Visual Studio Community: choose Debug/x64 where available, set a breakpoint, then press F5. The native solution and installed C++ workload must be verified on this PC.':
+     profile==='node'?
+       'VS Code: select “TowerFlow — Debug server / Codespaces” in Run and Debug, set a breakpoint in TowerFlow/server.js, press F5. It uses isolated port 4174, not the shared room server.':
+     profile==='room'?
+       'Room frontend: browser developer tools can inspect the live room after sign-in. 3D room source is served dynamically, so F5 breakpoint mapping is NOT verified; do not debug against the shared room backend.':
+       'VS Code: select “TowerFlow — Run with F5” in Run and Debug, set a breakpoint in TowerFlow/app.js and press F5. The checked-in profile starts a local port 4174 web app, not the shared room. For CSS use browser inspection.';
+   debugMessage.textContent=instruction+
+     ' IDE process launch and debugger attachment are two separate checks; a successful launch is not debugger proof.';
  }
  async function refresh(){
    if(typeof window.tfContributorIDEStatus!=='function'){
