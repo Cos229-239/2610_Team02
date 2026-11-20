@@ -49,3 +49,30 @@ test('checked-in VS Code browser and Node debugger profiles are runnable and dis
  assert.equal(server.env.PORT,'4174');
  assert.ok(configs.every(c=>!c.url?.includes('127.0.0.1:4173')),'Debug actions must not accidentally attach to shared production port');
 });
+
+test('every in-room IDE dropdown area points to its actual source at a verified line',async()=>{
+ const {openIDE}=require('./towerflow-companion.cjs');
+ const launches=[];
+ const paths={vscode:['C:/editor/Code.exe'],cursor:['C:/editor/Cursor.exe'],
+  vscommunity:['C:/Visual Studio/Installer/vswhere.exe'],antigravity:['C:/editor/Antigravity.exe']};
+ const prepareWorkspace=async(login,project)=>{
+   assert.equal(login,'tester');
+   assert.equal(project,'integration');
+   return {dir:repo,branch:'work/tester/integration',entry:path.join(repo,'README.md')};
+ };
+ for(const id of Object.keys(SOURCE_AREAS)){
+   const receipt=await openIDE('tester','vscode',id,{
+     platform:'win32',paths,exists:()=>true,prepareWorkspace,
+     launcher:async(binary,args)=>{launches.push([binary,args]);return 1337;}
+   });
+   const target=await sourceTarget(repo,id);
+   assert.equal(receipt.area,id);
+   assert.equal(receipt.source,target.file);
+   assert.equal(receipt.line,target.line);
+   assert.match(receipt.sourceSha256,/^[a-f0-9]{64}$/);
+   assert.equal(receipt.debuggerVerified,false);
+   assert.equal(launches.at(-1)[1].at(-1),target.fullPath+':'+target.line,
+    id+' IDE launch must target real, anchored source, not an agent/chat pane');
+ }
+ assert.equal(launches.length,Object.keys(SOURCE_AREAS).length);
+});
