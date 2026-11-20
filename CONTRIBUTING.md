@@ -1,5 +1,25 @@
 # Contributing to TowerFlow
 
+## Optional local development companion (PR #25 prototype)
+
+This is an **experimental, local-only** feature on `feature/contribution-workspace-bridge-20261118`. It is **not** available on the deployed room until the reviewed PR is merged and the host runs the existing desk installer. Do not apply it to the production host before Windows and two-account acceptance.
+
+The optional companion runs on **each contributor's own Windows PC**, not on the TowerFlow host. It enables the room's **Contribute** panel to show actual local Git changes, review a bounded read-only diff, and open a project with VS Code or Visual Studio Community. It does not automatically run a debugger, attach a breakpoint, commit, push, merge, or deploy. Use the existing IDE's F5 debugging workflow after opening the project.
+
+**Prerequisites:** Node.js, Git, the relevant installed IDE/workloads, access to the Team 02 repository, and a checkout that already contains this companion source. For testing on this PR branch, avoid switching a dirty checkout; create a separate clean working clone if needed.
+
+1. On the contributor PC, sign into the existing TowerFlow room as their own GitHub account. Open **Contribute → My local development workspace → Start the free Windows companion**.
+2. Choose **Copy start command**. Run it on the contributor PC in PowerShell. It expects a Team 02 checkout under `Documents/GitHub/2610_Team02`; if your repository is elsewhere, open a terminal in your existing checkout and run `node tools/towerflow-companion.cjs --origin=https://YOUR-ROOM-ORIGIN --login=YOUR-GITHUB-LOGIN` using your exact HTTPS room origin. Do not include a URL path or trailing slash.
+3. The terminal prints a session token. **Never share or publish it.** Paste it once into the Contribute panel and select **Connect this PC**. It is held only in this page's JavaScript memory.
+4. Choose **Open My Project**. A missing checkout is cloned into the contributor's `Documents/TowerFlow Workspaces/<login>/TowerFlow-<project>` directory. An existing checkout is reused only when its remote and branch match expectations; conflicts fail without overwriting work.
+5. Choose **Refresh My Changes** to read local Git status, including untracked files; choose **Review My Changes** for tracked staged/unstaged diffs. Review an untracked file in the IDE until Git tracks it.
+6. To stop local access, select **Disconnect** and close the companion's PowerShell window. Merely disconnecting the browser does **not** stop the local process.
+
+The connection is restricted to `127.0.0.1:4179`, a single configured browser origin, a session token, and the configured contributor identity. Some browsers may block HTTPS-to-loopback requests; such failures should be recorded as compatibility blockers, not bypassed by exposing the companion to a public address. The companion does not replace GitHub's normal review/merge permissions.
+
+**Implementation source:** `tools/towerflow-companion.cjs`, `tools/towerflow-companion.test.cjs`, `collaboration-room/azure-bridge/companion-client.js`, and `docs/TOWERFLOW_IDE_DEBUGGER_ROOM_INTEGRATION.md`.
+
+
 ## Contribute from the room
 
 1. Sign in with your own GitHub account and open **Contribute**. Choose **Open Visual Studio on Windows…** for a native project or **Open VS Code on Windows…** for the web app. Paste the copied command into PowerShell. The launcher opens your personal checkout and working branch. Set a breakpoint and press **F5**. For the shared display header, Visual Studio opens a small CMake program that calls the header. Web contributors can also choose **Browser debugger** in GitHub Codespaces using their available quota.

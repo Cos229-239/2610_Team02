@@ -6,6 +6,8 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
     const shortcut = document.createElement('button');
     shortcut.type = 'button';
     shortcut.textContent = 'Contribute';
+    shortcut.classList.add('tf-development-entry');
+    shortcut.setAttribute('aria-label','Open TowerFlow Development Center');
     shortcut.onclick = () => openDesk.click();
     hud?.querySelector('.toolbar')?.prepend(shortcut);
     let model, pending, pin, chosen, visibleCard;
@@ -37,21 +39,89 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
         shortcut.title = model.name + ' · Open your development desk';
         if (visibleCard) render(visibleCard);
     }
+
+    // TF_MEMBER_DESK_RECOVERY_V1_BEGIN
+    // Fail-soft personal desk: genuine GitHub membership is checked by /api/me.
+    // Activity is optional; missing GitHub search/PR permissions must not strand
+    // a teammate or pretend a branch/commit was successfully inspected.
+    const PERSONAL_BRANCH = Object.freeze({
+        'lopobunnie':'WilliamPersonal',
+        'svn-760':'MalikPersonal',
+        'hyperrealmend':'OmarionPersonal',
+        'daynaperezcolon':'DaynaPersonal',
+        'dulskinator96':'DanielPersonal'
+    });
+    const safe = x => typeof x==='string' && /^[a-z0-9-]{1,39}$/i.test(x);
+    const web = (text,url) => {
+        const a=document.createElement('a');a.textContent=text;a.href=url;
+        a.target='_blank';a.rel='noopener noreferrer';return a;
+    };
+    async function fallbackDesk(reason) {
+        if(!visibleCard)return;
+        visibleCard.replaceChildren();
+        const heading=document.createElement('h3');heading.textContent='Your contribution workspace';
+        const status=document.createElement('p');status.setAttribute('role','status');
+        status.textContent='Checking your authenticated Team 02 membership…';
+        visibleCard.append(heading,status);
+        try {
+            const response=await fetch('/api/me',{credentials:'same-origin',cache:'no-store'});
+            if(!response.ok)throw Error('Room membership check HTTP '+response.status);
+            const account=await response.json();
+            const login=account.login;
+            if(!safe(login))throw Error('Signed-in member identity unavailable');
+            const branch=PERSONAL_BRANCH[login.toLowerCase()];
+            const repo='https://github.com/'+team;
+            status.textContent='Signed in as @'+login+
+                '. Live activity unavailable ('+reason+'). GitHub will verify the branch when opened.';
+            const actions=document.createElement('div');actions.className='row wrap tf-fallback-actions';
+            actions.append(web('Open Team 02 source ↗',repo+'/tree/dev'),
+                web('Create contribution ↗',branch?repo+'/compare/dev...'+encodeURIComponent(branch):repo+'/branches'),
+                web('Review team PRs ↗',repo+'/pulls'));
+            if(branch){
+                actions.prepend(web('My branch ↗',repo+'/tree/'+encodeURIComponent(branch)));
+                actions.append(web('Compare my work with dev ↗',repo+'/compare/dev...'+encodeURIComponent(branch)));
+            }
+            const desktop=web('Open GitHub Desktop ↗',
+                'x-github-client://openRepo/'+repo+'?branch='+encodeURIComponent(branch||'dev'));
+            actions.append(desktop);
+            const note=document.createElement('p');
+            note.textContent='Commit and Push origin in GitHub Desktop before teammates can see your files. '+
+                'Create a pull request targeting dev to submit your contribution. '+
+                'These links are functional GitHub entry points, not proof that a change was pushed.';
+            const retry=document.createElement('button');retry.type='button';
+            retry.textContent='Retry live personal desk';
+            retry.onclick=()=>{model=null;void load();};
+            visibleCard.append(actions,note,retry);
+        }catch(error){
+            status.textContent='Your workspace cannot be verified ('+error.message+'). '+
+                'Sign into TowerFlow with a GitHub account that has Team 02 access.';
+            const auth=document.createElement('a');
+            auth.textContent='Sign in with GitHub';auth.href='/auth/github';
+            const source=web('Team 02 repository ↗','https://github.com/'+team);
+            const links=document.createElement('div');links.className='row wrap';
+            links.append(auth,source);
+            visibleCard.append(links);
+        }
+    }
+
+    // TF_MEMBER_DESK_RECOVERY_V1_END
     async function load() {
         if (pending) return pending;
         pending = (async () => {
             try {
-                const response = await fetch('/api/azure-bridge/loadout', {cache:'no-store'});
-                if (!response.ok) throw Error();
+                const response = await fetch('/api/azure-bridge/loadout', {credentials:'same-origin',cache:'no-store'});
+                if (!response.ok) throw Error('HTTP '+response.status);
                 const next = await response.json();
+                if (!next || !safe(next.login) || !next.projects || !next.projects[next.defaultProject])
+                    throw Error('Incomplete member workspace response');
                 if (model?.login !== next.login) { chosen = null; drafts.clear(); }
                 model = next;
                 pin = getPin();
                 refresh();
-            } catch {
+            } catch (error) {
                 model = null; chosen = null; pin = null; drafts.clear();
                 shortcut.textContent = 'Contribute';
-                if (visibleCard) visibleCard.textContent = 'Azure could not load your personal desk. The shared contribution tools are available below.';
+                await fallbackDesk(error.message || 'unavailable');
             } finally { pending = null; }
         })();
         return pending;
