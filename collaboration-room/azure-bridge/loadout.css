@@ -151,6 +151,34 @@
 .tf-ai-handoff-form textarea[readonly] { font-size:.82rem; line-height:1.4; }
 .tf-ai-azure button:focus-visible { outline:3px solid #b4edff; outline-offset:2px; }
 
+
+/* Compact AI connection console. One task per panel; reveal advanced details on demand. */
+.tf-ai-azure { max-width:740px; margin:.25rem auto; padding:clamp(.75rem,1.8vw,1.1rem); background:#101d2b; border:1px solid #41596d; box-shadow:none; }
+.tf-ai-azure-head { margin-bottom:.8rem; }
+.tf-ai-azure-head h2 { margin:.15rem 0 .35rem; font-size:clamp(1.15rem,2.5vw,1.55rem); }
+.tf-ai-azure-head > p { margin:.15rem 0 .7rem; }
+.tf-ai-azure .tf-ai-provider-grid { grid-template-columns:repeat(4,minmax(0,1fr)); gap:.45rem; margin:.55rem 0 .65rem; }
+.tf-ai-azure .tf-ai-provider-card { padding:.55rem .65rem; min-height:60px; border-radius:7px; }
+.tf-ai-azure .tf-ai-provider-card strong { font-size:.95rem; }
+.tf-ai-azure .tf-ai-provider-card small { font-size:.7rem; }
+.tf-ai-azure .tf-ai-provider-info { margin:.2rem 0 .45rem; }
+.tf-ai-azure .tf-ai-provider-info > p { font-size:.83rem; margin:.25rem 0; }
+.tf-ai-azure .tf-ai-handoff-form { padding-top:.65rem; gap:.45rem; }
+.tf-ai-azure .tf-ai-handoff-form label { gap:.25rem; }
+.tf-ai-azure .tf-ai-handoff-form textarea:not([readonly]) { min-height:95px; }
+.tf-ai-azure .tf-ai-azure-links { margin:.4rem 0; }
+.tf-ai-azure details { border:1px solid #30495b; border-radius:7px; padding:.4rem .6rem; }
+.tf-ai-azure details summary { cursor:pointer; color:#cce8f4; font-weight:650; }
+.tf-ai-azure details[open] { background:#152b3c; }
+.tf-ai-azure details p { margin:.55rem 0; }
+.tf-ai-azure .tf-ai-generated-wrap textarea { margin:.55rem 0 .1rem; max-height:240px; }
+.tf-ai-azure label:has(> input[type="checkbox"]) { display:flex; align-items:center; gap:.5rem; font-size:.85rem; font-weight:500; }
+.tf-ai-azure .tf-ai-proof { margin-top:.8rem; padding-top:.75rem; border-top:1px solid #30495b; }
+.tf-ai-azure .tf-ai-proof h3 { margin:.15rem 0 .3rem; font-size:1rem; }
+.tf-ai-azure .tf-ai-proof > p { margin:.25rem 0; font-size:.83rem; }
+.tf-ai-azure .tf-ai-proof input[type="number"] { width:140px; padding:.55rem; background:#101d2b; color:#fff; border:1px solid #617c91; border-radius:6px; }
+@media(max-width:680px) { .tf-ai-azure .tf-ai-provider-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
 /* Actionable in-world IDE workstations: no change to the 3D room materials. */
 .tf-dev-ide-station { padding:clamp(.9rem,2vw,1.5rem); margin:.5rem 0; border:1px solid #5b849e; border-radius:12px; color:#ebfaff; background:linear-gradient(145deg,#0c1b2b,#14334a); }
 .tf-ide-station-head h2 { font-size:clamp(1.25rem,3vw,1.9rem); margin:.5rem 0; }
