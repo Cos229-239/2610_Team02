@@ -7,7 +7,7 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),
 const ROOT=path.resolve(__dirname,'..');
 const SRC_SCENE=path.join(ROOT,'collaboration-room','live-room','public','room.js');
 const SRC_BRIDGE=path.join(ROOT,'collaboration-room','azure-bridge');
-const EXTRA=['business-signals.cjs','team-stations.cjs','team-stations.js','azure-workspace-harness.cjs','azure-workspace-harness.js','azure-local-reasoner.cjs'];
+const EXTRA=['ai-contribution-proof.cjs','business-signals.cjs','team-stations.cjs','team-stations.js','azure-workspace-harness.cjs','azure-workspace-harness.js','azure-local-reasoner.cjs'];
 const SHA=x=>crypto.createHash('sha256').update(x).digest('hex');
 const ONE=(source,needle,what)=>{
  const n=source.split(needle).length-1;
@@ -77,36 +77,59 @@ function integrateScene(current,reviewed){
 function integrateServer(current){
  const newline=current.includes('\r\n')?'\r\n':'\n';
  current=current.replace(/\r\n/g,'\n');
- const steps=[];
- const include=(anchor,insert,label)=>{
-  if(current.includes(insert))return;
-  ONE(current,anchor,label);
-  current=current.replace(anchor,anchor+insert);
-  steps.push(label);
- };
- include("const {mount:mountAIProof} = require('./ai-contribution-proof.cjs');",
-   "\nconst {mount:mountTeamStations} = require('./team-stations.cjs');\nconst {mount:mountBusinessSignals} = require('./business-signals.cjs');",
-   'team/business imports');
- include('    mountAIProof(app,{auth,ensureMember});',
-   '\n    mountTeamStations(app,{auth,ensureMember});\n    mountBusinessSignals(app,{auth,ensureMember});',
-   'team/business authorization mounts');
- include("'ide-workstations.js',"," 'team-stations.js',",
-   'new station public script');
- include("const {mount:mountAIProof} = require('./ai-contribution-proof.cjs');",
-   "\nconst {mount:mountAzureHarness} = require('./azure-workspace-harness.cjs');",
-   'Azure workspace harness import');
- include('    mountAIProof(app,{auth,ensureMember});',
-   '\n    mountAzureHarness(app,{auth,ensureMember,sameOrigin});',
-   'Azure workspace verified task route');
- include("'ide-workstations.js',",
-   " 'azure-workspace-harness.js',",
-   'Azure workspace browser script');
- include('<script src="/azure-bridge/ide-workstations.js" defer></script>',
-   '<script src="/azure-bridge/azure-workspace-harness.js" defer></script>',
-   'Azure workspace html script');
- include('<script src="/azure-bridge/ide-workstations.js" defer></script>',
-   '<script src="/azure-bridge/team-stations.js" defer></script>',
-   'team public page script');
+ const imported=[
+  ["mountAIProof","ai-contribution-proof.cjs"],
+  ["mountTeamStations","team-stations.cjs"],
+  ["mountBusinessSignals","business-signals.cjs"],
+  ["mountAzureHarness","azure-workspace-harness.cjs"]
+ ];
+ // Both the reviewed Bridge and the older customized host own this anchor.
+ const importAnchor="const {mount:mountAppHub} = require('./app-hub.cjs');";
+ ONE(current,importAnchor,'existing app-hub import');
+ for(const [name,file] of imported){
+  const line="const {mount:"+name+"} = require('./"+file+"');";
+  if(!current.includes(line)){
+   if(new RegExp("const\\s*\\{[^\\n]*"+name+"[^\\n]*\\}").test(current))
+    throw Error('Customized '+name+' import must be reconciled manually');
+   current=current.replace(importAnchor,importAnchor+'\n'+line);
+  }
+ }
+ const mountAnchor='    mountAppHub(app,{auth,ensureMember});';
+ ONE(current,mountAnchor,'existing app-hub route');
+ for(const line of [
+  '    mountAIProof(app,{auth,ensureMember});',
+  '    mountTeamStations(app,{auth,ensureMember});',
+  '    mountBusinessSignals(app,{auth,ensureMember});',
+  '    mountAzureHarness(app,{auth,ensureMember,sameOrigin});'
+ ]){
+  if(!current.includes(line)){
+   const fn=line.match(/mount\w+/)[0];
+   if(current.includes(fn+'(app'))throw Error('Customized '+fn+' route exists; preservation blocked');
+   current=current.replace(mountAnchor,mountAnchor+'\n'+line);
+  }
+ }
+ // Expand only the existing per-file serving allowlist.
+ const allowlist=/for \(const file of \[([^\]\n]+)\]\) \{/;
+ const match=current.match(allowlist);
+ if(!match)throw Error('Host module serving list not recognized.');
+ const entries=match[1];
+ const missing=['team-stations.js','azure-workspace-harness.js'].filter(n=>!entries.includes("'"+n+"'"));
+ if(missing.length){
+  current=current.replace(match[0],
+   'for (const file of ['+entries+missing.map(n=>",'"+n+"'").join('')+']) {');
+ }
+ // The live route dynamically injects scripts, rather than rewriting index.html.
+ const lines=current.split('\n');
+ const idx=lines.findIndex(x=>x.includes('.replace(/<\\/body\\s*>/i,'));
+ if(idx<0)throw Error('Host dynamic room HTML insertion anchor missing.');
+ for(const name of ['team-stations.js','azure-workspace-harness.js']){
+  const tag='<script src="/azure-bridge/'+name+'" defer></script>';
+  if(!lines[idx].includes(tag)){
+   if(!lines[idx].includes("$&'"))throw Error('Host dynamic HTML insertion has changed.');
+   lines[idx]=lines[idx].replace("$&'",tag+"$&'");
+  }
+ }
+ current=lines.join('\n');
  return newline==='\r\n'?current.replace(/\n/g,'\r\n'):current;
 }
 function makePlan(host){
