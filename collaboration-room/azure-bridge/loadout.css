@@ -152,6 +152,40 @@
 .tf-ai-azure button:focus-visible { outline:3px solid #b4edff; outline-offset:2px; }
 
 
+/* Compact Contribution desk and App Integration Hub. Advanced tools remain available. */
+.tf-azure-loadout:has(> .tf-developer-center) { max-width:940px; margin:0 auto; }
+.tf-developer-center { padding:clamp(.75rem,1.6vw,1.15rem); margin:.35rem 0 .75rem; border-radius:10px; box-shadow:none; background:#102236; }
+.tf-developer-center .tf-dev-header { margin-bottom:.65rem; }
+.tf-developer-center .tf-dev-header h2 { font-size:clamp(1.2rem,2.3vw,1.55rem); margin:.2rem 0; }
+.tf-developer-center .tf-dev-header p { font-size:.86rem; margin:.1rem 0 .4rem; }
+.tf-developer-center .tf-dev-choices { gap:.55rem; }
+.tf-developer-center .tf-dev-choice { min-height:78px; gap:.25rem; padding:.72rem .9rem; border-radius:8px; box-shadow:none; }
+.tf-developer-center .tf-dev-choice strong { font-size:1.04rem; }
+.tf-developer-center .tf-dev-choice-cta { margin-top:0; font-size:.8rem; }
+.tf-developer-center .tf-dev-footer { border:0; padding-top:.45rem; margin-top:.45rem; gap:.5rem; }
+.tf-developer-center .tf-dev-main { margin-top:.5rem; }
+.tf-developer-center .tf-dev-workspace { padding:.85rem; }
+.tf-dev-legacy-details { margin:.5rem 0; border:1px solid #35536b; border-radius:8px; padding:.55rem .75rem; background:#0b1d2d; }
+.tf-dev-legacy-details > summary,.tf-app-hub details > summary { cursor:pointer; color:#d6f3ff; font-weight:650; }
+.tf-dev-legacy-content { padding:.65rem 0; }
+.tf-dev-scope-details,.tf-dev-examples-guide { margin:.5rem 0; padding:.55rem; border:1px solid #37566a; border-radius:7px; }
+.tf-dev-scope-details > summary,.tf-dev-examples-guide > summary { cursor:pointer; font-size:.9rem; }
+.tf-app-hub { max-width:850px; margin:0 auto; padding:clamp(.75rem,1.6vw,1.15rem); }
+.tf-app-hub > h3 { margin:.15rem 0 .3rem; font-size:1.2rem; }
+.tf-app-hub > p { margin:.1rem 0 .7rem; font-size:.88rem; }
+.tf-app-hub-editor { padding:.75rem; }
+.tf-app-hub-editor > h3 { margin:.4rem 0; }
+.tf-app-hub-editor .tf-app-hub-component-select { display:grid; gap:.25rem; margin-bottom:.5rem; font-weight:700; }
+.tf-app-hub-editor .tf-app-hub-component-select select { width:100%; background:#0b1928; color:#f5fbff; padding:.65rem; border:1px solid #597b90; border-radius:6px; }
+.tf-app-hub-editor > p { margin:.4rem 0; }
+.tf-app-hub .tf-app-hub-shortcuts { display:flex; gap:.75rem; flex-wrap:wrap; }
+.tf-app-hub .tf-app-hub-more { flex:1 1 100%; }
+.tf-app-hub .tf-app-hub-browse,.tf-app-hub .tf-app-hub-submit,.tf-app-hub .tf-app-hub-history { padding:.55rem .75rem; margin-top:.6rem; border:1px solid #38576c; border-radius:8px; background:#0e2335; }
+.tf-app-hub .tf-app-hub-grid { margin:.55rem 0; }
+.tf-app-hub .tf-app-hub-card { min-height:60px; padding:.55rem; }
+.tf-app-hub .tf-app-hub-card small { font-size:.7rem; }
+@media(max-width:650px) { .tf-developer-center .tf-dev-choice { min-height:68px; } .tf-app-hub .tf-app-hub-shortcuts { display:grid; } }
+
 /* Compact AI connection console. One task per panel; reveal advanced details on demand. */
 .tf-ai-azure { max-width:740px; margin:.25rem auto; padding:clamp(.75rem,1.8vw,1.1rem); background:#101d2b; border:1px solid #41596d; box-shadow:none; }
 .tf-ai-azure-head { margin-bottom:.8rem; }
