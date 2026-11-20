@@ -43,7 +43,7 @@ test('exact reviewed Business Studio scene injection preserves all original cust
  assert.equal(integrateScene(after,reviewed),after,'running twice does not duplicate features');
  assert.throws(()=>integrateScene(before+'\n// TF_DEV_BUSINESS_APP_ENTRY_V1_BEGIN',reviewed),/Partially installed/);
 });
-test('integration changes only five scoped host files; old Azure UI is never overwritten',()=>{
+test('integration changes only eight scoped host files; old Azure UI is never overwritten',()=>{
  const host=fs.mkdtempSync(path.join(os.tmpdir(),'tf-business-live-'));
  try{
   fs.mkdirSync(path.join(host,'public'));
@@ -58,8 +58,8 @@ test('integration changes only five scoped host files; old Azure UI is never ove
   const changes=makePlan(host);
   assert.equal(changes.length,8);
   assert.deepEqual(changes.map(c=>path.relative(host,c.file)).sort(),[
-    'azure-bridge/azure-workspace-harness.cjs','azure-bridge/azure-workspace-harness.js',
     'azure-bridge/azure-local-reasoner.cjs',
+    'azure-bridge/azure-workspace-harness.cjs','azure-bridge/azure-workspace-harness.js',
     'azure-bridge/business-signals.cjs','azure-bridge/server.cjs',
     'azure-bridge/team-stations.cjs','azure-bridge/team-stations.js','public/room.js'
   ]);
