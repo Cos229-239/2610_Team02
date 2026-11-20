@@ -33,6 +33,20 @@ async function readStation(login,token,{request,now=Date.now}={}){
    throw Error('Personal branch is inaccessible using the current GitHub session.');
  const commit=latest.value[0],sha=String(commit.sha);
  if(!/^[a-f0-9]{40}$/i.test(sha))throw Error('Invalid commit revision');
+ const shaSafe=encodeURIComponent(sha);
+ let recentFiles=[];
+ try{
+   const detail=await get('/commits/'+shaSafe);
+   if(Array.isArray(detail?.files)){
+     recentFiles=detail.files.slice(0,30).filter(item=>{
+       const file=item?.filename;
+       return typeof file==='string'&&file.length<260&&!file.startsWith('/')&&
+         !file.includes('..')&&!file.includes('\\')&&
+         ['added','modified','removed','renamed'].includes(item.status);
+     }).map(item=>({path:item.filename,status:item.status,
+       url:gitUrl(branch,item.filename)}));
+   }
+ }catch{/* A missing commit detail is not a reason to invent changed filenames. */}
  const files=config.files.map((f,i)=>{
    const item=proof[i]?.status==='fulfilled'?proof[i].value:null;
    const available=Boolean(item?.type==='file'&&/^[a-f0-9]{40}$/i.test(item.sha||''));
@@ -43,7 +57,7 @@ async function readStation(login,token,{request,now=Date.now}={}){
    sha,title:String(commit.commit?.message||'').split('\n')[0].slice(0,150),
    date:commit.commit?.author?.date||null,author:commit.author?.login||commit.commit?.author?.name||'Unverified',
    url:'https://github.com/'+REPO+'/commit/'+sha
-  },files,note:'Shows the actual remote GitHub branch. GitHub Desktop commits appear only after Push origin, and are not automatically merged to dev.'};
+  },files,recentFiles,note:'Shows the actual remote GitHub branch. GitHub Desktop commits appear only after Push origin, and are not automatically merged to dev.'};
 }
 function mount(app,{auth,ensureMember,load=readStation}={}){
  if(typeof auth!=='function'||typeof ensureMember!=='function')throw Error('Member middleware required');
