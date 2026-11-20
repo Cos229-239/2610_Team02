@@ -1798,6 +1798,15 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
       const btn=document.createElement("button");btn.type="button";btn.textContent=label;
       btn.onclick=run;actions.append(btn);return btn;
     };
+    makeButton("OPEN TOWERFLOW APP",()=>{
+      const frame=document.createElement("iframe");
+      frame.title="Actual TowerFlow Business Application";
+      frame.src="/towerflow/index.html";
+      frame.style.cssText="width:100%;height:min(65vh,720px);min-height:420px;border:1px solid #6ac9ee;border-radius:8px;background:#071523";
+      host.append(frame);
+    });
+    makeButton("WORLD SALES",()=>window.tfOpenWorldSalesPanel?.());
+    makeButton("AZURE · AI",()=>window.tfOpenAzureAIConnect?.());
     makeButton("CONTRIBUTE  →",()=>window.tfOpenMemberDesk?.());
     makeButton("APP INTEGRATIONS  →",()=>window.tfOpenAppIntegrationHub?.());
     makeButton("CONNECT MY AI  →",()=>{
@@ -1816,6 +1825,44 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
     status.textContent="Development projector is independently powered. Changes to the live shared app require team review and publication.";
     host.append(heading,intro,actions,links,status);
   }
+
+  // TF_DEV_BUSINESS_WALL_ROUTING_V1_BEGIN
+  // Original Frontier projector remains untouched. This controls its independent
+  // development-room copy only. In-world wall shows a branded canvas projection;
+  // the full, working TowerFlow app is opened separately as a same-origin iframe.
+  const devBusinessWalls=Object.freeze({
+    front:{x:tfRoomX,z:-15.49,ry:0},
+    back:{x:tfRoomX,z:15.49,ry:Math.PI},
+    left:{x:tfRoomX-20.50,z:0,ry:Math.PI/2},
+    right:{x:tfRoomX+20.50,z:0,ry:-Math.PI/2}
+  });
+  function aimBusinessWall(wall){
+    const w=devBusinessWalls[wall];if(!w)return false;
+    const normal=new THREE.Vector3(Math.sin(w.ry),0,Math.cos(w.ry));
+    const source=devBusinessProjector.position.clone();
+    const target=new THREE.Vector3(w.x+normal.x*.05,5.45,w.z+normal.z*.05);
+    devBusinessProjector.lookAt(target);
+    devBusinessBeam.target.position.copy(target);
+    const direction=target.clone().sub(source);
+    devBusinessCone.position.copy(source.clone().add(target).multiplyScalar(.5));
+    devBusinessCone.scale.set(1,direction.length()/13,1);
+    devBusinessCone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize());
+    devBusinessScreen.position.copy(target.clone().addScaledVector(normal,.12));
+    devBusinessScreen.rotation.y=w.ry;
+    const prior=devBusinessScreen.material.map;
+    devBusinessScreen.material.map=textTexture("TOWERFLOW","BUSINESS STUDIO / CLICK PROJECTION TO OPEN");
+    devBusinessScreen.material.needsUpdate=true;
+    prior?.dispose();
+    devBusinessBeam.intensity=14;
+    devBusinessCone.material.opacity=.048;
+    return true;
+  }
+  window.tfBusinessProjector=Object.freeze({
+    aim:aimBusinessWall,
+    open:openDevBusinessStudio,
+    get walls(){return Object.keys(devBusinessWalls);}
+  });
+  // TF_DEV_BUSINESS_WALL_ROUTING_V1_END
   // TF_DEV_BUSINESS_PROJECTOR_V1_END
 
   let projection=0,projectionOn=false,currentTab="OVERVIEW",isPanel=false;
@@ -3571,3 +3618,166 @@ scene.add(group);
 window.tfReferenceStudio=Object.freeze({dispose(){scene.remove(group);group.traverse(o=>{if(o.geometry)o.geometry.dispose();});materials.forEach(m=>m.dispose());delete window.tfReferenceStudio;}});
 }());
 // TF_REFERENCE_STUDIO_V1_END
+
+// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_BEGIN
+// A single additive block keeps the original cinematic environment untouched.
+(function(){
+"use strict";
+const ids=[
+ ["lopobunnie","LOPOBUNNIE 💜",48],
+ ["svn-760","MALIK",55],
+ ["hyperrealmend","OMARION",62],
+ ["daynaperezcolon","DAYNA",69],
+ ["dulskinator96","DAN",76]
+];
+const memberSigns=new Map();
+for(const [login,label,x] of ids){
+ const id="tf-member-"+login;
+ station(id,label,"PUSHED WORK / GITHUB",x,6.6,violet);
+ const screen=sign(label,"OPEN REMOTE PERSONAL BRANCH",x,4.8,5.93,5.0,1.1);
+ tfRegister(screen,id);memberSigns.set(login,screen);
+}
+document.addEventListener("tfTeamStationUpdate",e=>{
+ const {login,commit,sourceCount}=e.detail||{},screen=memberSigns.get(login);
+ if(!screen||!/^([a-f0-9]{7,12})$/.test(commit||""))return;
+ const next=textTexture(login.toUpperCase(),"PUSHED "+commit+" / "+sourceCount+" FILES");
+ const old=screen.material.map;screen.material.map=next;screen.material.needsUpdate=true;
+ old?.dispose();
+});
+const wallSpecs=[
+ ["front",tfRoomX,5.4,-15.72,0,35],
+ ["back",tfRoomX,5.4,15.72,Math.PI,35],
+ ["left",tfRoomX-20.71,5.4,0,Math.PI/2,27],
+ ["right",tfRoomX+20.71,5.4,0,-Math.PI/2,27]
+];
+for(const [id,x,y,z,rotation,width] of wallSpecs){
+ const face=new THREE.Mesh(new THREE.PlaneGeometry(width,8.6),
+  new THREE.MeshBasicMaterial({color:0x8bd4ff,opacity:0,transparent:true,
+    depthWrite:false,side:THREE.DoubleSide}));
+ face.position.set(x,y,z);face.rotation.y=rotation;
+ face.name="TF_BUSINESS_WALL_"+id;
+ scene.add(face);tfRegister(face,"tf-business-wall-"+id);
+}
+// Reuse original E/click dispatch. Window launcher belongs to Azure Bridge,
+// actual desktop IDE is owned by each teammate's local companion.
+const priorActivate=activateTFStation;
+activateTFStation=function tfBusinessStation(id){
+ if(typeof id==="string"&&id.startsWith("tf-business-wall-")){
+   const target=id.slice("tf-business-wall-".length);
+   if(window.tfBusinessProjector?.aim(target)){
+     showToast("Business projector aimed at "+target+" wall. Select screen to open TowerFlow.");
+   }else showToast("Business projector unavailable on this host.");
+   return;
+ }
+ if(typeof id==="string"&&id.startsWith("tf-member-")){
+   const login=id.slice("tf-member-".length);
+   if(window.tfOpenMemberStation)void window.tfOpenMemberStation(login);
+   else showToast("Team GitHub station module is not installed.");
+   return;
+ }
+ priorActivate(id);
+};
+// Click the physical projected screen for the actual app entry.
+const previousBusinessOpen=window.tfBusinessProjector;
+if(previousBusinessOpen){
+ window.tfBusinessProjector=Object.freeze({
+   aim:previousBusinessOpen.aim,open:previousBusinessOpen.open,
+   get walls(){return previousBusinessOpen.walls;}
+ });
+}
+// Keep world sales label to the left of Earth; do not cover the sphere.
+earthStatus.position.set(-4.15,5.02,-2);
+const beforeLabel=earthStatus.material.map;
+earthStatus.material.map=textTexture("WORLD SALES","NO VERIFIED SOURCE / AZURE");
+earthStatus.material.needsUpdate=true;
+beforeLabel?.dispose();
+const salesMarkers=new Map(),signalColors={green:0x48ff86,yellow:0xffd052,red:0xff536c};
+let signalMode="UNCONFIGURED",signalTotal=0,lastRead=null;
+function worldPosition(lat,lon,radius=1.065){
+ const polar=(90-lat)*Math.PI/180,azimuth=(lon+180)*Math.PI/180;
+ return new THREE.Vector3(-radius*Math.sin(polar)*Math.cos(azimuth),
+   radius*Math.cos(polar),radius*Math.sin(polar)*Math.sin(azimuth));
+}
+function updateSignals(events,mode){
+ const next=new Set();signalMode=mode;signalTotal=events.length;lastRead=Date.now();
+ for(const event of events.slice(0,80)){
+   if(!/^[a-zA-Z0-9.:/@ -]{1,120}$/.test(event.id||"")||!Object.hasOwn(signalColors,event.state))continue;
+   if(!Number.isFinite(event.lat)||!Number.isFinite(event.lon))continue;
+   next.add(event.id);
+   let dot=salesMarkers.get(event.id);
+   if(!dot){
+     dot=new THREE.Mesh(new THREE.SphereGeometry(.055,10,8),
+       new THREE.MeshBasicMaterial({color:signalColors[event.state]}));
+     core.add(dot);salesMarkers.set(event.id,dot);
+   }
+   dot.material.color.setHex(signalColors[event.state]);
+   dot.position.copy(worldPosition(event.lat,event.lon));
+ }
+ for(const [key,dot] of salesMarkers)if(!next.has(key)){
+   core.remove(dot);dot.geometry.dispose();dot.material.dispose();salesMarkers.delete(key);
+ }
+ const old=earthStatus.material.map;
+ earthStatus.material.map=textTexture("WORLD SALES",
+   mode==="VERIFIED_LEDGER"?"VERIFIED REGIONAL EVENTS: "+signalTotal:
+   mode==="DEMO"?"DEMO ONLY / NOT LIVE":"NO CONNECTED SALES LEDGER");
+ earthStatus.material.needsUpdate=true;old?.dispose();
+}
+async function refreshBusinessSignals(){
+ if(!running||!localUser)return;
+ try{
+   const response=await fetch("/api/azure-bridge/business-signals",
+     {credentials:"same-origin",cache:"no-store",signal:AbortSignal.timeout(5000)});
+   if(!response.ok)throw Error("HTTP "+response.status);
+   const payload=await response.json();
+   if(payload.schema!=="towerflow-business-signals/v1"||
+      !["VERIFIED_LEDGER","UNAVAILABLE","UNCONFIGURED"].includes(payload.mode)||
+      !Array.isArray(payload.events))throw Error("Invalid feed schema");
+   updateSignals(payload.events,payload.mode);
+ }catch{updateSignals([],"UNAVAILABLE");}
+}
+function openWorldPanel(){
+ openPanel("work");
+ document.getElementById("panelTitle").textContent="WORLD SALES / AZURE";
+ const root=document.getElementById("panelContent");root.replaceChildren();
+ const title=document.createElement("h3");title.textContent="Global business activity";
+ const state=document.createElement("p");
+ const legend=document.createElement("p");
+ legend.textContent="🟢 Verified positive net revenue  •  🟡 Balanced  •  🔴 Returns or net loss";
+ const details=document.createElement("p");
+ details.textContent="Dots require approved transaction records with explicit business-region coordinates. Market trades do not reveal customer location or sales profit. No fabricated locations.";
+ const refresh=document.createElement("button");refresh.type="button";refresh.textContent="Refresh verified feed";
+ const demo=document.createElement("button");demo.type="button";demo.textContent="Preview colored pings (DEMO)";
+ const clear=document.createElement("button");clear.type="button";clear.textContent="Return to live-source mode";
+ const render=()=>{state.textContent="Source: "+signalMode+" · "+signalTotal+" regional event(s)"+(lastRead?" · updated "+new Date(lastRead).toLocaleTimeString():"");};
+ refresh.onclick=async()=>{await refreshBusinessSignals();render();};
+ demo.onclick=()=>{
+   updateSignals([
+     {id:"demo-1",lat:40.7,lon:-74,state:"green"},
+     {id:"demo-2",lat:51.5,lon:-.1,state:"yellow"},
+     {id:"demo-3",lat:35.7,lon:139.7,state:"red"}
+   ],"DEMO");render();
+ };
+ clear.onclick=async()=>{updateSignals([],"UNCONFIGURED");await refreshBusinessSignals();render();};
+ root.append(title,state,legend,details,refresh,demo,clear);render();
+}
+window.tfOpenWorldSalesPanel=openWorldPanel;
+const timer=setInterval(()=>{
+ if(signalMode==="DEMO"||document.hidden)return;
+ void refreshBusinessSignals();
+},7000);
+void refreshBusinessSignals();
+// Low-cost pulse (10 fps, not a second 60fps render loop).
+const heartbeat=setInterval(()=>{
+ if(document.hidden)return;
+ const pulse=1+.28*Math.sin(Date.now()*.006);
+ for(const dot of salesMarkers.values())dot.scale.setScalar(pulse);
+},100);
+window.tfBusinessWorld=Object.freeze({
+ get status(){return {mode:signalMode,count:signalTotal};},
+ refresh:refreshBusinessSignals,
+ dispose(){clearInterval(timer);clearInterval(heartbeat);for(const dot of salesMarkers.values()){
+   core.remove(dot);dot.geometry.dispose();dot.material.dispose();
+ }salesMarkers.clear();}
+});
+}());
+// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_END
