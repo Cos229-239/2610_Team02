@@ -155,7 +155,27 @@ function show(){
      const frame=make('iframe');frame.title='Azure TowerFlow change preview';
      frame.src=data.previewUrl;
      frame.style.cssText='width:100%;height:420px;min-height:340px;border:1px solid #5bb8dd;border-radius:7px;background:#081524';
-     results.append(title,info,frame);
+     const submit=make('button','Submit draft PR for review');submit.type='button';
+     submit.onclick=async()=>{
+       if(!confirm('Submit only this reviewed preview as a DRAFT PR to dev? No automatic merge or live publication.'))return;
+       submit.disabled=true;status.textContent='Creating authorized draft pull request…';
+       try{
+         const response=await fetch('/api/azure-bridge/direct/submit',{
+           method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+           body:JSON.stringify({key:data.key})
+         });
+         const outcome=await response.json();
+         if(!response.ok)throw Error(outcome.error||'Draft PR not created');
+         const url=outcome.url||outcome.html_url||outcome.pullRequestUrl;
+         if(typeof url!=='string'||!/^https:\/\/github\.com\/Cos229-239\/2610_Team02\/pull\/[0-9]+$/.test(url))
+           throw Error('Draft submitted, but response URL was not verified. Check the Team 02 pull requests list.');
+         const link=make('a','Open draft PR ↗');link.href=url;link.target='_blank';link.rel='noopener noreferrer';
+         results.append(link);
+         status.textContent='Draft PR created for team review. Not merged or deployed.';
+       }catch(error){status.textContent='Submission unavailable: '+error.message;}
+       finally{submit.disabled=false;}
+     };
+     results.append(title,info,frame,submit);
      status.textContent='Preview generated from a registered change. Nothing has been merged or deployed.';
    }catch(error){status.textContent='Preview unavailable: '+error.message+'. Open verified source in your IDE for other requests.';}
    finally{previewButton.disabled=false;}
