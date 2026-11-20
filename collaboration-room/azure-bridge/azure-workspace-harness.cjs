@@ -107,14 +107,14 @@ async function githubSourceProof(plan,token,{request}={}){
    throw Error('Actual dev source is missing or does not match registry');
  let referenceLine=null,contentSha256=null;
  if(typeof found.content==='string'&&found.encoding==='base64'){
-   const raw=Buffer.from(found.content.replace(/\\s+/g,''),'base64');
+   const raw=Buffer.from(found.content.replace(/\s+/g,''),'base64');
    if(raw.length>1024*1024)throw Error('Source content exceeds safe verification bound');
    const code=raw.toString('utf8');
    const anchor=SOURCE_AREAS[plan.target]?.anchor;
    if(!anchor||code.indexOf(anchor)<0||
      code.indexOf(anchor,code.indexOf(anchor)+anchor.length)>=0)
      throw Error('Source anchor missing or ambiguous in actual GitHub file');
-   referenceLine=code.slice(0,code.indexOf(anchor)).split('\\n').length;
+   referenceLine=code.slice(0,code.indexOf(anchor)).split('\n').length;
    contentSha256=crypto.createHash('sha256').update(raw).digest('hex');
  }
  return {status:'SOURCE_READ_VERIFIED',repo:REPO,branch:'dev',path:file,
