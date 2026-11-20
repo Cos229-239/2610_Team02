@@ -137,6 +137,11 @@ async function main() {
         if(!(await advanced.evaluate(el=>el.open)))await advanced.locator(':scope > summary').click();
         for (const key of ['interface','forms','portfolio','operations','reporting','integration','shared']) {
             await presenter.locator('[data-select]').selectOption(key);
+            await presenter.locator('[data-windows]').evaluate(button=>{
+                for(let parent=button.parentElement;parent;parent=parent.parentElement){
+                    if(parent.tagName==='DETAILS')parent.open=true;
+                }
+            });
             await presenter.locator('[data-windows]').click();
             const script=await presenter.locator('[data-command]').inputValue();
             assert.ok(script.includes("$login = 'William'"));
