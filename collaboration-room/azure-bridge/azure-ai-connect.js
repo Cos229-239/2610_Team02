@@ -3,11 +3,11 @@
 const REPO='Cos229-239/2610_Team02', BASE='https://github.com/'+REPO;
 const PROVIDERS=Object.freeze({
   chatgpt:{name:'ChatGPT',home:'https://chatgpt.com/',help:'https://help.openai.com/en/articles/11145903-connecting-github-to-chatgpt',
-    instructions:'Inside ChatGPT, open Settings → Plugins (or Apps if shown), find GitHub, connect your own GitHub account and authorize Team 02. Return to a tool-enabled chat and run the access verification prompt. A read-only GitHub connection may not support edits.'},
+    instructions:'In ChatGPT, connect GitHub from Settings → Plugins, authorize your own Team 02 repository access and verify by reading a real source file. The standard ChatGPT GitHub app is READ-ONLY. For actual edits/PRs you must use an available authorized coding tool such as Codex or a GitHub-capable local editor. This handoff does not grant write permissions.'},
   grok:{name:'Grok',home:'https://grok.com/',help:'https://docs.x.ai/grok/connectors',
-    instructions:'In Grok, use + → Connectors → Add connector → GitHub where available. Sign in using your own GitHub account, approve access to Team 02, and run the verification prompt. Connector availability and write actions depend on the account and tools.'},
+    instructions:'In Grok, open your connectors, choose GitHub and authorize Team 02 under your own account. Prove repository read access first; separately verify whether this Grok session exposes branch, file-edit and PR tools. A read-capable connector is not proof of write capability.'},
   venice:{name:'Venice',home:'https://venice.ai/',help:'https://github.com/veniceai/venice-mcp-server',
-    instructions:'A Venice chat account alone does not establish a GitHub connection. Open Venice in your own account, then use a separately authorized GitHub-capable coding environment if available. Do not paste GitHub secrets or access tokens into TowerFlow or this prompt.'},
+    instructions:'Venice chat alone does not establish a GitHub connection. To code, use a separately authorized GitHub-capable development environment that supports Venice. No Venice API key or paid service is required to view this handoff. Never paste secrets into TowerFlow.'},
   other:{name:'Another AI',home:null,help:null,
     instructions:'Open your AI coding environment. Connect and authorize GitHub through the provider’s own supported settings or tools. If it lacks repository tools, use the prompt to get a precise limitation report, not an invented integration.'}
 });
@@ -37,7 +37,7 @@ function makeHandoff({provider,area,request,identity}){
   'FIRST: PROVE ACTUAL REPOSITORY ACCESS WITH YOUR TOOLS.',
   '1. Identify available GitHub, repository and local coding tools and the authenticated account. Do not assume a link, a pasted prompt or Cloudflare grants access.',
   '2. Read README.md and '+path+' from '+REPO+' at dev using those tools. Report the actual commit revision and files successfully retrieved.',
-  '3. Verify read and write permissions separately. Read access is not proof of editing, branch creation, testing or PR rights.',
+  '3. Verify read and write permissions separately. ChatGPT standard GitHub app is read-only; use an explicitly authorized coding tool for writes. A GitHub link or Grok/Venice connection alone is not proof of editing, branch creation, testing or PR rights.',
   '4. If you cannot read the repo: STOP and report precisely what GitHub connection or authorization is missing; do not fabricate file content.',
   '5. If read works but write tools are absent: provide a clearly labeled proposal/diff only, stating NO FILES WERE CHANGED.',
   '',
@@ -102,7 +102,7 @@ function mount(){
    snapshotLabel.prepend(snapshotOpt);
    const receipt=elt('p','Select a provider and enter your requested change.');receipt.setAttribute('role','status');
    const result=elt('textarea');result.readOnly=true;result.rows=15;result.setAttribute('aria-label','Generated repository access and integration prompt');
-   const caution=elt('p','Verification is performed by your AI inside its own account, not by this web pane. If your AI reports access denied, its provider needs a separate GitHub connection. No API keys, CLI or shared credentials required by Azure.');
+   const caution=elt('p','This is a verified-task handoff, NOT a live AI connection. ChatGPT\'s standard GitHub app is read-only; writing requires separate authorized coding tools. Grok and Venice capabilities depend on their actual tool access. No tokens, AI API keys, Gemini CLI or shared credentials are requested by this page.');
    fields.append(alabel,rlabel,snapshotLabel,controls,receipt,result,caution);
    const example=elt('button','Use example: Add my name to Dashboard','tf-dev-secondary');example.type='button';
    example.onclick=()=>{select.value='dashboard';request.value='Add my authenticated GitHub display name to the dashboard. Preserve existing calculations and show the result in a working preview.';};
