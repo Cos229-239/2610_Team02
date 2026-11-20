@@ -7,6 +7,7 @@ const {mountDemo} = require('./debug-demo.cjs');
 const {mountPreview,mergedPreview} = require('./merged-preview.cjs');
 const {mount:mountDirect} = require('./direct-integration.cjs');
 const {mount:mountAppHub} = require('./app-hub.cjs');
+const {mount:mountAIProof} = require('./ai-contribution-proof.cjs');
 const {makeTeamUpdates} = require('./team-updates.cjs');
 const {makeLoadouts, publishedBranches} = require('./loadouts.cjs');
 const {quietEntry, memberEntry} = require('./quiet-entry.cjs');
@@ -35,6 +36,7 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     mountPreview(app,{auth,ensureMember,publicOrigin},sharedPreview);
     mountDirect(app,{auth,ensureMember,sameOrigin,publicOrigin,preview:sharedPreview});
     mountAppHub(app,{auth,ensureMember});
+    mountAIProof(app,{auth,ensureMember});
 
     // Read-only, credential-free environment evidence for external AI handoff.
     // Hashes describe ACTUAL host files, not a guessed Git branch or cloud tunnel.
