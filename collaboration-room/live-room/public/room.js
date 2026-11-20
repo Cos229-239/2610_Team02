@@ -3718,7 +3718,7 @@ function updateSignals(events,mode){
  }
  const old=earthStatus.material.map;
  earthStatus.material.map=textTexture("WORLD SALES",
-   mode==="VERIFIED_LEDGER"?"VERIFIED REGIONAL EVENTS: "+signalTotal:
+   mode==="CONFIGURED_LEDGER"?"FILE-BACKED REGIONAL EVENTS: "+signalTotal:
    mode==="DEMO"?"DEMO ONLY / NOT LIVE":"NO CONNECTED SALES LEDGER");
  earthStatus.material.needsUpdate=true;old?.dispose();
 }
@@ -3730,7 +3730,7 @@ async function refreshBusinessSignals(){
    if(!response.ok)throw Error("HTTP "+response.status);
    const payload=await response.json();
    if(payload.schema!=="towerflow-business-signals/v1"||
-      !["VERIFIED_LEDGER","UNAVAILABLE","UNCONFIGURED"].includes(payload.mode)||
+      !["CONFIGURED_LEDGER","UNAVAILABLE","UNCONFIGURED"].includes(payload.mode)||
       !Array.isArray(payload.events))throw Error("Invalid feed schema");
    updateSignals(payload.events,payload.mode);
  }catch{updateSignals([],"UNAVAILABLE");}
@@ -3742,10 +3742,10 @@ function openWorldPanel(){
  const title=document.createElement("h3");title.textContent="Global business activity";
  const state=document.createElement("p");
  const legend=document.createElement("p");
- legend.textContent="🟢 Verified positive net revenue  •  🟡 Balanced  •  🔴 Returns or net loss";
+ legend.textContent="🟢 Positive net business revenue from configured file  •  🟡 Balanced  •  🔴 Returns or net loss";
  const details=document.createElement("p");
- details.textContent="Dots require approved transaction records with explicit business-region coordinates. Market trades do not reveal customer location or sales profit. No fabricated locations.";
- const refresh=document.createElement("button");refresh.type="button";refresh.textContent="Refresh verified feed";
+ details.textContent="Pings require actual business ledger events with explicit location and net amount. File contents are not independently provider-verified. Trading fills do not reveal customer location or profit. No fabricated live dots.";
+ const refresh=document.createElement("button");refresh.type="button";refresh.textContent="Refresh configured feed";
  const demo=document.createElement("button");demo.type="button";demo.textContent="Preview colored pings (DEMO)";
  const clear=document.createElement("button");clear.type="button";clear.textContent="Return to live-source mode";
  const render=()=>{state.textContent="Source: "+signalMode+" · "+signalTotal+" regional event(s)"+(lastRead?" · updated "+new Date(lastRead).toLocaleTimeString():"");};
