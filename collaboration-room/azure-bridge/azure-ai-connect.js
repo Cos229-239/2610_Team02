@@ -6,6 +6,8 @@ const PROVIDERS=Object.freeze({
     instructions:'In ChatGPT, connect GitHub from Settings → Plugins, authorize your own Team 02 repository access and verify by reading a real source file. The standard ChatGPT GitHub app is READ-ONLY. For actual edits/PRs you must use an available authorized coding tool such as Codex or a GitHub-capable local editor. This handoff does not grant write permissions.'},
   grok:{name:'Grok',home:'https://grok.com/',help:'https://docs.x.ai/grok/connectors',
     instructions:'In Grok, open your connectors, choose GitHub and authorize Team 02 under your own account. Prove repository read access first; separately verify whether this Grok session exposes branch, file-edit and PR tools. A read-capable connector is not proof of write capability.'},
+  gemini:{name:'Gemini',home:'https://gemini.google.com/',help:'https://docs.cloud.google.com/gemini/docs/codeassist/overview',
+    instructions:'Gemini in a separate web chat does not inherit access to TowerFlow, this browser session, or your local files. Connect the Team 02 repository using an authorized GitHub-capable development environment, such as Gemini Code Assist in your own IDE when available. First prove a real repository file read; then independently prove editing permissions. No Gemini CLI is installed or launched by TowerFlow.'},
   venice:{name:'Venice',home:'https://venice.ai/',help:'https://github.com/veniceai/venice-mcp-server',
     instructions:'Venice chat alone does not establish a GitHub connection. To code, use a separately authorized GitHub-capable development environment that supports Venice. No Venice API key or paid service is required to view this handoff. Never paste secrets into TowerFlow.'},
   other:{name:'Another AI',home:null,help:null,
@@ -36,6 +38,7 @@ function makeHandoff({provider,area,request,identity}){
   request.trim(),'',
   'FIRST: PROVE ACTUAL REPOSITORY ACCESS WITH YOUR TOOLS.',
   '1. Identify available GitHub, repository and local coding tools and the authenticated account. Do not assume a link, a pasted prompt or Cloudflare grants access.',
+  'A separate AI browser tab does not inherit TowerFlow OAuth, session cookies, or repo permissions. Never treat opening a provider link as a connection.',
   '2. Read README.md and '+path+' from '+REPO+' at dev using those tools. Report the actual commit revision and files successfully retrieved.',
   '3. Verify read and write permissions separately. ChatGPT standard GitHub app is read-only; use an explicitly authorized coding tool for writes. A GitHub link or Grok/Venice connection alone is not proof of editing, branch creation, testing or PR rights.',
   '4. If you cannot read the repo: STOP and report precisely what GitHub connection or authorization is missing; do not fabricate file content.',
@@ -59,7 +62,7 @@ function mount(){
  const hud=document.querySelector('#hud .toolbar'), panel=document.getElementById('panel'), content=document.getElementById('panelContent'), menu=document.getElementById('menu');
  if(!hud||!panel||!content||!menu||hud.querySelector('[data-azure-ai]'))return;
  const button=elt('button','Connect my AI','tf-ai-azure-entry');button.type='button';button.dataset.azureAi='';
- button.title='Connect ChatGPT, Grok, Venice or another AI to your own GitHub permissions';
+ button.title='Prepare a repository-aware task for ChatGPT, Grok, Gemini, Venice, or another AI';
  hud.append(button);
  function open(){
    menu.hidden=true;panel.hidden=false;
@@ -82,7 +85,7 @@ function mount(){
    const providerButtons=new Map();
    for(const [key,service] of Object.entries(PROVIDERS)){
       const item=elt('button',undefined,'tf-ai-provider-card');item.type='button';
-      item.append(elt('strong',service.name),elt('small',key==='venice'?'Separate coding connector needed':key==='other'?'Provider-specific setup':'Connect your own GitHub'));
+      item.append(elt('strong',service.name),elt('small',(key==='venice'||key==='gemini')?'Separate repository tools needed':key==='other'?'Provider-specific setup':'Connect your own GitHub'));
       item.onclick=()=>{selected=key;renderProvider();};
       providers.append(item);providerButtons.set(key,item);
    }
