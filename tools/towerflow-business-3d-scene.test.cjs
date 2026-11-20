@@ -11,10 +11,11 @@ test('3D scene is a valid ES module and includes independent targeted Business S
   'TF_DEV_BUSINESS_WALL_ROUTING_V1_BEGIN','TF_DEV_BUSINESS_APP_ENTRY_V1_BEGIN',
   'TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_BEGIN',
   'TF_REFERENCE_STUDIO_V1_BEGIN','TF_FRONTIER_MATERIAL_REALISM_V1_BEGIN',
-  'window.tfBusinessProjector','window.tfOpenWorldSalesPanel',
+  'window.tfOpenWorldSalesPanel',
   'window.tfOpenMemberStation','tfTeamStationUpdate'
  ];
  for(const marker of required)assert.equal(scene.split(marker).length-1,1,'Missing or duplicate '+marker);
+ assert.match(scene,/window\.tfBusinessProjector=Object\.freeze/);
  assert.match(scene,/const priorActivate=activateTFStation;/);
  assert.match(scene,/priorActivate\(id\);/);
  assert.match(scene,/const originalActivate=activateTFStation;/);
