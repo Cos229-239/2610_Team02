@@ -58,7 +58,10 @@ async function main() {
         const member=async name=>{
             const ctx=await browser.newContext();await ctx.addCookies([{name:'pilot',value:name,url:origin}]);
             const page=await ctx.newPage();await page.goto(origin+'/room/team02');await page.locator('#enterBtn').dispatchEvent('click');
-            await page.locator('.toolbar button').first().click();await page.locator('[data-windows]').waitFor();return page;
+            await page.locator('.toolbar button').first().click();
+            await page.locator('.tf-dev-legacy-details').waitFor();
+            await page.locator('.tf-dev-legacy-details > summary').click();
+            await page.locator('[data-windows]').waitFor();return page;
         };
         const presenter=await member('William'),viewer=await member('Omarion');
         // Azure Bridge B must produce an actionable provider-specific handoff.
@@ -98,6 +101,7 @@ async function main() {
         await presenter.locator('.tf-dev-action-result a[href*="TowerFlow%2Fapp.js"], .tf-dev-action-result a[href*="TowerFlow/app.js"]').waitFor();
         assert.match(await presenter.locator('.tf-dev-action-result').textContent(),/browser/);
         await presenter.locator('.tf-dev-choice').nth(1).click();
+        await presenter.locator('.tf-dev-examples-guide > summary').click();
         await presenter.locator('.tf-dev-example').first().click();
         assert.match(await presenter.locator('.tf-dev-workspace textarea').inputValue(),/TowerFlow Command Center/);
         await presenter.locator('.tf-dev-workspace .tf-dev-primary').first().click();
