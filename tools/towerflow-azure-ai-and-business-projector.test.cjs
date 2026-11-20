@@ -14,7 +14,7 @@ test('Azure AI bridge is loaded through mounted room HTML, never captures secret
  assert.match(server,/room:\{route:'\/room\/team02',htmlSha256:digest\(html\),sceneSha256:digest\(js\)/);
  assert.match(bridge,/CURRENT HOST ENVIRONMENT SNAPSHOT/);
  assert.match(bridge,/credentials:'same-origin'/);
- for(const text of ['ChatGPT','Grok','Venice','Another AI','Generate & copy integration prompt','Check my TowerFlow access'])
+ for(const text of ['ChatGPT','Grok','Venice','Another AI','Copy task for my AI','Check my TowerFlow access'])
    assert.ok(bridge.includes(text),text+' absent');
  assert.ok(bridge.includes('README.md') && bridge.includes('Source starting point'), 'AI must request real repository verification');
  assert.ok(bridge.includes('A prompt cannot grant access') || bridge.includes('cannot grant permissions'), 'Handoff must be honest about permissions');
