@@ -78,5 +78,6 @@
 </main>
 <div id="modal" class="modal" hidden><div class="modal-card"><div class="panel-head"><h2 id="modalTitle">Add asset</h2><button id="closeModal" class="btn secondary" type="button">Close</button></div><form id="assetForm"><label>Symbol<input id="assetSymbol" maxlength="12" required placeholder="MSFT"></label><label>Asset name<input id="assetName" maxlength="60" placeholder="Microsoft"></label><div class="form-row"><label>Shares owned<input id="assetShares" type="number" min="0.000001" step="any" required></label><label>Cost basis per share ($)<input id="assetCost" type="number" min="0.000001" step="any" required></label></div><label>Current price ($)<input id="assetPrice" type="number" min="0.000001" step="any" required></label><div class="modal-actions"><button class="btn primary" type="submit">Save asset</button></div></form></div></div>
 <script src="app.js"></script>
+<script src="azure-business.js" defer></script>
 </body>
 </html>
