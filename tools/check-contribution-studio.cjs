@@ -68,7 +68,9 @@ async function main() {
         await presenter.locator('.tf-ai-handoff-form textarea:not([readonly])').fill(
             'Add an authenticated display name to the dashboard without changing portfolio calculations.'
         );
-        await presenter.getByRole('button',{name:'Generate & copy integration prompt'}).click();
+        assert.equal(await presenter.locator('.tf-ai-azure-head h2').textContent(),'Connect an AI');
+        assert.equal(await presenter.locator('.tf-ai-generated-wrap').evaluate(el=>el.open),false);
+        await presenter.getByRole('button',{name:'Copy task for my AI'}).click();
         await presenter.waitForFunction(()=>{
             const value=document.querySelector('textarea[readonly][aria-label="Generated repository access and integration prompt"]')?.value;
             return typeof value==='string'&&value.includes('Cos229-239/2610_Team02');
@@ -77,6 +79,8 @@ async function main() {
         assert.match(generated,/Cos229-239\/2610_Team02/);
         assert.match(generated,/FIRST: PROVE ACTUAL REPOSITORY ACCESS/);
         assert.match(generated,/Grok/);
+        assert.equal(await presenter.locator('.tf-ai-azure').getByText('Give your AI a verified path into TowerFlow').count(),0);
+        assert.equal(await presenter.getByRole('button',{name:'VERIFY MY PR'}).count(),1);
         const ideOpens=await presenter.evaluate(()=>window.tfOpenIDEStation?.('dev-ide-cursor'));
         assert.equal(ideOpens,true);
         await presenter.locator('.tf-dev-ide-station select').selectOption('markets');
