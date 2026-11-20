@@ -97,7 +97,10 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
                 'Sign into TowerFlow with a GitHub account that has Team 02 access.';
             const auth=document.createElement('a');
             auth.textContent='Sign in with GitHub';auth.href='/auth/github';
-            visibleCard.append(auth);
+            const source=web('Team 02 repository ↗','https://github.com/'+team);
+            const links=document.createElement('div');links.className='row wrap';
+            links.append(auth,source);
+            visibleCard.append(links);
         }
     }
 
