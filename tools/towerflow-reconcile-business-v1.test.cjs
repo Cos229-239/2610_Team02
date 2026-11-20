@@ -4,8 +4,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),
 const {integrateScene,integrateServer,makePlan,validate,apply}=
   require('./towerflow-reconcile-business-v1.cjs');
 const ROOT=path.resolve(__dirname,'..'),asset=path.join(ROOT,'collaboration-room','azure-bridge');
-const reviewed=fs.readFileSync(path.join(ROOT,'collaboration-room/live-room/public/room.js'),'utf8');
-const reviewServer=fs.readFileSync(path.join(asset,'server.cjs'),'utf8');
+const reviewed=fs.readFileSync(path.join(ROOT,'collaboration-room/live-room/public/room.js'),'utf8').replace(/\r\n/g,'\n');
+const reviewServer=fs.readFileSync(path.join(asset,'server.cjs'),'utf8').replace(/\r\n/g,'\n');
 const get=(s,start,end)=>s.slice(s.indexOf(start),s.indexOf(end,s.indexOf(start))+end.length);
 function oldScene(){
  const segments=[
@@ -69,6 +69,15 @@ test('integration changes only eight scoped host files; old Azure UI is never ov
   assert.match(fs.readFileSync(path.join(host,'public','room.js'),'utf8'),/CUSTOM SCENE FEATURE: preserved/);
   assert.equal(makePlan(host).length,0,'second run makes no changes');
  }finally{fs.rmSync(host,{recursive:true,force:true});}
+});
+test('Windows CRLF server merges reviewed imports once and preserves custom code',()=>{
+ const original=oldServer().replace(/\n/g,'\r\n')+'// extra local feature\r\n';
+ const merged=integrateServer(original);
+ assert.equal(merged.split("const {mount:mountTeamStations} = require('./team-stations.cjs');").length-1,1);
+ assert.equal(merged.split("const {mount:mountAzureHarness} = require('./azure-workspace-harness.cjs');").length-1,1);
+ assert.equal(merged.replace(/\r\n/g,'').includes('\n'),false);
+ assert.ok(merged.endsWith('// extra local feature\r\n'));
+ assert.equal(integrateServer(merged),merged);
 });
 test('unexpected partial scene and conflicting contributor-authored file both block without writes',()=>{
  const partial=oldScene()+'// TF_DEV_BUSINESS_WALL_ROUTING_V1_BEGIN';
