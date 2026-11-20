@@ -61,6 +61,68 @@ async function main() {
             await page.locator('.toolbar button').first().click();await page.locator('[data-windows]').waitFor();return page;
         };
         const presenter=await member('William'),viewer=await member('Omarion');
+        // Azure Bridge B must produce an actionable provider-specific handoff.
+        await presenter.locator('[data-azure-ai]').click();
+        assert.equal(await presenter.locator('.tf-ai-provider-card').count(),4);
+        await presenter.locator('.tf-ai-provider-card').filter({hasText:'Grok'}).click();
+        await presenter.locator('.tf-ai-handoff-form textarea:not([readonly])').fill(
+            'Add an authenticated display name to the dashboard without changing portfolio calculations.'
+        );
+        await presenter.getByRole('button',{name:'Generate & copy integration prompt'}).click();
+        await presenter.waitForFunction(()=>{
+            const value=document.querySelector('textarea[readonly][aria-label="Generated repository access and integration prompt"]')?.value;
+            return typeof value==='string'&&value.includes('Cos229-239/2610_Team02');
+        },null,{timeout:12000});
+        const generated=await presenter.locator('textarea[readonly][aria-label="Generated repository access and integration prompt"]').inputValue();
+        assert.match(generated,/Cos229-239\/2610_Team02/);
+        assert.match(generated,/FIRST: PROVE ACTUAL REPOSITORY ACCESS/);
+        assert.match(generated,/Grok/);
+        const ideOpens=await presenter.evaluate(()=>window.tfOpenIDEStation?.('dev-ide-cursor'));
+        assert.equal(ideOpens,true);
+        await presenter.locator('.tf-dev-ide-station select').selectOption('markets');
+        await presenter.locator('.tf-dev-ide-station a[href*="TowerFlow/app.js"]').waitFor();
+        await presenter.getByRole('button',{name:'OPEN IN CURSOR IDE'}).click();
+        assert.match(await presenter.locator('.tf-dev-ide-station [role="status"]').last().textContent(),/pair|connected|not|bridge/i);
+        await presenter.locator('.tf-development-entry').click();
+        console.log('Azure handoff and source-aware Cursor workstation expose real actions and fail closed without PC pairing.');
+
+        // User journey: two prominently visible choices, exact source card and real preview.
+        await presenter.locator('.tf-developer-center').waitFor();
+        assert.equal(await presenter.locator('.tf-dev-choice').count(),2);
+        await presenter.locator('.tf-dev-choice').first().click();
+        await presenter.locator('.tf-dev-component').filter({hasText:'Markets'}).first().click();
+        await presenter.locator('.tf-dev-action-result a[href*="TowerFlow%2Fapp.js"], .tf-dev-action-result a[href*="TowerFlow/app.js"]').waitFor();
+        assert.match(await presenter.locator('.tf-dev-action-result').textContent(),/browser/);
+        await presenter.locator('.tf-dev-choice').nth(1).click();
+        await presenter.locator('.tf-dev-example').first().click();
+        assert.match(await presenter.locator('.tf-dev-workspace textarea').inputValue(),/TowerFlow Command Center/);
+        await presenter.locator('.tf-dev-workspace .tf-dev-primary').first().click();
+        await presenter.locator('.tf-dev-review iframe').waitFor();
+        await presenter.frameLocator('.tf-dev-review iframe').getByText('TowerFlow Command Center').waitFor();
+        assert.match(await presenter.locator('.tf-dev-review').textContent(),/Not published/);
+        await presenter.locator('.tf-dev-example').filter({hasText:'Background: magenta'}).click();
+        await presenter.locator('.tf-dev-workspace .tf-dev-primary').first().click();
+        try{
+            await presenter.waitForFunction(()=>document.querySelector('.tf-dev-change-summary')?.textContent.includes('TowerFlow/styles.css'),null,{timeout:12000});
+        }catch(error){
+            console.error('CSS PREVIEW DIAGNOSTIC',await presenter.locator('.tf-dev-status').textContent());
+            console.error('CSS SUMMARY DIAGNOSTIC',await presenter.locator('.tf-dev-change-summary').textContent());
+            throw error;
+        }
+        await presenter.frameLocator('.tf-dev-review iframe').locator('body').waitFor();
+        let newBackground='';
+        for(let attempt=0;attempt<30;attempt++){
+          newBackground=await presenter.frameLocator('.tf-dev-review iframe').locator('body').evaluate(()=>{
+            return getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+          });
+          if(newBackground==='#d946ef')break;
+          await new Promise(resolve=>setTimeout(resolve,150));
+        }
+        assert.equal(newBackground,'#d946ef','CSS request did not affect the actual preview style');
+        console.log('Real CSS transformation applied in the isolated web app preview.');
+
+        console.log('Two-choice developer center navigates to real source and renders the actual changed dashboard.');
+
         for (const key of ['interface','forms','portfolio','operations','reporting','integration','shared']) {
             await presenter.locator('[data-select]').selectOption(key);
             await presenter.locator('[data-windows]').click();
