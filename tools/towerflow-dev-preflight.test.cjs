@@ -31,7 +31,7 @@ test('HTTP preflight reports the actual served route, not only installed files',
  const server=http.createServer((req,res)=>{
   if(req.url==='/room/team02')return res.end('<script src="/azure-bridge/ide-workstations.js"></script>');
   if(req.url==='/azure-bridge/ide-workstations.js')return res.end('window.tfOpenIDEStation=display');
-  if(req.url==='/azure-bridge/azure-ai-connect.js')return res.end('Connect my AI');
+  if(req.url==='/azure-bridge/azure-ai-connect.js')return res.end('Gemini');
   if(req.url==='/towerflow-entry.mjs')return res.end('// old 3D scene');
   res.statusCode=404;res.end();
  });
