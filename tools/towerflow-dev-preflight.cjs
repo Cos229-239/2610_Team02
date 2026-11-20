@@ -8,7 +8,8 @@ const http=require('node:http');
 const https=require('node:https');
 const EXPECTED=[
  'server.cjs','ide-workstations.js','azure-ai-connect.js','two-mode-contribute.js',
- 'companion-client.js','app-hub.js','loadout.css','direct-integration.cjs'
+ 'companion-client.js','app-hub.js','loadout.css','direct-integration.cjs',
+ 'source-navigation.cjs','ai-contribution-proof.cjs'
 ];
 const sha=data=>crypto.createHash('sha256').update(data).digest('hex');
 function inspectRoom(room){
@@ -30,7 +31,7 @@ function inspectRoom(room){
  for(const name of EXPECTED){
    const installed=read(path.join(local,name));
    push('installed-'+name,installed!==null,'Expected '+name+' inside host azure-bridge folder.');
-   if(installed!==null&&name.endsWith('.js')){
+   if(installed!==null&&/\.(?:js|cjs|css)$/.test(name)){ 
       const expectedFile=path.join(__dirname,'..','collaboration-room','azure-bridge',name);
       if(fs.existsSync(expectedFile)){
         const expected=fs.readFileSync(expectedFile);
@@ -59,7 +60,9 @@ async function inspectHttp(base='http://127.0.0.1:4173'){
  const checks=[],routes=[
   ['/room/team02','text/html','azure-bridge/ide-workstations.js'],
   ['/azure-bridge/ide-workstations.js','script','window.tfOpenIDEStation=display'],
-  ['/azure-bridge/azure-ai-connect.js','script','Connect my AI'],
+  ['/azure-bridge/azure-ai-connect.js','script','Gemini'],
+  ['/azure-bridge/two-mode-contribute.js','script','Contribute to TowerFlow'],
+  ['/azure-bridge/app-hub.js','script','App integrations'],
   ['/towerflow-entry.mjs','script','tfOpenIDEStation']
  ];
  for(const [route,kind,expected] of routes){
