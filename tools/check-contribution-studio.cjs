@@ -91,6 +91,15 @@ async function main() {
         await presenter.locator('.tf-dev-ide-station a[href*="TowerFlow/app.js"]').waitFor();
         await presenter.getByRole('button',{name:'OPEN IN CURSOR IDE'}).click();
         assert.match(await presenter.locator('.tf-dev-ide-station [role="status"]').last().textContent(),/pair|connected|not|bridge/i);
+        // The new Azure harness is actual source routing, not a model or IDE execution claim.
+        assert.equal(await presenter.evaluate(()=>window.tfOpenAzureWorkspace?.()),true);
+        await presenter.locator('.tf-azure-harness textarea').fill('Inspect the Dashboard source');
+        await presenter.locator('.tf-azure-harness select').selectOption('antigravity');
+        await presenter.locator('.tf-azure-harness button').filter({hasText:'Find code'}).click();
+        await presenter.locator('.tf-azure-harness').getByText('TowerFlow/index.html',{exact:true}).waitFor();
+        assert.match(await presenter.locator('.tf-azure-harness [role="status"]').textContent(),/GitHub access\/source proof is unavailable/i);
+        assert.equal(await presenter.locator('.tf-azure-harness').getByText('Open in Google Antigravity').count(),1);
+        console.log('Azure harness selected actual dashboard file and Antigravity; unverified fixture access is honestly blocked.');
         await presenter.locator('.tf-development-entry').click();
         console.log('Azure handoff and source-aware Cursor workstation expose real actions and fail closed without PC pairing.');
 
