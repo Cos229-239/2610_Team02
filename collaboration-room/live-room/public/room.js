@@ -1751,6 +1751,73 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
   cone.position.set(0,6.2,-8);
   cone.rotation.x=Math.PI/2;
   scene.add(cone);
+
+  // TF_DEV_BUSINESS_PROJECTOR_V1_BEGIN
+  // An independent visual copy of the original projector in the development
+  // room. It shares geometry but does NOT share projector controller state,
+  // physical movement, wall targeting, materials, or input ownership.
+  const devBusinessProjector=projector.clone(true);
+  devBusinessProjector.name="TF_DEV_BUSINESS_PROJECTOR_V1";
+  devBusinessProjector.position.set(tfRoomX,9.6,-2.5);
+  devBusinessProjector.rotation.y=0;
+  scene.add(devBusinessProjector);
+  const devBeamTarget=new THREE.Object3D();
+  devBeamTarget.position.set(tfRoomX,5.5,-15.1);
+  scene.add(devBeamTarget);
+  const devBusinessBeam=new THREE.SpotLight(0x84dfff,12,26,Math.PI/5,.7,1);
+  devBusinessBeam.position.copy(devBusinessProjector.position);
+  devBusinessBeam.target=devBeamTarget;
+  scene.add(devBusinessBeam);
+  const devBusinessCone=cone.clone();
+  devBusinessCone.material=cone.material.clone();
+  devBusinessCone.material.opacity=.026;
+  const devBeamVector=devBeamTarget.position.clone().sub(devBusinessProjector.position);
+  devBusinessCone.position.copy(devBusinessProjector.position.clone().add(devBeamTarget.position).multiplyScalar(.5));
+  devBusinessCone.scale.set(1,devBeamVector.length()/13,1);
+  devBusinessCone.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),devBeamVector.normalize());
+  scene.add(devBusinessCone);
+  const devBusinessScreen=sign(
+    "BUSINESS STUDIO",
+    "PROJECTOR  •  DASHBOARD / MARKET / CONTRIBUTE",
+    tfRoomX,5.35,-15.31,14,3.5
+  );
+  tfRegister(devBusinessScreen,"dev-business-projector");
+  stations.push({id:"dev-business-projector",label:"BUSINESS STUDIO PROJECTOR  /  PRESS E",x:tfRoomX,z:-11.4});
+  function openDevBusinessStudio(){
+    openPanel("ide");
+    document.getElementById("panelTag").textContent="DEVELOPMENT ROOM  /  BUSINESS STUDIO";
+    document.getElementById("panelTitle").textContent="BUSINESS STUDIO  ·  DEV";
+    const host=document.getElementById("panelContent");
+    host.replaceChildren();
+    const heading=document.createElement("h3");
+    heading.textContent="Where all our work comes together";
+    const intro=document.createElement("p");
+    intro.textContent="Open the live business app, find a component, contribute a feature, or connect your own AI to Team 02. Your own GitHub permissions govern changes.";
+    const actions=document.createElement("div");actions.className="row wrap";
+    const makeButton=(label,run)=>{
+      const btn=document.createElement("button");btn.type="button";btn.textContent=label;
+      btn.onclick=run;actions.append(btn);return btn;
+    };
+    makeButton("CONTRIBUTE  →",()=>window.tfOpenMemberDesk?.());
+    makeButton("APP INTEGRATIONS  →",()=>window.tfOpenAppIntegrationHub?.());
+    makeButton("CONNECT MY AI  →",()=>{
+      if(window.tfOpenAzureAIConnect)window.tfOpenAzureAIConnect();
+      else showToast("AI connection handoff is not installed on this host.");
+    });
+    const links=document.createElement("div");links.className="row wrap";
+    for(const [title,url] of [
+      ["VIEW PUBLISHED TOWERFLOW APP","/towerflow/index.html"],
+      ["VIEW DEV SOURCE","https://github.com/Cos229-239/2610_Team02/tree/dev/TowerFlow"],
+      ["TEAM PULL REQUESTS","https://github.com/Cos229-239/2610_Team02/pulls"]]){
+      const a=document.createElement("a");a.textContent=title;a.href=url;
+      a.target="_blank";a.rel="noopener noreferrer";links.append(a);
+    }
+    const status=document.createElement("p");
+    status.textContent="Development projector is independently powered. Changes to the live shared app require team review and publication.";
+    host.append(heading,intro,actions,links,status);
+  }
+  // TF_DEV_BUSINESS_PROJECTOR_V1_END
+
   let projection=0,projectionOn=false,currentTab="OVERVIEW",isPanel=false;
   // Cinematic projector aperture and descending display platforms, visual only.
   // Kept separate from gameplay, so Dev Room portals and controls are unchanged.
@@ -2327,6 +2394,8 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
   }
   const originalActivate=activateTFStation;
   activateTFStation=function frontierStation(id){
+    if(id==="dev-business-projector"){openDevBusinessStudio();return;}
+    if(typeof id==="string"&&id.startsWith("dev-ide-")&&window.tfOpenIDEStation?.(id))return;
     if(id==="frontier-dashboard"){showToast("Click a room wall to activate the projector");return;}
     if(id==="frontier-ide"){openFrontierIDE();return;}
     if(id==="frontier-world"){openPanel("help");return;}
