@@ -24,7 +24,7 @@ const status=el('p','TowerFlow remains in this browser. AI providers require the
 const toggle=el('button','AZURE');toggle.className='tf-azure-toggle';toggle.type='button';toggle.setAttribute('aria-expanded','false');
 toggle.onclick=()=>{menu.hidden=!menu.hidden;toggle.setAttribute('aria-expanded',String(!menu.hidden));};
 for(const [label,action] of [
- ['Connect AI','connect-ai'],['World sales','world-sales'],
+ ['Azure workspace','azure-workspace'],['Connect AI','connect-ai'],['World sales','world-sales'],
  ['Development IDE','code'],['Team stations','team'],['Business projector','business']
 ]){
  const button=el('button',label);button.type='button';
