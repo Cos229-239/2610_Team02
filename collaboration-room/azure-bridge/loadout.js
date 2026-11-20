@@ -40,6 +40,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
         if (visibleCard) render(visibleCard);
     }
 
+    // TF_MEMBER_DESK_RECOVERY_V1_BEGIN
     // Fail-soft personal desk: genuine GitHub membership is checked by /api/me.
     // Activity is optional; missing GitHub search/PR permissions must not strand
     // a teammate or pretend a branch/commit was successfully inspected.
@@ -100,6 +101,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
         }
     }
 
+    // TF_MEMBER_DESK_RECOVERY_V1_END
     async function load() {
         if (pending) return pending;
         pending = (async () => {
