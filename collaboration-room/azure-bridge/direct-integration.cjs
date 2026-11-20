@@ -123,7 +123,8 @@ function mount(app,{auth,ensureMember,sameOrigin,publicOrigin,preview,direct=mak
   const owner=req=>String(req.session.user.id||req.session.user.login);
   app.get('/api/azure-bridge/source-navigation',auth,ensureMember,(_req,res)=>{
     res.set('Cache-Control','no-store').json({areas:Object.fromEntries(Object.entries(SOURCE_AREAS)
-      .map(([id,v])=>[id,{label:v.label,file:v.file,description:v.description}]))});
+      .map(([id,v])=>[id,{label:v.label,file:v.file,description:v.description,
+        related:v.related||[],debugProfile:v.debugProfile||(id==='roomscene'?'room':'web')}]))});
   });
   app.post('/api/azure-bridge/direct/plan',auth,ensureMember,sameOrigin,async(req,res)=>{
     res.set('Cache-Control','no-store');
