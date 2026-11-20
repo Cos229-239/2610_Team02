@@ -50,6 +50,7 @@ async function main() {
         });
         const auth=(req,res,next)=>req.session.user?next():res.sendStatus(401);
         app.get('/api/azure-bridge/loadout',auth,(req,res)=>res.json({name:req.sessionID,login:req.sessionID,defaultProject:'integration',projects,available:true}));
+        app.get('/api/me',auth,(req,res)=>res.json({login:req.sessionID==='William'?'Lopobunnie':'HyperRealmEnd',permission:'write'}));
         await fs.copyFile(path.join(root,'collaboration-room/live-room/public/index.html'),path.join(dir,'index.html'));
         await fs.writeFile(path.join(dir,'room.js'),"document.getElementById('enterBtn').onclick=()=>{document.getElementById('hud').hidden=false;document.getElementById('welcome').hidden=true};");
         const repo=await previewFixture();
@@ -64,6 +65,28 @@ async function main() {
             await page.locator('[data-windows]').waitFor();return page;
         };
         const presenter=await member('William'),viewer=await member('Omarion');
+        // A failed GitHub activity lookup must not strand a signed-in teammate.
+        // Verify exact recovery path, actual own-branch URL, and truthful status.
+        const recoveryContext=await browser.newContext();
+        await recoveryContext.addCookies([{name:'pilot',value:'William',url:origin}]);
+        const recovery=await recoveryContext.newPage();
+        await recovery.route('**/api/azure-bridge/loadout',route=>
+            route.fulfill({status:502,contentType:'application/json',body:'{"error":"GitHub activity temporarily unavailable"}'}));
+        await recovery.goto(origin+'/room/team02');
+        await recovery.locator('#enterBtn').dispatchEvent('click');
+        await recovery.locator('.toolbar button').first().click();
+        await recovery.getByRole('heading',{name:'Your contribution workspace'}).waitFor();
+        await recovery.getByRole('link',{name:'My branch ↗'}).waitFor();
+        assert.match(await recovery.locator('.tf-fallback-actions').textContent(),/Create contribution/);
+        const ownUrl=await recovery.getByRole('link',{name:'My branch ↗'}).getAttribute('href');
+        assert.ok(ownUrl.endsWith('/WilliamPersonal'), 'Recovery must open only the actual personal branch');
+        assert.equal((await recovery.getByRole('link',{name:'Create contribution ↗'}).getAttribute('href')).split('/').pop(),'dev...WilliamPersonal');
+        assert.match(await recovery.locator('.tf-azure-loadout [role="status"]').first().textContent(),/Signed in as @Lopobunnie/);
+        await recovery.getByRole('button',{name:'Retry live personal desk'}).click();
+        await recovery.getByRole('link',{name:'My branch ↗'}).waitFor();
+        await recoveryContext.close();
+        console.log('Member activity outage preserves authenticated branch, PR and GitHub Desktop actions.');
+
         // Azure Bridge B must produce an actionable provider-specific handoff.
         await presenter.locator('[data-azure-ai]').click();
         assert.equal(await presenter.locator('.tf-ai-provider-card').count(),5);
