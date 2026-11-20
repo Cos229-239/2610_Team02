@@ -126,7 +126,7 @@ function integrateServer(current){
   const tag='<script src="/azure-bridge/'+name+'" defer></script>';
   if(!lines[idx].includes(tag)){
    if(!lines[idx].includes("$&'"))throw Error('Host dynamic HTML insertion has changed.');
-   lines[idx]=lines[idx].replace("$&'",tag+"$&'");
+   lines[idx]=lines[idx].replace("lines[idx]=lines[idx].replace("$&'",tag+"$&'");'",()=>tag+"lines[idx]=lines[idx].replace("$&'",tag+"$&'");'");
   }
  }
  current=lines.join('\n');
