@@ -45,8 +45,15 @@ async function open(login){
        else row.append(document.createTextNode(file.path));
        files.append(row);
      }
+     const recent=$('div');recent.append($('h3','Latest pushed file changes'));
+     const changed=Array.isArray(data.recentFiles)?data.recentFiles:[];
+     if(!changed.length)recent.append($('p','GitHub did not return a changed-file list for this commit.'));
+     for(const item of changed.slice(0,20)){
+       const row=$('p',item.status+' · ');row.append(anchor(item.path+' ↗',item.url));
+       recent.append(row);
+     }
      const caveat=$('small',data.note);
-     evidence.append(summary,links,files,caveat);
+     evidence.append(summary,links,recent,files,caveat);
      document.dispatchEvent(new CustomEvent('tfTeamStationUpdate',{detail:{
        login:data.member,label:data.label,commit:abbrev,sourceCount:data.files.filter(x=>x.available).length
      }}));
