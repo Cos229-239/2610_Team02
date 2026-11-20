@@ -30,13 +30,17 @@ function integrateScene(current,reviewed){
   {name:'member stations + globe',start:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_BEGIN',
    end:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_END',insert:'append'}
  ];
- for(const a of addons){
-   if(current.includes(a.start)||current.includes(a.end)){
-     if(current.includes(a.start)&&current.includes(a.end)&&current.includes(between(reviewed,a.start,a.end)))
-       throw Error('This feature is already installed; do not double-patch the live scene.');
-     throw Error('Partial or customized '+a.name+' detected; preserve and inspect manually.');
+ const installed=addons.filter(a=>current.includes(a.start)||current.includes(a.end));
+ if(installed.length===addons.length){
+   for(const a of addons){
+     const checked=between(reviewed,a.start,a.end);
+     if(!current.includes(a.start)||!current.includes(a.end)||!current.includes(checked))
+       throw Error('Customized or incomplete '+a.name+' must be reconciled manually.');
    }
+   return current;
  }
+ if(installed.length)throw Error('Partially installed Business Studio enhancements; preserve existing source and inspect.');
+
  for(const text of [
   'TF_DEV_BUSINESS_PROJECTOR_V1_BEGIN',
   'devBusinessProjector=projector.clone(true)',
