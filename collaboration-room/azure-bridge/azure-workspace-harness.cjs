@@ -7,6 +7,7 @@
  */
 const crypto=require('node:crypto');
 const {SOURCE_AREAS}=require('./source-navigation.cjs');
+const {inventory:localInventory,propose:localPropose}=require('./azure-local-reasoner.cjs');
 const REPO='Cos229-239/2610_Team02';
 const EDITORS=Object.freeze({
  vscode:{station:'dev-ide-code',label:'Visual Studio Code'},
@@ -101,15 +102,25 @@ async function githubSourceProof(plan,token,{request}={}){
   blobSha:found.sha,editor:plan.editor,station:plan.station,
   note:'Verified GitHub file existence and source revision with member credentials, NOT write permissions or model execution.'};
 }
-function mount(app,{auth,ensureMember,sameOrigin,verify=githubSourceProof,clock=Date.now}={}){
+function mount(app,{auth,ensureMember,sameOrigin,verify=githubSourceProof,clock=Date.now,modelInventory=localInventory,modelPropose=localPropose}={}){
  if(![auth,ensureMember,sameOrigin].every(x=>typeof x==='function'))throw Error('Authorization, membership and origin policy required.');
- app.get('/api/azure-bridge/azure-harness/capabilities',auth,ensureMember,(req,res)=>{
+ app.get('/api/azure-bridge/azure-harness/capabilities',auth,ensureMember,async(req,res)=>{
+  const model=await modelInventory();
   res.set('Cache-Control','no-store').json({schema:'towerflow-azure-harness-capabilities/v1',
    modes:['INSPECT_SOURCE','PROPOSE_CHANGE'],editors:EDITORS,areas:
     Object.fromEntries(Object.entries(SOURCE_AREAS).map(([id,v])=>[id,{label:v.label,file:v.file}])),
-   model:{state:'NOT_CONNECTED',note:'An AI model is not hosted or authorized by this endpoint.'},
+   model:{...model,note:'Local inference is intent classification only. No code edits or IDE execution are granted to the model.'},
    source:'GitHub Team 02 authenticated user session',
    restrictions:['Read-only planning','No remote shell','No automatic code modification','No private repo code import']});
+ });
+ app.post('/api/azure-bridge/azure-harness/reason',auth,ensureMember,sameOrigin,async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  const prompt=req.body?.prompt;
+  if(typeof prompt!=='string'||prompt.trim().length<3||prompt.length>1800)
+    return res.status(400).json({error:'Describe a task in 3–1800 characters.'});
+  const answer=await modelPropose(prompt);
+  return res.json({schema:'towerflow-azure-local-reason/v1',...answer,
+   permissions:{codeWrites:'NOT_GRANTED',gitAccess:'NOT_GRANTED',ideLaunch:'NOT_GRANTED'}});
  });
  app.post('/api/azure-bridge/azure-harness/plan',auth,ensureMember,sameOrigin,async(req,res)=>{
   res.set('Cache-Control','no-store');
