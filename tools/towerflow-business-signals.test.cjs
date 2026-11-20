@@ -32,7 +32,10 @@ test('Dedupe event IDs, reject corrupted rows and keep only last 80 fresh events
  ];
  const data=parseLedger(rows.join('\n'),NOW);
  assert.equal(data.length,1);assert.equal(data[0].state,'red','latest event with same ID takes precedence');
- assert.equal(data[0].id,'unique');
+ assert.match(data[0].id,/^[a-f0-9]{20}$/);
+ assert.ok(!JSON.stringify(data).includes('unique'));
+ assert.ok(!JSON.stringify(data).includes('netRevenueCents'));
+ assert.ok(!JSON.stringify(data).includes('12000'));
 });
 test('Source not configured has zero transactions, no fake live mode',async()=>{
  const reader=makeReader({file:undefined});
@@ -45,8 +48,8 @@ test('Configured ledger reads real file only; refuses oversized source and clear
  try{
   fs.writeFileSync(ledger,JSON.stringify(event('real-1','sale',200))+'\n');
   const reader=makeReader({file:ledger,now:()=>NOW});
-  assert.equal((await reader()).mode,'VERIFIED_LEDGER');
-  assert.equal((await reader()).events[0].id,'real-1');
+  assert.equal((await reader()).mode,'CONFIGURED_LEDGER');
+  assert.match((await reader()).events[0].id,/^[a-f0-9]{20}$/);
   fs.writeFileSync(ledger,'X'.repeat(1024*1024+1));
   const state=await reader();assert.equal(state.mode,'UNAVAILABLE');assert.equal(state.events.length,0);
  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
