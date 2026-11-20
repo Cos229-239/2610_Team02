@@ -28,7 +28,9 @@ function integrateScene(current,reviewed){
    end:'// TF_DEV_BUSINESS_APP_ENTRY_V1_END',
    anchor:'    makeButton("CONTRIBUTE  →"',insert:'before'},
   {name:'member stations + globe',start:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_BEGIN',
-   end:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_END',insert:'append'}
+   end:'// TF_BUSINESS_TEAM_STATIONS_AND_WORLD_V1_END',insert:'append'},
+  {name:'Azure authenticated iframe bridge',start:'// TF_AZURE_BUSINESS_BRIDGE_V1_BEGIN',
+   end:'// TF_AZURE_BUSINESS_BRIDGE_V1_END',insert:'append'}
  ];
  const installed=addons.filter(a=>current.includes(a.start)||current.includes(a.end));
  if(installed.length===addons.length){
