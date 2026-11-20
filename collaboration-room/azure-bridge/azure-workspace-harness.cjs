@@ -85,6 +85,7 @@ function planRequest(body,{now=Date.now}={}){
 }
 async function githubSourceProof(plan,token,{request}={}){
  if(!plan.source)return {status:'TARGET_SELECTION_REQUIRED'};
+ if(typeof token!=='string'||token.length<10)throw Error('Authenticated GitHub token unavailable.');
  const get=request|| (async route=>{
   const response=await fetch('https://api.github.com/repos/'+REPO+route,{
    headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json',
@@ -130,6 +131,7 @@ function mount(app,{auth,ensureMember,sameOrigin,verify=githubSourceProof,clock=
   if(!result.source)return res.json(result);
   try{
    result.sourceProof=await verify(result,req.session?.token);
+   if(result.sourceProof?.status!=='SOURCE_READ_VERIFIED')throw Error('Unverified source result');
    result.permissions.repositoryRead='VERIFIED';
    result.state='SOURCE_VERIFIED_READY_FOR_EDITOR';
   }catch{
