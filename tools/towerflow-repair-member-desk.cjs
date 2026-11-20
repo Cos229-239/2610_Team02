@@ -38,9 +38,15 @@ function once(str,needle,label){
  if(count!==1)throw Error('BLOCKED: ambiguous or missing '+label+' anchor ('+count+')');
 }
 function transform(current,review=fs.readFileSync(release,'utf8')){
+ // Windows Git may check out CRLF; compare LF working copies and restore
+ // the host's original newline convention after reversible patch validation.
+ const newline=current.includes('\r\n')?'\r\n':'\n';
+ const originalBytes=current;
+ current=current.replace(/\r\n/g,'\n');
+ review=review.replace(/\r\n/g,'\n');
  if(current.includes(markerStart)||current.includes(markerEnd)){
   if(current.includes(markerStart)&&current.includes(markerEnd)&&current.includes(newFetch)&&current.includes(newCatch))
-   return current;
+   return originalBytes;
   throw Error('Partial or locally customized desk recovery detected; preserve for manual comparison.');
  }
  once(review,markerStart,'reviewed recovery start');
@@ -55,7 +61,7 @@ function transform(current,review=fs.readFileSync(release,'utf8')){
  // Reversibility verifies that no unrelated source, assets, or graphics moved.
  const original=updated.replace(addition,'').replace(newFetch,oldFetch).replace(newCatch,oldCatch);
  if(original!==current)throw Error('PRESERVATION BLOCK: source outside reviewed code changed.');
- return updated;
+ return newline==='\r\n'?updated.replace(/\n/g,'\r\n'):updated;
 }
 function plan(root){
  if(!path.isAbsolute(root)||!fs.existsSync(path.join(root,'server.js'))||
