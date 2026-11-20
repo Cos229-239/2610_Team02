@@ -63,3 +63,32 @@ A separate AI browser tab has **no inherited TowerFlow session, cookies, GitHub 
 Refreshing or restarting the existing TowerFlow server loads **only its already-installed source**. Draft PR code has not been deployed to that host; refresh alone cannot add these upgrades. A controlled release requires a reviewed integration of stacked PRs, reconciliation with the customized live `public/room.js`, and staged update of the affected frontend, bridge, navigation and debugger files. Do not replace the running 3D scene wholesale, force merge, change teammate branches, or publish without owner review.
 
 **Next:** Run the same source and F5 acceptance on the actual Windows team member PCs with two separate GitHub identities, then prove a **real provider repository read** before treating any AI button as connected.
+
+## Safe, explicit host rollout (no scene replacement)
+
+The verified release branch contains `tools/towerflow-stage-verified-ui.cjs`. Its `--plan` mode performs zero host writes and compares installed Azure module Git blob hashes with reviewed versions from prior PR candidates. The `--apply` mode updates **only nine explicit Azure JS/CSS/CJS files**, never `server.js`, `public/room.js`, Git branches, Cloudflare or Tailscale. Unexpected customized files are **BLOCKED and preserved**. Updated .cjs modules need the original host Node server to be restarted before their new routes are active. A stopped process may invalidate an OAuth login transaction; sign in again after restart.
+
+Run on the TowerFlow host using **PowerShell**, not CMD:
+
+```powershell
+& {
+  $ErrorActionPreference='Stop'
+  $room=Join-Path $env:USERPROFILE 'Desktop\Towerflow_Team02_Private_Invite_Room\Towerflow_Collaboration_Room'
+  $stage=Join-Path $env:TEMP ('TowerFlow-ReviewedUI-'+[guid]::NewGuid().ToString('N'))
+  try {
+    git clone --quiet --depth 1 --branch feature/ide-provider-debug-proof-20261120 --single-branch https://github.com/Cos229-239/2610_Team02.git $stage
+    if($LASTEXITCODE -ne 0){throw 'Source checkout failed'}
+    $tool=Join-Path $stage 'tools\towerflow-stage-verified-ui.cjs'
+    node --test (Join-Path $stage 'tools\towerflow-stage-verified-ui.test.cjs')
+    if($LASTEXITCODE -ne 0){throw 'Safety test failed'}
+    node $tool $room --plan
+    if($LASTEXITCODE -ne 0){throw 'Host customization/compatibility blocked; no changes attempted'}
+    # Only after reviewing the paths and source hashes:
+    # node $tool $room --apply
+  } finally {
+    if(Test-Path $stage){Remove-Item -LiteralPath $stage -Recurse -Force}
+  }
+}
+```
+
+Use the **explicit** `--apply` command only when the plan is accepted. Do not rerun the older generic installer as a shortcut. Before claiming successful operation, manually open the Development Room, test an authenticated source navigation and F5 breakpoint, and verify the external AI's own repo-read and repo-write permissions. The updater does not manufacture a connected AI or promote draft PRs.
