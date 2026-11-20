@@ -17,7 +17,7 @@ test('Azure AI bridge is loaded through mounted room HTML, never captures secret
  for(const text of ['ChatGPT','Grok','Venice','Another AI','Copy task for my AI','Check session'])
    assert.ok(bridge.includes(text),text+' absent');
  assert.ok(bridge.includes('README.md') && bridge.includes('Source starting point'), 'AI must request real repository verification');
- assert.ok(bridge.includes('A prompt cannot grant access') || bridge.includes('cannot grant permissions'), 'Handoff must be honest about permissions');
+ assert.ok(bridge.includes('A prompt cannot grant access') || bridge.includes('cannot grant permissions') || bridge.includes('cannot automatically authorize an AI'), 'Handoff must be honest about permissions');
  assert.equal(/(?:localStorage\.setItem|sessionStorage\.setItem|new WebSocket|fetch\(['"]https:\/\/api\.)/.test(bridge),false,
    'Do not save external credentials or call paid AI APIs');
 });
