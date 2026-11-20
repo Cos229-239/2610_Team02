@@ -69,11 +69,14 @@ function mount(){
    page.dataset.aiConnect='';
    const heading=elt('header',undefined,'tf-ai-azure-head');
    heading.append(elt('div','AZURE / BRIDGE B · AI DEVELOPMENT','tf-ai-azure-kicker'),
-     elt('h2','Give your AI a verified path into TowerFlow'),
-     elt('p','Choose the AI you already use. Connect GitHub inside that provider, then generate a task-specific handoff. This pane cannot grant permissions to an external AI.'));
+     elt('h2','Connect an AI'),
+     elt('p','Choose your provider, connect GitHub, and send a development request.'));
    const providers=elt('div',undefined,'tf-ai-provider-grid');
    const info=elt('div',undefined,'tf-ai-provider-info');
+   const guide=elt('details',undefined,'tf-ai-connection-guide');
+   const guideSummary=elt('summary','Connection steps');
    const fields=elt('div',undefined,'tf-ai-handoff-form');
+   page.setAttribute('aria-label','AI connections');
    page.append(heading,providers,info,fields);content.replaceChildren(page);
    let selected='chatgpt',login=null;
    const providerButtons=new Map();
@@ -86,38 +89,45 @@ function mount(){
    const status=elt('p','Checking your TowerFlow GitHub session…');status.setAttribute('role','status');
    const instructions=elt('p');
    const links=elt('div',undefined,'tf-ai-azure-links');
-   info.append(status,instructions,links);
+   guide.append(guideSummary,instructions,links);
+   info.append(status,guide);
    const alabel=elt('label','What part of TowerFlow?');
    const select=elt('select');select.setAttribute('aria-label','AI contribution component');
    for(const [key,[label]] of Object.entries(AREAS))select.add(new Option(label,key));
    alabel.append(select);
-   const rlabel=elt('label','What should your AI implement?');
+   const rlabel=elt('label','Describe your change');
    const request=elt('textarea');request.rows=4;request.maxLength=1500;request.placeholder='Example: Add an authenticated username greeting to the dashboard and preserve the portfolio calculations.';
    rlabel.append(request);
    const controls=elt('div',undefined,'tf-ai-azure-links');
-   const copy=elt('button','Generate & copy integration prompt','tf-dev-primary');copy.type='button';
-   const verify=elt('button','Check my TowerFlow access','tf-dev-secondary');verify.type='button';
+   const copy=elt('button','Copy task for my AI','tf-dev-primary');copy.type='button';
+   const verify=elt('button','Check session','tf-dev-secondary');verify.type='button';
    controls.append(copy,verify);
-   const snapshotLabel=elt('label','Include verified live TowerFlow environment snapshot');
+   const snapshotLabel=elt('label','Include runtime snapshot');
    const snapshotOpt=elt('input');snapshotOpt.type='checkbox';snapshotOpt.checked=true;
    snapshotLabel.prepend(snapshotOpt);
    const receipt=elt('p','Select a provider and enter your requested change.');receipt.setAttribute('role','status');
-   const result=elt('textarea');result.readOnly=true;result.rows=15;result.setAttribute('aria-label','Generated repository access and integration prompt');
-   const caution=elt('p','This is a verified-task handoff, NOT a live AI connection. ChatGPT\'s standard GitHub app is read-only; writing requires separate authorized coding tools. Grok and Venice capabilities depend on their actual tool access. No tokens, AI API keys, Gemini CLI or shared credentials are requested by this page.');
-   fields.append(alabel,rlabel,snapshotLabel,controls,receipt,result,caution);
-   const example=elt('button','Use example: Add my name to Dashboard','tf-dev-secondary');example.type='button';
+   const resultWrap=elt('details',undefined,'tf-ai-generated-wrap');
+   resultWrap.append(elt('summary','View generated task'));
+   const result=elt('textarea');result.readOnly=true;result.rows=9;result.setAttribute('aria-label','Generated repository access and integration prompt');
+   resultWrap.append(result);
+   const caution=elt('p','This prepares a task, but cannot automatically authorize an AI. Each provider needs its own GitHub connection and coding permissions. ChatGPT\'s standard GitHub app is read-only. Never paste credentials.');
+   fields.append(alabel,rlabel,controls,receipt,resultWrap,snapshotLabel);
+   const disclosure=elt('details',undefined,'tf-ai-connection-limits');
+   disclosure.append(elt('summary','Permissions and limitations'),caution);
+   fields.append(disclosure);
+   const example=elt('button','Try example: Show my name','tf-dev-secondary');example.type='button';
    example.onclick=()=>{select.value='dashboard';request.value='Add my authenticated GitHub display name to the dashboard. Preserve existing calculations and show the result in a working preview.';};
    fields.insertBefore(example,rlabel);
    // Third step: observe a real GitHub artifact produced using the member's own
    // authorized coding tools. We do NOT attest to which AI authored the code.
    const proof=elt('section',undefined,'tf-ai-proof');
-   proof.append(elt('h3','Verify my AI-assisted contribution'),
-     elt('p','After your AI or coding tool creates a draft PR to Team 02 dev, enter its PR number. TowerFlow will check GitHub directly using your room session. This cannot prove the AI is connected, only the contribution.'));
+   proof.append(elt('h3','Verify contribution'),
+     elt('p','Enter your draft PR number to check the submitted files on GitHub.'));
    const prRow=elt('div',undefined,'tf-ai-azure-links');
    const prInput=elt('input');prInput.type='number';prInput.min='1';prInput.max='1000000';prInput.step='1';
    prInput.placeholder='Your draft PR number';prInput.setAttribute('aria-label','Draft pull request number');
    const checkPr=elt('button','VERIFY MY PR','tf-dev-primary');checkPr.type='button';
-   const prStatus=elt('p','No GitHub contribution verified.');prStatus.setAttribute('role','status');
+   const prStatus=elt('p','No contribution verified.');prStatus.setAttribute('role','status');
    const prResults=elt('div',undefined,'tf-ai-proof-result');
    prRow.append(prInput,checkPr);
    proof.append(prRow,prStatus,prResults);fields.append(proof);
@@ -153,7 +163,7 @@ function mount(){
      if(p.home)links.append(link('Open '+p.name+' ↗',p.home));
      if(p.help)links.append(link('Connection guide ↗',p.help));
      links.append(link('Team 02 GitHub repository ↗',BASE+'/tree/dev'));
-     result.value='';receipt.textContent='Selected '+p.name+'. No external AI connection has been established by this button.';
+     result.value='';receipt.textContent='Selected '+p.name+'. Connect it using your own account.';
    }
    async function check(){
      status.textContent='Checking this TowerFlow sign-in…';
@@ -181,11 +191,11 @@ function mount(){
           }
         }
         result.value=prompt;
-        result.focus();result.select();
+        resultWrap.open=false;
         try{
           await navigator.clipboard.writeText(prompt);
-          receipt.textContent='Copied. Open '+PROVIDERS[selected].name+', connect GitHub there, paste the prompt, then verify its actual tool report.';
-        }catch{receipt.textContent='Prompt generated and selected. Copy it manually and paste into your AI after connecting GitHub.';}
+          receipt.textContent='Task copied. Open '+PROVIDERS[selected].name+' and paste it after authorizing GitHub.';
+        }catch{resultWrap.open=true;result.focus();result.select();receipt.textContent='Task generated. Copy it from the expanded field and paste it into your AI.';}
       }catch(e){receipt.textContent=e.message;}
    };
    verify.onclick=()=>void check();
