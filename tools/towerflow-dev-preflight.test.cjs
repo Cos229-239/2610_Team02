@@ -38,10 +38,12 @@ test('HTTP preflight reports the actual served route, not only installed files',
  await new Promise(done=>server.listen(0,'127.0.0.1',done));
  try{
   const checks=await inspectHttp('http://127.0.0.1:'+server.address().port);
-  assert.equal(checks.length,4);
+  assert.equal(checks.length,6);
   assert.equal(checks[0].status,'PASS');
   assert.equal(checks[1].status,'PASS');
   assert.equal(checks[2].status,'PASS');
   assert.equal(checks[3].status,'BLOCK');
+  assert.equal(checks[4].status,'BLOCK');
+  assert.equal(checks[5].status,'BLOCK');
  }finally{await new Promise(done=>server.close(done));}
 });
