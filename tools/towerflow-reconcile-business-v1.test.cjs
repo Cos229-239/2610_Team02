@@ -43,7 +43,7 @@ test('exact reviewed Business Studio scene injection preserves all original cust
  assert.equal(integrateScene(after,reviewed),after,'running twice does not duplicate features');
  assert.throws(()=>integrateScene(before+'\n// TF_DEV_BUSINESS_APP_ENTRY_V1_BEGIN',reviewed),/Partially installed/);
 });
-test('integration changes only eight scoped host files; old Azure UI is never overwritten',()=>{
+test('integration changes only nine scoped host files; old Azure UI is never overwritten',()=>{
  const host=fs.mkdtempSync(path.join(os.tmpdir(),'tf-business-live-'));
  try{
   fs.mkdirSync(path.join(host,'public'));
@@ -56,8 +56,9 @@ test('integration changes only eight scoped host files; old Azure UI is never ov
   const originalCustom=fs.readFileSync(custom);
   const originalServer=fs.readFileSync(path.join(host,'server.js'));
   const changes=makePlan(host);
-  assert.equal(changes.length,8);
+  assert.equal(changes.length,9);
   assert.deepEqual(changes.map(c=>path.relative(host,c.file).split(path.sep).join('/')).sort(),[
+    'azure-bridge/ai-contribution-proof.cjs',
     'azure-bridge/azure-local-reasoner.cjs',
     'azure-bridge/azure-workspace-harness.cjs','azure-bridge/azure-workspace-harness.js',
     'azure-bridge/business-signals.cjs','azure-bridge/server.cjs',
@@ -69,6 +70,25 @@ test('integration changes only eight scoped host files; old Azure UI is never ov
   assert.match(fs.readFileSync(path.join(host,'public','room.js'),'utf8'),/CUSTOM SCENE FEATURE: preserved/);
   assert.equal(makePlan(host).length,0,'second run makes no changes');
  }finally{fs.rmSync(host,{recursive:true,force:true});}
+});
+test('live legacy bridge lacking AI proof imports can integrate without replacing custom bytes',()=>{
+ const legacy=oldServer()
+  .replace("\nconst {mount:mountAIProof} = require('./ai-contribution-proof.cjs');",'')
+  .replace("\n    mountAIProof(app,{auth,ensureMember});",'')
+  .replace(" 'azure-workspace-harness.js',",'')
+  .replace(" 'team-stations.js',",'')
+  .replace('<script src="/azure-bridge/azure-workspace-harness.js" defer></script>','')
+  .replace('<script src="/azure-bridge/team-stations.js" defer></script>','')
+  .replace(/for \(const file of \[([^\]\n]*)\]\) \{/,(_,items)=>
+   "for (const file of ["+items.replace(/'team-stations\.js',\s*/,'').replace(/'azure-workspace-harness\.js',\s*/,'')+"]) {");
+ const custom=legacy+'\n// HOST CUSTOM AUTH PROTECTED\n';
+ const integrated=integrateServer(custom);
+ assert.ok(integrated.includes('HOST CUSTOM AUTH PROTECTED'));
+ assert.ok(integrated.includes("require('./ai-contribution-proof.cjs')"));
+ assert.ok(integrated.includes("require('./team-stations.cjs')"));
+ assert.ok(integrated.includes("require('./azure-workspace-harness.cjs')"));
+ assert.ok(integrated.includes('<script src="/azure-bridge/team-stations.js" defer></script>'));
+ assert.equal(integrateServer(integrated),integrated);
 });
 test('Windows CRLF server merges reviewed imports once and preserves custom code',()=>{
  const original=oldServer().replace(/\n/g,'\r\n')+'// extra local feature\r\n';
