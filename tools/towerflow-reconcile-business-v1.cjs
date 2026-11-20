@@ -7,7 +7,7 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),
 const ROOT=path.resolve(__dirname,'..');
 const SRC_SCENE=path.join(ROOT,'collaboration-room','live-room','public','room.js');
 const SRC_BRIDGE=path.join(ROOT,'collaboration-room','azure-bridge');
-const EXTRA=['business-signals.cjs','team-stations.cjs','team-stations.js'];
+const EXTRA=['business-signals.cjs','team-stations.cjs','team-stations.js','azure-workspace-harness.cjs','azure-workspace-harness.js'];
 const SHA=x=>crypto.createHash('sha256').update(x).digest('hex');
 const ONE=(source,needle,what)=>{
  const n=source.split(needle).length-1;
@@ -90,6 +90,18 @@ function integrateServer(current){
    'team/business authorization mounts');
  include("'ide-workstations.js',"," 'team-stations.js',",
    'new station public script');
+ include("const {mount:mountAIProof} = require('./ai-contribution-proof.cjs');",
+   "\nconst {mount:mountAzureHarness} = require('./azure-workspace-harness.cjs');",
+   'Azure workspace harness import');
+ include('    mountAIProof(app,{auth,ensureMember});',
+   '\n    mountAzureHarness(app,{auth,ensureMember,sameOrigin});',
+   'Azure workspace verified task route');
+ include("'ide-workstations.js',",
+   " 'azure-workspace-harness.js',",
+   'Azure workspace browser script');
+ include('<script src="/azure-bridge/ide-workstations.js" defer></script>',
+   '<script src="/azure-bridge/azure-workspace-harness.js" defer></script>',
+   'Azure workspace html script');
  include('<script src="/azure-bridge/ide-workstations.js" defer></script>',
    '<script src="/azure-bridge/team-stations.js" defer></script>',
    'team public page script');
