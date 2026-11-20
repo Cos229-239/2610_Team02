@@ -7,7 +7,7 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),
 const ROOT=path.resolve(__dirname,'..');
 const SRC_SCENE=path.join(ROOT,'collaboration-room','live-room','public','room.js');
 const SRC_BRIDGE=path.join(ROOT,'collaboration-room','azure-bridge');
-const EXTRA=['business-signals.cjs','team-stations.cjs','team-stations.js','azure-workspace-harness.cjs','azure-workspace-harness.js'];
+const EXTRA=['business-signals.cjs','team-stations.cjs','team-stations.js','azure-workspace-harness.cjs','azure-workspace-harness.js','azure-local-reasoner.cjs'];
 const SHA=x=>crypto.createHash('sha256').update(x).digest('hex');
 const ONE=(source,needle,what)=>{
  const n=source.split(needle).length-1;
