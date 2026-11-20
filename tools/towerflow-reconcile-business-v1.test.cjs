@@ -26,6 +26,10 @@ function oldServer(){
  return reviewServer
   .replace("\nconst {mount:mountTeamStations} = require('./team-stations.cjs');\nconst {mount:mountBusinessSignals} = require('./business-signals.cjs');",'')
   .replace("\n    mountTeamStations(app,{auth,ensureMember});\n    mountBusinessSignals(app,{auth,ensureMember});",'')
+  .replace("\nconst {mount:mountAzureHarness} = require('./azure-workspace-harness.cjs');",'')
+  .replace("\n    mountAzureHarness(app,{auth,ensureMember,sameOrigin});",'')
+  .replace(" 'azure-workspace-harness.js',",'')
+  .replace('<script src="/azure-bridge/azure-workspace-harness.js" defer></script>','')
   .replace(" 'team-stations.js',",'')
   .replace('<script src="/azure-bridge/team-stations.js" defer></script>','');
 }
@@ -52,8 +56,9 @@ test('integration changes only five scoped host files; old Azure UI is never ove
   const originalCustom=fs.readFileSync(custom);
   const originalServer=fs.readFileSync(path.join(host,'server.js'));
   const changes=makePlan(host);
-  assert.equal(changes.length,5);
+  assert.equal(changes.length,7);
   assert.deepEqual(changes.map(c=>path.relative(host,c.file)).sort(),[
+    'azure-bridge/azure-workspace-harness.cjs','azure-bridge/azure-workspace-harness.js',
     'azure-bridge/business-signals.cjs','azure-bridge/server.cjs',
     'azure-bridge/team-stations.cjs','azure-bridge/team-stations.js','public/room.js'
   ]);
