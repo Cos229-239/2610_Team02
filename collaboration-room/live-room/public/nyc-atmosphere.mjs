@@ -118,8 +118,8 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       [0x57718a,0x536d85,0x82929c,0x637a91];
     const color=palette[layer%palette.length];
     const material=new THREE.MeshStandardMaterial({color,metalness:.12,
-      roughness:night?.67:.79,emissive:night?0x172c3c:0x000000,
-      emissiveIntensity:night?.20:0});
+      roughness:night?.67:.79,emissive:night?0x172c3c:0x1b2b3b,
+      emissiveIntensity:night?.20:.22});
     materials.push(material);return material;
   };
   function clear() {
@@ -214,6 +214,7 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       for(let i=0;i<windowMatrices.length;i++)instanced.setMatrixAt(i,windowMatrices[i]);
       instanced.instanceMatrix.needsUpdate=true;instanced.frustumCulled=false;
       group.add(instanced);windows=windowMatrices.length;
+      materials.push(glassMat);
     } else {glassGeo.dispose();glassMat.dispose();}
     // Distance layers are baked into geometry footprint colors; no room-wide fog override.
     buildings=count;lastGeometry=features;
