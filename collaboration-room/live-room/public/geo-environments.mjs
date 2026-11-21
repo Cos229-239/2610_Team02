@@ -107,14 +107,19 @@ export function createDCLandmarkStudy(THREE,mode){
  const light=new THREE.DirectionalLight(0xffead2,1.5);
  light.position.set(-27,50,25);group.add(light);
  const ambient=new THREE.HemisphereLight(0xc0d6ec,0x2a373a,.9);group.add(ambient);
- function setTime(m){
-  light.intensity=m==='night'?.22:m==='morning'?1.15:1.7;
-  light.color.setHex(m==='morning'?0xffb986:m==='night'?0x8398b8:0xffead2);
-  ambient.intensity=m==='night'?.28:m==='morning'?.7:1;
-  stone.color.setHex(m==='night'?0x727780:m==='morning'?0xc4b39b:0xb9b4a7);
+ let currentMode=mode,condition='sun';
+ function applyLighting(){
+  const cloud=/cloud|overcast|rain|storm/i.test(condition);
+  light.intensity=(currentMode==='night'?.22:currentMode==='morning'?1.15:1.7)*(cloud?.62:1);
+  light.color.setHex(currentMode==='morning'?0xffb986:currentMode==='night'?0x8398b8:0xffead2);
+  ambient.intensity=currentMode==='night'?.28:currentMode==='morning'?.7:1;
+  stone.color.setHex(currentMode==='night'?0x727780:currentMode==='morning'?0xc4b39b:0xb9b4a7);
+  water.color.setHex(/rain|storm/i.test(condition)?0x344d62:0x477789);
  }
- setTime(mode);
- return {group,setTime,dispose(){
+ function setTime(m){currentMode=m;applyLighting();}
+ function setWeather(w){condition=w;applyLighting();}
+ applyLighting();
+ return {group,setTime,setWeather,dispose(){
   for(const g of new Set(geo))g.dispose();for(const m of mats)m.dispose();
  }};
 }
@@ -157,7 +162,7 @@ export function installGeography({THREE,scene}){
  let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'live',manualWeather:'sun'});
  let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0,loadSerial=0;
  let weatherMesh=null,weatherGeometry=null,weatherMaterial=null,weatherAnimation=0;
- const originalLightIntensities=new WeakMap();
+
  function clearWeatherVisual(){
   if(weatherAnimation)cancelAnimationFrame(weatherAnimation);
   weatherAnimation=0;
@@ -170,15 +175,7 @@ export function installGeography({THREE,scene}){
   if(!active)return;
   const condition=state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'';
   const rain=/rain|storm|shower|drizzle/i.test(condition);
-  const cloud=/cloud|overcast|rain|storm/i.test(condition);
-  if(active.group){
-   active.group.traverse(obj=>{
-    if(obj.type==='DirectionalLight'){
-     if(!originalLightIntensities.has(obj))originalLightIntensities.set(obj,obj.intensity);
-     obj.intensity=originalLightIntensities.get(obj)*(cloud?.62:1);
-    }
-   });
-  }
+  active.setWeather?.(condition);
   if(!rain)return;
   const points=new Float32Array(180*3);
   for(let i=0;i<180;i++){
