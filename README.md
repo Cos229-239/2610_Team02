@@ -8,6 +8,7 @@
 - Daniel Dusky
 - William Jones
 - Omarion Walter
+
 Prototype pages:
 
 - `index.html` - roster editor prototype landing page
@@ -60,3 +61,4 @@ Prototype pages:
   ],
   "unassigned": []
 }
+

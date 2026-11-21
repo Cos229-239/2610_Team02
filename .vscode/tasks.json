@@ -16,12 +16,13 @@
       },
       "isBackground": true,
       "problemMatcher": {
-        "pattern": [
-          {
-            "regexp": "^(.*)$",
-            "file": 1
-          }
-        ],
+        "owner": "towerflow",
+        "pattern": {
+          "regexp": "^(.*)$",
+          "kind": "file",
+          "file": 1,
+          "message": 1
+        },
         "background": {
           "activeOnStart": true,
           "beginsPattern": "^TowerFlow server listening at",
