@@ -34,6 +34,7 @@ const page=[
  "if(url.includes('/points/'))return {ok:true,json:async()=>({properties:{forecastHourly:'https://api.weather.gov/gridpoints/CAE/1,1/forecast/hourly'}})};",
  "if(url.includes('/forecast/hourly'))return {ok:true,json:async()=>({properties:{periods:[{shortForecast:'Mostly Cloudy',temperature:65,temperatureUnit:'F'}]}})};",
  "throw Error('Unexpected external request '+url)};",
+ "window.matchMedia=()=>({matches:true});",
  "try {const api=installGeography({THREE,scene});",
  "if(destinations.length!==51)throw Error('Destination count');",
  "const sh=document; // Geography controls currently live in document DOM; no shadow root.",
