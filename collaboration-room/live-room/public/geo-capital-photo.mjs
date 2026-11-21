@@ -171,14 +171,21 @@ export function buildPhotoEnvironment(THREE,photo,mode,scene=null){
   const businessFlight=flight.clone();businessFlight.name='TF_CAPITAL_BUSINESS_AIRCRAFT';business.add(businessFlight);
   const flightEpoch=performance.now();
   // This callback executes only while the exterior photo is actually rendered.
-  surface.onBeforeRender=()=>{
+  function animateExterior(){
    const seconds=(performance.now()-flightEpoch)/1000;
    flight.position.set(-45,11+Math.sin(seconds*.09)*1.1,
     -46+(seconds*1.35)%92);
    beacon.visible=(Math.floor(seconds*2)%2)===0;
    businessFlight.position.set(103,12+Math.sin(seconds*.12),-41+(seconds*1.3)%82);
+   // Shared weather texture is updated by the real world renderer rather
+   // than a separate viewport overlay.
    if(environmentPalette(current,condition).cloud)overlayTexture.offset.x=(seconds*.0006)%1;
-  };
+  }
+  surface.onBeforeRender=animateExterior;
+  // The business view is independent: its exterior continues moving when
+  // the collaboration photo is outside the camera frustum.
+  const businessMain=business.getObjectByName('TF_CAPITAL_BUSINESS_CITY_0');
+  if(businessMain)businessMain.onBeforeRender=animateExterior;
   updateCanvas();
   return {group,setTime(next){current=next;updateCanvas();},
    setWeather(next){condition=next;updateCanvas();},
