@@ -1,14 +1,6 @@
 // Real-city reference photographs shown in the existing TowerFlow window.
 // Wikimedia Commons metadata is checked per image. A photograph is NOT a 3D scan.
 const BASE='https://commons.wikimedia.org/w/api.php';
-const curated={
- 'new-york-city':{
-  day:'File:Midtown Manhattan Skyline 2024.jpg',
-  night:'File:New York skyline at night.jpg'},
- 'new-york':{
-  day:'File:AlbanyNYPano.jpg',
-  night:'File:Nighttime Albany, New York skyline in the Port of Albany.jpg'}
-};
 const cache=new Map();
 const allowable=/^(?:CC0|CC BY(?:-SA)?(?: [1-9](?:\.\d)?)?|Public domain)/i;
 const htmlText=s=>String(s||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').trim();
@@ -28,34 +20,88 @@ export async function findCapitalPhoto(destination,mode='day',request=fetch){
  const key=destination.id+':'+mode;
  if(cache.has(key))return cache.get(key);
  const titles=curated[destination.id],night=mode==='night';
- let pages=[];
- if(titles){
-  const title=night?titles.night:titles.day;
-  const data=await json(params({prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'1400',titles:title}),request);
-  pages=data?.query?.pages||[];
- } else {
-  const city=destination.capital==='Federal District'?'Washington D.C.':destination.capital;
-  const query=city+' skyline'+(night?' night':'');
-  const data=await json(params({generator:'search',gsrnamespace:'6',gsrsearch:query,gsrlimit:'8',
+ const city=destination.id==='new-york-city'?'New York City':destination.capital==='Federal District'?'Washington D.C.':destination.capital;
+ const query=city+' skyline'+(night?' night':'');
+ const data=await json(params({generator:'search',gsrnamespace:'6',gsrsearch:query,gsrlimit:'12',
    prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'1400'}),request);
-  pages=data?.query?.pages||[];
-  const cityWords=city.toLowerCase().split(/\s+/).filter(w=>w.length>3);
-  pages=pages.filter(p=>{
-   const title=String(p.title||'').toLowerCase();
-   return cityWords.some(w=>title.includes(w))&&/skyline|panorama|downtown|cityscape|view/.test(title)&&
-    !/map|flag|logo|drawing|diagram|historic|painting|illustration/.test(title);
-  });
- }
+ let pages=data?.query?.pages||[];
+ const cityWords=city.toLowerCase().split(/\\s+/).filter(w=>w.length>3);
+ pages=pages.filter(p=>{
+  const title=String(p.title||'').toLowerCase();
+  return cityWords.some(w=>title.includes(w))&&/skyline|panorama|downtown|cityscape|view/.test(title)&&
+   !/map|flag|logo|drawing|diagram|historic|painting|illustration/.test(title);
+ });
+
  for(const page of pages){
   const photo=photograph(page);
   if(photo){cache.set(key,photo);return photo;}
  }
  throw Error('No verified-license city photograph found for '+destination.capital);
 }
+// Procedural weather rendering independent of photographs / network services.
+export function environmentPalette(time='day',weather='sun'){
+ const wet=/rain|storm|shower|drizzle/i.test(weather);
+ const cloud=wet||/cloud|overcast|fog/i.test(weather);
+ const sunset=time==='sunset';
+ const night=time==='night';
+ return Object.freeze({
+  top:night?'#09142f':sunset?'#292447':cloud?'#47596c':'#286bb3',
+  horizon:night?'#253653':sunset?'#f5a568':wet?'#626f85':cloud?'#a3a9b2':'#c6e5ff',
+  haze:wet?.42:cloud?.31:.08, rain:wet, cloud, night, sunset,
+  brightness:night?.31:sunset?.77:time==='morning'?.86:1
+ });
+}
 export function buildPhotoEnvironment(THREE,photo,mode){
  const group=new THREE.Group();group.name='TF_CAPITAL_PHOTOGRAPHIC_WINDOW';
- let texture=null,material=null,geometry=null;
- let current=mode;
+ let texture=null,material=null,geometry=null,overlayTexture=null,overlayMaterial=null,overlayGeometry=null;
+ let current=mode,condition='sun';
+ const canvas=document.createElement('canvas');
+ canvas.width=1024;canvas.height=512;
+ const ctx=canvas.getContext('2d');
+ if(!ctx)throw Error('Canvas sky rendering unavailable');
+ overlayTexture=new THREE.CanvasTexture(canvas);
+ overlayTexture.colorSpace=THREE.SRGBColorSpace;
+ overlayMaterial=new THREE.MeshBasicMaterial({map:overlayTexture,transparent:true,opacity:1,
+  toneMapped:false,depthWrite:false,side:THREE.DoubleSide});
+ overlayGeometry=new THREE.PlaneGeometry(62,31);
+ const overlay=new THREE.Mesh(overlayGeometry,overlayMaterial);
+ overlay.name='TF_CAPITAL_WEATHER_GLASS_OVERLAY';
+ overlay.position.set(-30.94,9,0);overlay.rotation.y=Math.PI/2;overlay.renderOrder=5;overlay.raycast=()=>{};
+ group.add(overlay);
+ function updateCanvas(){
+  const p=environmentPalette(current,condition),w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  if(p.sunset){
+   const g=ctx.createLinearGradient(0,0,0,h);
+   g.addColorStop(0,'rgba(39,20,80,.24)');g.addColorStop(.42,'rgba(241,101,101,.11)');
+   g.addColorStop(.76,'rgba(252,168,85,.20)');g.addColorStop(1,'rgba(246,143,78,.29)');
+   ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  }else if(p.night){ctx.fillStyle='rgba(4,12,38,.42)';ctx.fillRect(0,0,w,h);}
+  else if(p.cloud){ctx.fillStyle='rgba(66,77,93,.22)';ctx.fillRect(0,0,w,h);}
+  // Soft layered clouds: render into the actual exterior window, not the UI.
+  if(p.cloud){
+   let seed=82433;
+   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+   for(let i=0;i<34;i++){
+    const x=random()*w,y=random()*h*.68,r=40+random()*130;
+    const g=ctx.createRadialGradient(x,y,5,x,y,r);
+    g.addColorStop(0,p.night?'rgba(122,134,167,.20)':'rgba(227,234,241,.27)');
+    g.addColorStop(1,'rgba(143,154,177,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r,r*.31,0,0,Math.PI*2);ctx.fill();
+   }
+  }
+  if(p.rain){
+   let seed=1247;
+   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+   ctx.strokeStyle='rgba(208,229,255,.35)';ctx.lineWidth=1.3;
+   for(let i=0;i<210;i++){
+    const x=random()*w,y=random()*h,length=8+random()*19;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3,y+length);ctx.stroke();
+   }
+  }
+  overlayTexture.needsUpdate=true;
+  if(material)material.color.setHex(p.night?0x62718e:p.sunset?0xffc7aa:p.cloud?0xaebbc5:0xffffff);
+ }
  async function initialize(){
   texture=await new Promise((resolve,reject)=>{
    const loader=new THREE.TextureLoader();
@@ -67,21 +113,14 @@ export function buildPhotoEnvironment(THREE,photo,mode){
   geometry=new THREE.PlaneGeometry(62,31);
   const surface=new THREE.Mesh(geometry,material);
   surface.name='TF_CAPITAL_REAL_CITY_PHOTO';
-  // Camera can see the image through left room glazing at x=-21.
-  surface.position.set(-31,9,0);surface.rotation.y=Math.PI/2;
-  surface.renderOrder=-1;
-  surface.raycast=()=>{};
+  surface.position.set(-31,9,0);surface.rotation.y=Math.PI/2;surface.renderOrder=4;surface.raycast=()=>{};
   group.add(surface);
-  setTime(current);
-  return {group,setTime,setWeather(){},dispose(){
-   group.parent?.remove(group);geometry?.dispose();material?.dispose();texture?.dispose();
-  },report:{photographic:true,source:photo.source,license:photo.license}};
- }
- function setTime(next){
-  current=next;
-  if(!material)return;
-  // Cosmetic tint only. Never claim the real photograph was taken at this time.
-  material.color.setHex(next==='night'?0x9caccb:next==='morning'?0xffdab3:0xffffff);
+  updateCanvas();
+  return {group,setTime(next){current=next;updateCanvas();},
+   setWeather(next){condition=next;updateCanvas();},
+   dispose(){group.parent?.remove(group);geometry?.dispose();material?.dispose();texture?.dispose();
+    overlayGeometry?.dispose();overlayMaterial?.dispose();overlayTexture?.dispose();},
+   report:{photographic:true,source:photo.source,license:photo.license}};
  }
  return initialize();
 }
