@@ -23,7 +23,7 @@ test('DC exterior reference includes 36 distinct colonnade shaft objects',()=>{
  }
  class Mesh extends Object3D {constructor(geometry,material){super();this.geometry=geometry;this.material=material;}}
  class Geometry {constructor(...args){this.parameters=args;}dispose(){}}
- class Material {constructor(opts){this.color={setHex(){}};Object.assign(this,opts);}dispose(){}}
+ class Material {constructor(opts){Object.assign(this,opts);this.color={setHex(){}};}dispose(){}}
  class Light extends Object3D {constructor(){super();this.color={setHex(){}};this.intensity=1;}}
  const THREE={Group:Object3D,Mesh,MeshStandardMaterial:Material,BoxGeometry:Geometry,
   CylinderGeometry:class extends Geometry {},ConeGeometry:Geometry,
