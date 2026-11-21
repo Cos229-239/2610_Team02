@@ -92,18 +92,66 @@ export function createDCLandmarkStudy(THREE,mode){
  const points=[];
  for(let k=0;k<12;k++){const x=-10+k*20/11;points.push([x,4],[x,18]);}
  for(let k=0;k<6;k++){const z=6+k*10/5;points.push([-10.8,z],[10.8,z]);}
- const colGeo=new THREE.CylinderGeometry(.36,.44,6.3,16);
+ // NPS: 36 exterior Doric columns, each with 20 flutes. This remains
+ // an architectural study, not a scanned NPS asset.
+ const colGeo=new THREE.CylinderGeometry(.36,.44,6.3,120);
+ const positions=colGeo.getAttribute?.('position');
+ if(positions){
+  for(let i=0;i<positions.count;i++){
+   const x=positions.getX(i),y=positions.getY(i),z=positions.getZ(i);
+   const angle=Math.atan2(z,x);
+   const radius=Math.hypot(x,z);
+   if(radius>.1){
+    const flute=.023*(.5+.5*Math.cos(angle*20));
+    positions.setXYZ(i,x*(1-flute/radius),y,z*(1-flute/radius));
+   }
+  }
+  positions.needsUpdate=true;colGeo.computeVertexNormals();
+ }
  geo.push(colGeo);
  for(const [x,z] of points){
   const col=new THREE.Mesh(colGeo,stone);col.position.set(x,5.2,z);group.add(col);
   box(1.07,.25,1.07,x,8.45,z);
  }
- box(15.5,6.1,10,0,5.2,11);
+ // Open inner chamber: the old solid core completely obscured Lincoln.
+ box(15.5,6.1,.65,0,5.2,16.6);
+ box(.5,6.1,10,-7.65,5.2,11.25);
+ box(.5,6.1,10,7.65,5.2,11.25);
+ const statue=mat(0xe1dfd3);
+ // Seated figure, chair and sculptural masses: proportions are approximate.
+ box(3.1,2.8,1.5,0,3.6,14.15,statue);
+ box(2.35,2.7,.8,0,5.1,14.10,statue);
+ box(2.15,1.7,1,0,4.65,13.1,statue);
+ mesh(new THREE.SphereGeometry(.78,16,12),statue,0,6.15,12.9);
+ for(const side of [-1,1]){
+  box(.47,2.5,.65,side*1.4,3.5,12.95,statue);
+  box(.77,1.3,1.2,side*.57,2.35,12.45,statue);
+ }
+ // Eight interior Ionic-column approximations flank the chamber.
+ const ionic=new THREE.CylinderGeometry(.25,.27,5.3,32);
+ geo.push(ionic);
+ for(const side of [-1,1])for(let i=0;i<4;i++){
+  const column=new THREE.Mesh(ionic,stone);
+  column.position.set(side*5.7,5.3,7.5+i*2.3);
+  group.add(column);
+ }
  box(24,1.1,18,0,9.1,11);
+ box(24.6,.22,18.5,0,9.76,11);
  // Washington Monument stands across the Reflecting Pool along one axis.
  box(2,23,2,0,11.5,-114);
  const apex=mesh(new THREE.ConeGeometry(1.41,3,4),stone,0,24.5,-114);
  apex.rotation.y=Math.PI/4;
+ // Tree-lined reflecting-pool promenade, with geometry attached to ground.
+ const foliage=mat(0x356445);
+ const canopy=new THREE.IcosahedronGeometry(1.30,1);
+ geo.push(canopy);
+ for(const side of [-1,1])for(let i=0;i<13;i++){
+  const leaf=new THREE.Mesh(canopy,foliage);
+  leaf.position.set(side*10.5,1.25,-95+i*7);group.add(leaf);
+ }
+ // Preserve original environment lighting and sound; new lights stay in group.
+ const monumentLight=new THREE.PointLight(0xffeac2,0);
+ monumentLight.position.set(0,8.6,5);group.add(monumentLight);
  const light=new THREE.DirectionalLight(0xffead2,1.5);
  light.position.set(-27,50,25);group.add(light);
  const ambient=new THREE.HemisphereLight(0xc0d6ec,0x2a373a,.9);group.add(ambient);
@@ -115,6 +163,7 @@ export function createDCLandmarkStudy(THREE,mode){
   ambient.intensity=currentMode==='night'?.28:currentMode==='morning'?.7:1;
   stone.color.setHex(currentMode==='night'?0x727780:currentMode==='morning'?0xc4b39b:0xb9b4a7);
   water.color.setHex(/rain|storm/i.test(condition)?0x344d62:0x477789);
+  monumentLight.intensity=currentMode==='night'?26:0;
  }
  function setTime(m){currentMode=m;applyLighting();}
  function setWeather(w){condition=w;applyLighting();}
