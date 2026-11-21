@@ -75,6 +75,16 @@ export async function fetchNWSHourlyForecast(latitude,longitude,request=fetch) {
   temperatureUnit:item.temperatureUnit,asOf:new Date().toISOString(),
   source:'NWS HOURLY FORECAST — NOT OBSERVED CURRENT WEATHER'};
 }
+// Camera-aligned placement in the ORIGINAL TowerFlow exterior, looking through
+// the left-side glass at x=-21. Skyline ownership was identified in
+// collaboration-room/apply-graphics.cjs (TF_CITY_SKYLINE inside
+// TF_NIGHT_CITY_INTERIOR). Source camera far plane = 130 world units.
+// Avoid placing 3D capital objects at x=+63 (inside/behind another room).
+export function capitalWorldPlacement(kind='state'){
+ const dc=kind==='district';
+ return Object.freeze({x:dc?-44:-52,y:-2,z:0,
+  rotationY:Math.PI/2,scale:dc?.50:.25});
+}
 export function createDCLandmarkStudy(THREE,mode){
  const group=new THREE.Group();group.name='TF_DC_LINCOLN_REFERENCE_STUDY';
  const geo=[],mats=[];
@@ -329,11 +339,17 @@ export function installGeography({THREE,scene}){
   if(nycWasEnabled===null && window.tfNYCAtmosphere)nycWasEnabled=window.tfNYCAtmosphere.enabled;
   window.tfNYCAtmosphere?.setEnabled(false);
   if(originalSkyline)originalSkyline.visible=false;
-  if(active){scene.remove(active.group);active.dispose();}
+  if(active){active.group.parent?.remove(active.group);active.dispose();}
   active=prepared;
-  prepared.group.position.set(63,0,-57);
-  prepared.group.scale.setScalar(.40);
-  scene.add(prepared.group);state=Object.freeze({...state,destination:id});
+  const placement=capitalWorldPlacement(d.kind);
+  prepared.group.position.set(placement.x,placement.y,placement.z);
+  prepared.group.rotation.y=placement.rotationY;
+  prepared.group.scale.setScalar(placement.scale);
+  // Attach inside the actual city-interior renderer, not as an unrelated
+  // freestanding scene object. The old skyline group is reversibly hidden.
+  const cityRoom=scene.getObjectByName('TF_NIGHT_CITY_INTERIOR');
+  (cityRoom||scene).add(prepared.group);
+  state=Object.freeze({...state,destination:id});
   status.textContent=d.kind==='district'?'WASHINGTON, D.C. · Architectural study, not verified high-fidelity reconstruction':d.capital+' · '+prepared.report.buildings+' verified OSM footprint records, '+prepared.report.estimated+' estimated heights';
   render();weatherForecast=null;
   ++weatherRequest;
