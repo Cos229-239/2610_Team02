@@ -70,12 +70,55 @@ try {
   Write-Host '[3] VERIFIED EXACT GIT SOURCE FILES' -ForegroundColor Green
   # 3-way merge *only* in temporary files: current live, merge-base, requested feature.
   # Keep all unrelated local graphics changes, or stop if the merge is ambiguous.
-  $mergeMessages = & git merge-file $stageCurrent $stageBase $stageFeature 2>&1
-  Require ($LASTEXITCODE -eq 0) ('Live room differs from feature; safe 3-way merge unavailable. ' + ($mergeMessages -join ' '))
+  $mergeMessages = & git.exe merge-file $stageCurrent $stageBase $stageFeature 2>&1
+  $mergeExit = $LASTEXITCODE
+  if($mergeExit -ne 0){
+    Write-Warning 'Three-way merge conflicts. Trying strict minimal patch in staging only.'
+    [System.IO.File]::Copy($room,$stageCurrent,$true)
+    $stagedRoomText=[System.IO.File]::ReadAllText($stageCurrent)
+    Require (-not $stagedRoomText.Contains('installCapitalWorld')) 'Existing integration found: no double-install.'
+    Require ($stagedRoomText.Contains("import * as THREE from 'three';")) 'Three.js import anchor missing.'
+    $stagedRoomText=$stagedRoomText.Replace(
+      "import * as THREE from 'three';",
+      "import * as THREE from 'three';" + "`nimport {installCapitalWorld} from './capital-world.mjs';"
+    )
+    $atriumPattern='box\(\s*\.6\s*,\s*11\s*,\s*32\s*,\s*-21\s*,\s*5\.5\s*,\s*0\s*,\s*wall\s*\)\s*;'
+    $count=[regex]::Matches($stagedRoomText,$atriumPattern).Count
+    Require ($count -eq 1) ("Atrium wall geometry does not match (count="+$count+"). No deployment.")
+    $atriumReplacement=@'
+for(const z of [-12.5,12.5])box(.6,11,7,-21,5.5,z,wall);
+box(.6,3.25,18,-21,1.625,0,wall);
+box(.6,2.75,18,-21,10.025,0,wall);
+'@
+    $stagedRoomText=[regex]::Replace($stagedRoomText,$atriumPattern,[System.Text.RegularExpressions.MatchEvaluator]{param($m) $atriumReplacement})
+    $devPattern='box\(\s*\.6\s*,\s*11\s*,\s*32\s*,\s*tfRoomX\s*\+\s*21\s*,\s*5\.5\s*,\s*0\s*,\s*wall\s*\)\s*;'
+    $count=[regex]::Matches($stagedRoomText,$devPattern).Count
+    Require ($count -eq 1) ("Development wall geometry does not match (count="+$count+"). No deployment.")
+    $devReplacement=@'
+for(const z of [-12.5,12.5])box(.6,11,7,tfRoomX+21,5.5,z,wall);
+box(.6,3.25,18,tfRoomX+21,1.625,0,wall);
+box(.6,2.75,18,tfRoomX+21,10.025,0,wall);
+'@
+    $stagedRoomText=[regex]::Replace($stagedRoomText,$devPattern,[System.Text.RegularExpressions.MatchEvaluator]{param($m) $devReplacement})
+    $projectorPattern='left\s*:\s*\{\s*x\s*:\s*-20\.58\s*,\s*z\s*:\s*0\s*,\s*ry\s*:\s*Math\.PI\s*/\s*2\s*,\s*w\s*:\s*29\s*\}\s*,?'
+    $count=[regex]::Matches($stagedRoomText,$projectorPattern).Count
+    Require ($count -eq 1) ("Projector left-wall trigger does not match (count="+$count+"). No deployment.")
+    $stagedRoomText=[regex]::Replace($stagedRoomText,$projectorPattern,'')
+    $activation=@'
+
+// TF_CAPITAL_WORLD_V1_BEGIN
+try{installCapitalWorld({THREE,scene,renderer,document});}
+catch(error){console.error('Capital exterior unavailable; original TowerFlow remains active.',error);}
+// TF_CAPITAL_WORLD_V1_END
+'@
+    $stagedRoomText += $activation
+    [System.IO.File]::WriteAllText($stageCurrent,$stagedRoomText,[System.Text.UTF8Encoding]::new($false))
+    Write-Host '[4] STRICT SOURCE PATCH STAGED; existing room remains untouched' -ForegroundColor Green
+  }
   $stagedRoomText=[System.IO.File]::ReadAllText($stageCurrent)
   Require ($stagedRoomText.Contains('installCapitalWorld')) 'Merged room does not import/install capital world.'
   Require ($stagedRoomText.Contains('TF_CAPITAL_WORLD_V1_BEGIN')) 'Merged room lacks activation marker.'
-  Require (-not ($stagedRoomText -match 'left:\\{x:-20\\.58,z:0,ry:Math\\.PI/2,w:29\\}')) 'Exterior observation window remains projector target.'
+  Require (-not ($stagedRoomText -match 'left\s*:\s*\{\s*x\s*:\s*-20\.58')) 'Exterior observation window remains projector target.'
   Require ($stagedRoomText.Contains('right:{x:20.58')) 'Projector targets missing after merge.'
   $node=(Get-Command node -ErrorAction Stop).Source
   $syntaxCheck = Get-Content -LiteralPath $stageCurrent -Raw -Encoding UTF8 | & $node --input-type=module --check 2>&1
