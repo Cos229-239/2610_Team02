@@ -442,8 +442,30 @@ function activateTFStation(id) {
                 legend.className = 'muted';
                 legend.textContent = 'GREEN: source + contributor history verified (not runtime). '+
                     'AMBER: attribution unverified or personal-branch only. '+
-                    'RED: expected file absent from both branches. Functional tests: not run.';
+                    'RED: file missing from both refs or no matched author contribution. '+'CI proves only its named checks; desktop runtime may still be unverified.';
                 auditView.append(legend);
+                const sections = [
+                    ['WORKING — verified test evidence', report.working, '#46d39b'],
+                    ['NOT WORKING — failed checks', report.notWorking, '#f05b67'],
+                    ['MISSING — expected source not on dev', report.missing, '#f05b67'],
+                    ['UNKNOWN — additional validation required', report.unknown, '#eab95d']
+                ];
+                for (const [heading,entries,color] of sections) {
+                    const header = document.createElement('strong');
+                    header.textContent = heading+' ('+entries.length+')';
+                    header.style.color = color;
+                    const summary = document.createElement('p');
+                    summary.textContent = entries.length ? entries.join(' · ') : 'No findings in this category.';
+                    auditView.append(header,summary);
+                }
+                if (report.checks?.url) {
+                    const proof = document.createElement('a');
+                    proof.href = report.checks.url;
+                    proof.rel = 'noopener noreferrer';
+                    proof.target = '_blank';
+                    proof.textContent = 'View CI evidence for this dev revision';
+                    auditView.append(proof);
+                }
                 const list = document.createElement('ol');
                 for (const file of report.files) {
                     const row = document.createElement('li');
