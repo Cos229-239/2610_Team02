@@ -28,7 +28,9 @@ $server = [IO.File]::ReadAllText((Join-Path $room 'server.js'))
 if ($server -notmatch 'azure-bridge/server\.cjs') {
     throw 'Existing Azure Bridge mount not confirmed. No changes installed.'
 }
-& git -C $repo fetch --no-tags $remote "refs/heads/dev:refs/remotes/origin/dev" "refs/heads/$feature"
+& git -C $repo fetch --no-tags $remote "refs/heads/dev:refs/remotes/origin/dev"
+if ($LASTEXITCODE -ne 0) { throw 'Dev baseline fetch failed' }
+& git -C $repo fetch --no-tags $remote "refs/heads/$feature"
 if ($LASTEXITCODE -ne 0) { throw 'Feature fetch failed' }
 $revision = (@(& git -C $repo rev-parse FETCH_HEAD) -join '').Trim()
 if ($revision -notmatch '^[a-f0-9]{40}$') { throw 'Unexpected Git commit' }
@@ -71,7 +73,7 @@ foreach ($file in $files) {
     $new = & $read $revision $rel
     if (Test-Path $destination) {
         $current = [IO.File]::ReadAllText($destination)
-        $baseline = & $read 'origin/dev' $rel
+        $baseline = if ($file -eq 'azure-bridge\integration-intake.cjs') { '' } else { & $read 'origin/dev' $rel }
         if ((& $normalize $current) -cne (& $normalize $baseline) -and
             (& $normalize $current) -cne (& $normalize $new)) {
             throw "Local bridge customization detected: $file. No changes installed."
