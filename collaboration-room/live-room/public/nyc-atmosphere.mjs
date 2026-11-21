@@ -445,14 +445,27 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   function inspectLegacyScene() {
     const nodes=[];
     scene.traverse(obj=>{
-      if(nodes.length>=60 || !obj.name || obj===group)return;
-      if(obj===group || group.getObjectByName(obj.name)===obj)return;
-      if(!/city|sky|tower|building|exterior|highrise|facade|window/i.test(obj.name))return;
+      if(nodes.length>=85||obj===group)return;
+      let ancestor=obj.parent;
+      while(ancestor){if(ancestor===group)return;ancestor=ancestor.parent;}
+      const geometry=obj.geometry;
+      const geometryType=geometry?.type||'';
+      const tallCylinder=geometryType==='CylinderGeometry' &&
+        Number(geometry.parameters?.height)>5;
+      const named=/city|sky|tower|building|exterior|highrise|facade|window/i.test(obj.name||'');
+      if(!named&&!tallCylinder)return;
       const pos=obj.getWorldPosition(new THREE.Vector3());
-      nodes.push({name:obj.name.slice(0,90),type:obj.type,
-        x:+pos.x.toFixed(2),y:+pos.y.toFixed(2),z:+pos.z.toFixed(2)});
+      const material=Array.isArray(obj.material)?obj.material[0]:obj.material;
+      nodes.push({
+        name:String(obj.name||'(unnamed)').slice(0,90),type:obj.type,
+        geometry:geometryType,
+        primitiveHeight:geometry?.parameters?.height||null,
+        color:material?.color?.getHexString?.()||null,
+        x:+pos.x.toFixed(2),y:+pos.y.toFixed(2),z:+pos.z.toFixed(2)
+      });
     });
-    return {count:nodes.length,nodes,manualReviewRequired:true};
+    return {count:nodes.length,nodes,manualReviewRequired:true,
+      note:'Read-only candidates; no object is hidden or altered.'};
   }
   const api=Object.freeze({
     inspectLegacyScene,
