@@ -6,7 +6,7 @@ $repo=Join-Path $env:USERPROFILE 'Documents\GitHub\2610_Team02'
 $room=Join-Path ([Environment]::GetFolderPath('Desktop')) 'Towerflow_Team02_Private_Invite_Room\Towerflow_Collaboration_Room'
 $public=Join-Path $room 'public'
 $renderer=Join-Path $public 'room.js'
-$modules=@('geo-capitals-coordinates.mjs','geo-capital-mesh.mjs','geo-capital-photo.mjs','geo-scene-compositor.mjs','geo-environments.mjs','geo-reference-dna.mjs','geo-icon-avatar.mjs')
+$modules=@('geo-capitals-coordinates.mjs','geo-capital-mesh.mjs','geo-capital-photo.mjs','geo-scene-compositor.mjs','geo-environments.mjs','geo-reference-dna.mjs','geo-world-frame.mjs','geo-icon-avatar.mjs')
 $encoding=[Text.UTF8Encoding]::new($false)
 if($Revision.Length -ne 40){throw 'Expected full reviewed commit SHA.'}
 if(!(Test-Path (Join-Path $repo '.git'))){throw 'Repository not found.'}
