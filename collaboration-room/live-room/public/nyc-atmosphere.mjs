@@ -212,29 +212,29 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
         }
       }
       if(count>52)continue;
-      const xs=pts.map(p=>p[0]),zs=pts.map(p=>p[1]);
-      const minX=Math.min(...xs),maxX=Math.max(...xs);
-      const minZ=Math.min(...zs),maxZ=Math.max(...zs);
-      const spans=[{a:minX,b:maxX,d:maxZ+.035,axis:'z'},
-        {a:minX,b:maxX,d:minZ-.035,axis:'z'},
-        {a:minZ,b:maxZ,d:maxX+.035,axis:'x'},
-        {a:minZ,b:maxZ,d:minX-.035,axis:'x'}];
-      for(const side of spans) {
-        const length=side.b-side.a;
-        const columns=Math.min(9,Math.floor(length/.72));
-        const floors=Math.min(30,Math.floor(profile.height/.88));
-        if(columns<1||floors<1)continue;
-        for(let f=0;f<floors;f++)for(let c=0;c<columns;c++) {
-          if(windowMatrices.length>=3000)break;
-          if(rng()<.40)continue;
-          const along=side.a+(c+.5)*length/columns;
-          const h=.45+(f+.5)*profile.height/floors;
-          const x=side.axis==='z'?along:side.d;
-          const z=side.axis==='z'?side.d:along;
-          transform.position.set(x,h,z);
-          transform.rotation.set(0,side.axis==='z'?0:Math.PI/2,0);
-          transform.updateMatrix();
-          windowMatrices.push(transform.matrix.clone());
+      // Photo-informed façades: place windows on the actual footprint edge,
+      // never on an axis-aligned bounding box of a rotated Manhattan building.
+      for(let edge=0;edge<pts.length-1 && windowMatrices.length<3000;edge++){
+        const p=pts[edge],q=pts[edge+1];
+        const dx=q[0]-p[0],dz=q[1]-p[1];
+        const length=Math.hypot(dx,dz);
+        if(length<.85)continue;
+        const nx=dz/length,nz=-dx/length;
+        const columns=Math.min(10,Math.max(1,Math.floor(length/.78)));
+        const floors=Math.min(30,Math.max(1,Math.floor(profile.height/.94)));
+        for(let f=0;f<floors && windowMatrices.length<3000;f++){
+          for(let c=0;c<columns && windowMatrices.length<3000;c++){
+            if(rng()<.34)continue;
+            const fraction=(c+.5)/columns;
+            transform.position.set(
+              p[0]+dx*fraction+nx*.055,
+              .38+(f+.5)*(profile.height-.38)/floors,
+              p[1]+dz*fraction+nz*.055
+            );
+            transform.rotation.set(0,Math.atan2(nx,nz),0);
+            transform.updateMatrix();
+            windowMatrices.push(transform.matrix.clone());
+          }
         }
       }
     }
