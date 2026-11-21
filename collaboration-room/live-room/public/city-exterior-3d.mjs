@@ -189,9 +189,15 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     const skyTexture=new THREE.CanvasTexture(skyCanvas);
     skyTexture.colorSpace=THREE.SRGBColorSpace;
     const skyMat=new THREE.MeshBasicMaterial({map:skyTexture,side:THREE.DoubleSide,depthWrite:false,fog:false});
-    const skyGeo=new THREE.PlaneGeometry(300,160);geometries.add(skyGeo);
+    // A rectangular back plane produces exactly the square/distant-picture artifact
+    // seen through the viewport. Render a seamless sky enclosure instead.
+    const skyGeo=new THREE.SphereGeometry(119,48,24);geometries.add(skyGeo);
+    skyMat.side=THREE.BackSide;
     const sky=new THREE.Mesh(skyGeo,skyMat);
-    sky.rotation.y=Math.PI/2;sky.position.set(-120,50,0);sky.renderOrder=-1000;
+    sky.position.copy(camera.position);
+    sky.position.y=0;
+    sky.renderOrder=-1000;
+    sky.frustumCulled=false;
     group.add(sky);
     // Street lights and structures run below the continuous open sky.
     box(urban,96,.34,146,-70,-.52,0,palette.sidewalk);
@@ -296,6 +302,9 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     scene.add(group);wall.visible=false;glass.visible=false;doc.body.append(panel);
     const tick=(time)=>{
       if(!active)return;raf=win.requestAnimationFrame(tick);
+      // Keep the background enclosure centred on the viewer so its silhouette never
+      // appears as a rectangular photograph when looking up or sideways.
+      sky.position.copy(camera.position);
       const delta=Math.min(.05,Math.max(0,(time-last)/1000));last=time;
       for(const car of cars){
         car.vehicle.position.z+=car.velocity*delta*(mode==='rush'?2.5:1);
