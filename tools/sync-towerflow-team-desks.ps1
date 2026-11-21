@@ -125,7 +125,7 @@ foreach ($file in $files) {
             throw 'Existing intake integration differs from reviewed module. No overwrite.'
         }
         $current = Inject-Once $current "const {makeTeamUpdates} = require('./team-updates.cjs');" ($import+"`n") 'intake import'
-        $current = Inject-Once $current '    const updates = makeTeamUpdates(publicDir);' ("`n"+$init) 'intake initialization'
+        $current = Inject-Once $current '    const updates = makeTeamUpdates(publicDir);' ("`n"+$init+"`n") 'intake initialization'
         $routeAnchor = "    app.get(prefix + '/team-updates', auth, ensureMember,"
         $routeStartLocal = $current.IndexOf($routeAnchor,[StringComparison]::Ordinal)
         if ($routeStartLocal -lt 0 -or $current.IndexOf($routeAnchor,$routeStartLocal+1,[StringComparison]::Ordinal) -ge 0) {
