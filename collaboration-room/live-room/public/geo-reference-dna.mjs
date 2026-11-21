@@ -32,11 +32,13 @@ export const juneauDNA=Object.freeze({
   terrainElevationRequired:true,buildingGeometryRequired:true,
   actualPhotogrammetryVerified:false,status:'REFERENCE_ONLY'}
 });
-export function referenceLevel({cameraHeightMeters,groundElevationMeters,eyeOffsetMeters=1.65}){
+export function referenceLevel({cameraHeightMeters,groundElevationMeters}){
+ // Camera height is absolute eye elevation in the SAME vertical datum as ground.
+ // Do not insert a guessed person's 1.65 m eye-height correction.
  if(!Number.isFinite(cameraHeightMeters)||!Number.isFinite(groundElevationMeters)){
   return {storiesAboveGround:null,heightAboveGroundMeters:null,certainty:'unknown'};
  }
- const meters=cameraHeightMeters-groundElevationMeters-eyeOffsetMeters;
+ const meters=cameraHeightMeters-groundElevationMeters;
  return {storiesAboveGround:null,heightAboveGroundMeters:meters,
   certainty:'meters are known; story index requires measured floor elevations'};
 }
