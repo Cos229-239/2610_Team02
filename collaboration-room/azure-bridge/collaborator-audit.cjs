@@ -56,6 +56,26 @@ function summarize(target, devTree, ownTree, evidence) {
     unknown:['No native build/test receipts collected','No verified runtime or adapter contract evidence'],
     caveat:'Green means GitHub source and author history verified, NOT working code. Red means expected file missing from both branches OR no author-matched contribution found on dev; Git author/email association can be incomplete.'};
 }
+const jobByMember={
+ 'SVN-760':'Inventory operations and persistence (Linux)',
+ HyperRealmEnd:'Inventory operations and persistence (Linux)',
+ DaynaPerezColon:'header-debug'
+};
+function attachChecks(report,target,runs,revision){
+ const job=jobByMember[target.login];
+ const matching=job && Array.isArray(runs) ? runs.find(r=>r.name===job) : null;
+ const result={...report,working:[],notWorking:[],
+   checks:{revision,job:job||null,status:matching?.status||'unavailable',
+     conclusion:matching?.conclusion||null,url:matching?.html_url||null}};
+ if(matching?.status==='completed' && matching.conclusion==='success')
+   result.working.push(job+' CI check passed at dev '+revision.slice(0,7)+
+     '; this is limited test evidence, not a complete application certification');
+ else if(matching?.status==='completed' &&
+   ['failure','timed_out','action_required'].includes(matching.conclusion))
+   result.notWorking.push(job+' CI check '+matching.conclusion+' at dev '+revision.slice(0,7));
+ else result.unknown.push('Relevant CI result unavailable or not completed');
+ return result;
+}
 function makeCollaboratorAudit(read=fetch,clock=Date.now) {
   const cache=new Map();
   return async function audit(member,token){
@@ -87,7 +107,13 @@ function makeCollaboratorAudit(read=fetch,clock=Date.now) {
         evidence[path]=Array.isArray(records)?records.length>0:null;
       }catch{evidence[path]=null;}
     }));
-    const report={...summarize(target,dev.files,own.files,evidence),
+    let runs=null;
+    try {
+      const checks=await get('/commits/'+dev.revision+'/check-runs?per_page=40');
+      if(Array.isArray(checks.check_runs)) runs=checks.check_runs;
+    } catch { /* unavailable checks must not become a pass */ }
+    const report={...attachChecks(summarize(target,dev.files,own.files,evidence),
+        target,runs,dev.revision),
       revision:dev.revision,personalRevision:own.revision,checkedAt:new Date(clock()).toISOString()};
     cache.set(target.login,{result:report,until:clock()+30000});
     return report;
@@ -118,4 +144,4 @@ function makeCollaboratorSource(read=fetch) {
       verification:'Source retrieved only; builds and runtime behavior not tested'};
   };
 }
-module.exports={targets,summarize,makeCollaboratorAudit,makeCollaboratorSource};
+module.exports={targets,summarize,attachChecks,makeCollaboratorAudit,makeCollaboratorSource};
