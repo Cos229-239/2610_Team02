@@ -45,18 +45,20 @@ ExactlyOnce $handler $anchor
 $updated=$handler.Replace($anchor,$snippet+$nl+$anchor)
 $newLive=$live.Substring(0,$a)+$updated+$live.Substring($b)
 $importAnchor="const {makeIntegrationIntake} = require('./integration-intake.cjs');"
-$import="const {makeCollaboratorAudit} = require('./collaborator-audit.cjs');"
+$import="const {makeCollaboratorAudit,makeCollaboratorSource} = require('./collaborator-audit.cjs');"
 $initAnchor='    const intake = makeIntegrationIntake();'
 $init='    const auditCollaborator = makeCollaboratorAudit();'
+$init2='    const readCollaboratorSource = makeCollaboratorSource();'
 $route=ReviewedBlock $serverSource '    // Read-only per-contributor source coverage; no branch checkout or code execution.' '    });'
+$route2=ReviewedBlock $serverSource "    app.get(prefix + '/collaborator-source'" '    });'
 $routeAnchor='    // Authenticated, read-only dev integration manifest.'
 if($server.Contains('/collaborator-audit') -or $server.Contains($import)){throw 'Audit route already exists; nothing overwritten'}
 ExactlyOnce $server $importAnchor
 ExactlyOnce $server $initAnchor
 ExactlyOnce $server $routeAnchor
 $newServer=$server.Replace($importAnchor,$importAnchor+$nl+$import)
-$newServer=$newServer.Replace($initAnchor,$initAnchor+$nl+$init)
-$newServer=$newServer.Replace($routeAnchor,$route+$nl+$routeAnchor)
+$newServer=$newServer.Replace($initAnchor,$initAnchor+$nl+$init+$nl+$init2)
+$newServer=$newServer.Replace($routeAnchor,$route+$nl+$route2+$nl+$routeAnchor)
 if(Test-Path $auditFile){throw 'Existing audit module; nothing overwritten'}
 $edits=@(
  [pscustomobject]@{Path=$roomFile;Content=$newLive},
