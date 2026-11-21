@@ -46,6 +46,7 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     warning=m(0xff5437,.75,0xff2300,1),sickness=m(0x83dafa,.8,0x247aff,.7);
   const iconMat=m(0xa4b0b6,.9);
   const personGeom=new THREE.CylinderGeometry(.12,.14,.85,5);geometries.push(personGeom);
+  const craftGeom=geom(1,.18,2.6),smokeGeom=geom(1,1,1);
   const windowGeom=geom(.48,.62,.05),buildingGeom=geom(1,1,1),carGeom=geom(.9,.4,1.8);
   const meshes=[{base:facade},{base:facade2},{base:facade3}];
   const dummy=new THREE.Object3D();
@@ -77,17 +78,19 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     const bright=instanced(windowGeom,lit,2500,city),off=instanced(windowGeom,dark,2500,city);
     const traffic=instanced(carGeom,iconMat,40,city),emergency=instanced(carGeom,sickness,14,city);
     const pedestrians=instanced(personGeom,iconMat,80,city);
+    const aircraft=instanced(craftGeom,iconMat,8,city);
+    const smoke=instanced(smokeGeom,cloud,36,city);
     const fire=instanced(buildingGeom,warning,60,city);
     const rain=instanced(buildingGeom,sickness,170,city);
     const clouds=instanced(buildingGeom,cloud,22,city);
-    const world={...w,group,city,buildings,bright,off,traffic,emergency,pedestrians,fire,rain,clouds,
+    const world={...w,group,city,buildings,bright,off,traffic,emergency,pedestrians,aircraft,smoke,fire,rain,clouds,
       carList:[],pedList:[],weatherList:[],fireList:[],cloudList:[],sourceSeed:0};
     worlds.push(world);
     return world;
   }
   for(const w of horizons)createWorld(w);
   function clearInstanced(w){
-    for(const obj of [...w.buildings,w.bright,w.off,w.traffic,w.emergency,w.pedestrians,w.fire,w.rain,w.clouds])obj.count=0;
+    for(const obj of [...w.buildings,w.bright,w.off,w.traffic,w.emergency,w.pedestrians,w.aircraft,w.smoke,w.fire,w.rain,w.clouds])obj.count=0;
     w.carList.length=0;w.pedList.length=0;w.weatherList.length=0;w.fireList.length=0;w.cloudList.length=0;
   }
   function rebuildWorld(w){
@@ -134,7 +137,7 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     for(let i=0;i<60;i++)w.fireList.push({x:w.edge+w.dir*(8+rand()*43),z:-45+rand()*90,y:2+rand()*10});
     for(let i=0;i<22;i++)w.cloudList.push({x:w.edge+w.dir*(12+rand()*65),z:-54+rand()*108,y:21+rand()*15});
     w.traffic.count=24;w.emergency.count=0;w.pedestrians.count=72;
-    w.rain.count=0;w.fire.count=0;w.clouds.count=0;
+    w.rain.count=0;w.fire.count=0;w.clouds.count=0;w.aircraft.count=3;w.smoke.count=0;
     // Ground and roads are part of the same exterior world.
     if(!w.terrain){
       w.terrain=new THREE.Group();w.group.add(w.terrain);
@@ -161,10 +164,22 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     const ambulanceCount=event==="airborne"?12:event==="sept11"||event==="fire"||event==="cataclysm"?8:2;
     const showRain=["rain","thunder","severe","hurricane","typhoon"].includes(event);
     const showCloud=["cloudy","rain","thunder","severe","hurricane","typhoon","cataclysm","sept11"].includes(event);
-    const showFire=["fire","cataclysm","purge","rapture","sept11"].includes(event);
+    const rapturePhase=event==="rapture"?Math.min(3,Math.floor((t%120)/30)):0;
+    const showFire=["fire","cataclysm","purge","sept11"].includes(event)||(event==="rapture"&&rapturePhase===3);
     const showPeople=!["zombie","sept11"].includes(event);
     w.traffic.count=24;w.emergency.count=ambulanceCount;w.pedestrians.count=showPeople?72:18;
     w.rain.count=showRain?170:0;w.clouds.count=showCloud?22:0;w.fire.count=showFire?60:0;
+    w.aircraft.count=event==="hurricane"||event==="typhoon"||event==="severe"?0:3;
+    w.smoke.count=event==="sept11"?36:(event==="fire"||event==="cataclysm"?18:0);
+    for(let i=0;i<w.aircraft.count;i++){
+      const travel=((t*(2.5+i)+i*19)%105)-52;
+      matrix(w.aircraft,i,w.edge+w.dir*(35+i*8),21+i*2,travel,1.8,.7,2.3,Math.sin(t*.08+i)*.1);
+    }if(w.aircraft.count)w.aircraft.instanceMatrix.needsUpdate=true;
+    for(let i=0;i<w.smoke.count;i++){
+      const seed=w.fireList[i%w.fireList.length];
+      const rise=((t*1.2+i*2.4)%17);
+      matrix(w.smoke,i,seed.x+(Math.sin(i+t*.3))*2,seed.y+rise+4,seed.z,1+rise*.24,1+rise*.24,1+rise*.24);
+    }if(w.smoke.count)w.smoke.instanceMatrix.needsUpdate=true;
     for(let i=0;i<w.traffic.count;i++){
       const p=w.carList[i],speed=(event==="purge"?3:1)*(event==="hurricane"||event==="severe"?.4:1);
       const z=((p.z+t*p.speed*speed+50)%100)-50;
@@ -178,9 +193,10 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
       const p=w.pedList[i],z=((p.z+t*p.rate*(event==="purge"?2.5:1)+50)%100)-50;
       let y=.62;
       if(event==="rapture"){
-        const cycle=t%90;const stage=cycle<30?0:cycle<60?1:2;
-        const rising=i%3===stage;
+        const cycle=t%120,stage=Math.min(3,Math.floor(cycle/30));
+        const rising=stage<3&&i%3===stage;
         if(rising)y+=(cycle%30)*.58;
+        if(stage===3&&i%3!==0)y=-10; // ascended silhouettes no longer visible
       }
       matrix(w.pedestrians,i,p.x,y,z,1,1,1);
     } w.pedestrians.instanceMatrix.needsUpdate=true;
@@ -198,6 +214,15 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     }if(w.fire.count)w.fire.instanceMatrix.needsUpdate=true;
     const lightning=["thunder","severe","hurricane","typhoon"].includes(event);
     if(w.light)w.light.intensity=lightning&&Math.sin(t*3)*Math.sin(t*15)>.86?80:0;
+    const activeLightCount=w.bright.count;
+    if(activeLightCount&&frame%120===0){ // slow occupancy-style lighting changes
+      const index=Math.floor(t/2)%activeLightCount;
+      const p=Math.sin(t*2+index)>0;
+      // Individual residential light instances are dimmed by a local scale change.
+      const srcIndex=index%w.fireList.length,src=w.fireList[srcIndex];
+      if(p)matrix(w.bright,index,src.x,src.y,src.z,.06,.52,.6);
+      w.bright.instanceMatrix.needsUpdate=true;
+    }
     const tornado=event==="severe"||event==="cataclysm";
     if(w.tornado)w.tornado.visible=tornado;
     if(w.tornado)w.tornado.rotation.y=t*.8;
