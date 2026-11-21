@@ -7,8 +7,8 @@ $room=Join-Path ([Environment]::GetFolderPath('Desktop')) 'Towerflow_Team02_Priv
 $public=Join-Path $room 'public'
 $liveRoom=Join-Path $public 'room.js'
 $enc=[Text.UTF8Encoding]::new($false)
-$modules=@('geo-capitals-coordinates.mjs','geo-capital-mesh.mjs','geo-capital-photo.mjs','geo-environments.mjs')
-$baseline='23fd8195b2f4ad0c0eca36d68872ac3976e349c1'
+$modules=@('geo-capitals-coordinates.mjs','geo-capital-mesh.mjs','geo-capital-photo.mjs','geo-scene-compositor.mjs','geo-environments.mjs')
+$baselines=@('23fd8195b2f4ad0c0eca36d68872ac3976e349c1','f3988e01f13499ee482a69c4afbf003f40a08839')
 if($Revision -notmatch '^[0-9a-f]{40}$'){throw 'Invalid reviewed commit.'}
 if(!(Test-Path (Join-Path $repo '.git'))){throw "Repository missing: $repo"}
 if(!(Test-Path $liveRoom)){throw 'Original room renderer missing.'}
@@ -65,10 +65,16 @@ try{
    }
    # Only a verified earlier geography module may be upgraded.
    # Permit old Git content whose non-ASCII punctuation was mojibaked on install.
-   $earlier=GitBlob $baseline $name
-   if((Normalize $old) -cne (Normalize $earlier) -and
-      (AsciiProjection $old) -cne (AsciiProjection $earlier)){
-    throw "PRESERVATION STOP: $name contains unreviewed local changes. No files written."
+   $matched=$false
+   foreach($baseline in $baselines){
+    try{$earlier=GitBlob $baseline $name}catch{continue}
+    if((Normalize $old) -ceq (Normalize $earlier) -or
+       (AsciiProjection $old) -ceq (AsciiProjection $earlier)){
+      $matched=$true;break
+    }
+   }
+   if(!$matched){
+    throw "PRESERVATION STOP: $name differs from reviewed baselines. No files written."
    }
    $updates.Add([pscustomobject]@{Path=$target;Text=$new;Before=$oldBytes;Hash=(ByteHash $oldBytes)})
    Write-Host "STAGED UPGRADE: $name" -ForegroundColor Cyan
@@ -112,6 +118,7 @@ try{
  }
  Write-Host "DEPLOYED SOURCE: $Revision" -ForegroundColor Green
  Write-Host 'Original room.js and customized Visual Studio integration untouched.'
+ Write-Host 'Scene compositor connects all selected weather and city changes to the visible viewport.'
  Write-Host 'Browser: Ctrl+Shift+R, then STATES / CITIES; Esc dismisses the list.'
  Write-Host 'Time: MORNING / DAY / SUNSET / NIGHT.'
  Write-Host 'Manual sky: SUNNY / PARTLY CLOUDY / OVERCAST / FOG / RAIN / HEAVY RAIN / THUNDERSTORM / SNOW.'
