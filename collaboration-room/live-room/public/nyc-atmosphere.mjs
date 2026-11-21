@@ -427,7 +427,23 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   void loadGeometry();
   void loadWeather();
   weatherTimer=setInterval(()=>void loadWeather(),10*60*1000);
+  // Read-only inventory of legacy skyline owners. The private ~947-KB
+  // live room may have independently generated blue cylindrical towers.
+  // Never hide unrelated scene meshes based only on a visual guess.
+  function inspectLegacyScene() {
+    const nodes=[];
+    scene.traverse(obj=>{
+      if(nodes.length>=60 || !obj.name || obj===group)return;
+      if(obj===group || group.getObjectByName(obj.name)===obj)return;
+      if(!/city|sky|tower|building|exterior|highrise|facade|window/i.test(obj.name))return;
+      const pos=obj.getWorldPosition(new THREE.Vector3());
+      nodes.push({name:obj.name.slice(0,90),type:obj.type,
+        x:+pos.x.toFixed(2),y:+pos.y.toFixed(2),z:+pos.z.toFixed(2)});
+    });
+    return {count:nodes.length,nodes,manualReviewRequired:true};
+  }
   const api=Object.freeze({
+    inspectLegacyScene,
     setEnabled,get enabled(){return enabled;},
     get diagnostics(){return {dataMode,buildings,lastWeather,
       grounding:'BUILDINGS at y=0; STREET GROUND at y=-0.22',
