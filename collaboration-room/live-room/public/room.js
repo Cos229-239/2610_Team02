@@ -367,7 +367,53 @@ function activateTFStation(id) {
         note.textContent = memberDesk.ref === 'dev'
             ? 'Reviewed source in team dev. Runtime integration into the room is separately verified.'
             : 'Personal branch source; not represented as merged into team dev.';
-        content.append(info,actions,note);
+        // Live read-only view of that teammate's commits merged into dev.
+        // Source links use dev, so new merged changes appear without deploying
+        // a new TowerFlow room or changing the viewer's GitHub account.
+        const sync = document.createElement('section');
+        sync.className = 'callout';
+        const syncTitle = document.createElement('strong');
+        syncTitle.textContent = 'Shared dev · automatic updates';
+        const syncState = document.createElement('p');
+        syncState.textContent = 'Checking GitHub dev…';
+        const changes = document.createElement('ol');
+        sync.append(syncTitle,syncState,changes);
+        content.append(info,actions,note,sync);
+        let lastSignature = '';
+        async function refreshDesk() {
+            if (!sync.isConnected || $('panel').hidden) return;
+            try {
+                const response = await fetch('/api/azure-bridge/member-dev?member='+
+                    encodeURIComponent(memberDesk.login),{cache:'no-store',credentials:'same-origin'});
+                if (!response.ok) throw Error('Dev update request failed');
+                const feed = await response.json();
+                if (!Array.isArray(feed.commits) || feed.member.toLowerCase() !== memberDesk.login.toLowerCase())
+                    throw Error('Invalid dev update response');
+                const signature = feed.commits.map(c=>c.sha).join(',');
+                if (signature !== lastSignature) {
+                    changes.replaceChildren();
+                    for (const item of feed.commits) {
+                        if (typeof item.sha !== 'string' || !/^[a-f0-9]{40}$/.test(item.sha)) continue;
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.href = base+'/commit/'+item.sha;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.textContent = item.title || item.sha.slice(0,7);
+                        li.append(a);
+                        changes.append(li);
+                    }
+                    lastSignature = signature;
+                }
+                syncState.textContent = feed.commits.length
+                    ? 'Showing recent @'+feed.member+' commits in shared dev. Refreshes every 60 seconds while open.'
+                    : 'No commits by @'+feed.member+' found on dev. Personal-branch work is not published.';
+            } catch {
+                syncState.textContent = 'Could not check dev. Source links remain available.';
+            }
+            if (sync.isConnected && !$('panel').hidden) setTimeout(refreshDesk,60000);
+        }
+        refreshDesk();
         return;
     }
     // TF_TEAM02_MEMBER_DESKS_V1_HANDLER_END
