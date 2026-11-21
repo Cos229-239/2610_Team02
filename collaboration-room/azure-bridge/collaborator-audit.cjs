@@ -83,4 +83,29 @@ function makeCollaboratorAudit(read=fetch,clock=Date.now) {
     return report;
   };
 }
-module.exports={targets,summarize,makeCollaboratorAudit};
+// Fetch only explicitly allowlisted contributor source for the authenticated viewer.
+function makeCollaboratorSource(read=fetch) {
+  return async function source(member, file, ref, token) {
+    const target=targets[String(member||'').toLowerCase()];
+    if(!target || typeof file!=='string' || !target.expected.includes(file) ||
+      (ref!=='dev' && ref!==target.ref)) {
+      throw Object.assign(Error('Not an allowlisted source path'),{status:400});
+    }
+    const encoded=file.split('/').map(encodeURIComponent).join('/');
+    const response=await read(base+'/contents/'+encoded+'?'+new URLSearchParams({ref}),{
+      headers:{Authorization:'Bearer '+token,'User-Agent':'TowerFlow-Collaborator-Source',
+        Accept:'application/vnd.github+json'},
+      redirect:'error',signal:AbortSignal.timeout(12000)
+    });
+    if(response.status===404)throw Object.assign(Error('Source missing on requested branch'),{status:404});
+    if(!response.ok)throw Error('GitHub source unavailable');
+    const data=await response.json();
+    if(data.type!=='file'||data.encoding!=='base64'||!Number.isInteger(data.size)||
+      data.size<0||data.size>65536||typeof data.content!=='string')throw Error('Unsupported source file');
+    const bytes=Buffer.from(data.content.replace(/\s/g,''),'base64');
+    if(bytes.length!==data.size || bytes.includes(0))throw Error('Invalid text source payload');
+    return {path:file,ref,size:bytes.length,sha:data.sha,content:bytes.toString('utf8'),
+      verification:'Source retrieved only; builds and runtime behavior not tested'};
+  };
+}
+module.exports={targets,summarize,makeCollaboratorAudit,makeCollaboratorSource};
