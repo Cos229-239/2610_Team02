@@ -135,7 +135,6 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
     clear();
     const state=climate(new Date(),weather||{});
     const rng=seedRandom(7723);
-    const mats=[0,1,2,3].map(i=>materialsFor(state.night,state.cloud,i));
     // V2: no opaque rectangle or independent sky backdrop. The original
     // TowerFlow sky and horizon stay visible. Atmospheric depth comes from
     // camera-distance façade tones and low-opacity geometry, not a sky card.
@@ -148,14 +147,21 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
     const nearTone=state.night?[0x414951,0x293948,0x475260,0x323e51]:
       [0x9ca4a7,0x687c88,0x8795a4,0x657983];
     const farTone=state.night?0x526377:0x9fb5c3;
-    // Photographic reference: foreground facade contrast and distant
-    // atmospheric desaturation, rather than repeated uniformly blue towers.
+    const facadeBands=[0,.27,.54].map(mix=>
+      nearTone.map(hex=>{
+        const color=new THREE.Color(hex).lerp(new THREE.Color(farTone),mix);
+        const material=new THREE.MeshStandardMaterial({
+          color,metalness:.10,roughness:.78,
+          emissive:state.night?0x192533:0x111c28,
+          emissiveIntensity:state.night?.18:.13
+        });
+        materials.push(material);return material;
+      }));
+    // Three distance bands preserve material batching and different building
+    // depth colors. A single shared material recolored per building would not.
     function facadeMaterial(index,depth){
-      const material=mats[index%4];
-      const baseColor=new THREE.Color(nearTone[index%4]);
-      const t=Math.min(.58,Math.max(0,depth/80)*.54);
-      material.color.copy(baseColor.lerp(new THREE.Color(farTone),t));
-      return material;
+      const band=depth<19?0:depth<48?1:2;
+      return facadeBands[band][index%4];
     }
     const glassGeo=new THREE.PlaneGeometry(.40,.54);
     const glassMat=new THREE.MeshBasicMaterial({color:state.night?0xffdfac:0x8fc5de,
