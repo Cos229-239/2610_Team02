@@ -84,14 +84,14 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     const rain=instanced(buildingGeom,sickness,170,city);
     const clouds=instanced(buildingGeom,cloud,22,city);
     const world={...w,group,city,buildings,bright,off,traffic,emergency,pedestrians,aircraft,smoke,fire,rain,clouds,
-      carList:[],pedList:[],weatherList:[],fireList:[],cloudList:[],sourceSeed:0};
+      carList:[],pedList:[],weatherList:[],fireList:[],cloudList:[],lightList:[],sourceSeed:0};
     worlds.push(world);
     return world;
   }
   for(const w of horizons)createWorld(w);
   function clearInstanced(w){
     for(const obj of [...w.buildings,w.bright,w.off,w.traffic,w.emergency,w.pedestrians,w.aircraft,w.smoke,w.fire,w.rain,w.clouds])obj.count=0;
-    w.carList.length=0;w.pedList.length=0;w.weatherList.length=0;w.fireList.length=0;w.cloudList.length=0;
+    w.carList.length=0;w.pedList.length=0;w.weatherList.length=0;w.fireList.length=0;w.cloudList.length=0;w.lightList.length=0;
   }
   function rebuildWorld(w){
     clearInstanced(w);
@@ -124,6 +124,7 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
       for(let j=0;j<mesh.count;j++){const b=items[j];matrix(mesh,j,b.x,b.h/2,b.z,b.width,b.h,b.width);}
       mesh.instanceMatrix.needsUpdate=true;
     });
+    w.lightList.push(...lightsOn.slice(0,w.bright.instanceMatrix.count));
     for(const [mesh,list] of [[w.bright,lightsOn],[w.off,lightsOff]]){
       mesh.count=Math.min(list.length,mesh.instanceMatrix.count);
       for(let i=0;i<mesh.count;i++){const p=list[i];matrix(mesh,i,p.x,p.y,p.z,p.sx,p.sy,p.sz);}
@@ -219,9 +220,9 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
       const index=Math.floor(t/2)%activeLightCount;
       const p=Math.sin(t*2+index)>0;
       // Individual residential light instances are dimmed by a local scale change.
-      const srcIndex=index%w.fireList.length,src=w.fireList[srcIndex];
-      if(p)matrix(w.bright,index,src.x,src.y,src.z,.06,.52,.6);
-      w.bright.instanceMatrix.needsUpdate=true;
+      const src=w.lightList[index];
+      if(src){matrix(w.bright,index,src.x,src.y,src.z,src.sx,p?src.sy:.005,src.sz);
+        w.bright.instanceMatrix.needsUpdate=true;}
     }
     const tornado=event==="severe"||event==="cataclysm";
     if(w.tornado)w.tornado.visible=tornado;
