@@ -157,6 +157,7 @@ export function installGeography({THREE,scene}){
  let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'live',manualWeather:'sun'});
  let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0,loadSerial=0;
  let weatherMesh=null,weatherGeometry=null,weatherMaterial=null,weatherAnimation=0;
+ const originalLightIntensities=new WeakMap();
  function clearWeatherVisual(){
   if(weatherAnimation)cancelAnimationFrame(weatherAnimation);
   weatherAnimation=0;
@@ -172,7 +173,10 @@ export function installGeography({THREE,scene}){
   const cloud=/cloud|overcast|rain|storm/i.test(condition);
   if(active.group){
    active.group.traverse(obj=>{
-    if(obj.type==='DirectionalLight')obj.intensity*=cloud?.62:1;
+    if(obj.type==='DirectionalLight'){
+     if(!originalLightIntensities.has(obj))originalLightIntensities.set(obj,obj.intensity);
+     obj.intensity=originalLightIntensities.get(obj)*(cloud?.62:1);
+    }
    });
   }
   if(!rain)return;
