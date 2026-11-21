@@ -1,3 +1,4 @@
+import {environmentPalette,findCapitalPhoto} from './geo-capital-photo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {destinations,validateDestinations,selectMode,createDCLandmarkStudy,weatherGlyph,fetchNWSHourlyForecast} from './geo-environments.mjs';
@@ -55,4 +56,38 @@ test('NWS hourly forecast preserves source, validates host and remains forecast,
  assert.equal(result.condition,'Mostly Cloudy');
  assert.match(result.source,/FORECAST — NOT OBSERVED/);
  await assert.rejects(fetchNWSHourlyForecast(0,0,response));
+});
+
+test('sky background reflects sunny, overcast, heavy rain, snow, sunset and night',()=>{
+ const sunny=environmentPalette('day','sunny');
+ const cloudy=environmentPalette('day','overcast');
+ const rainy=environmentPalette('day','heavy rain');
+ const snowy=environmentPalette('day','snow');
+ const sunset=environmentPalette('sunset','sunny');
+ const night=environmentPalette('night','clear');
+ assert.equal(sunny.cloud,false);
+ assert.equal(cloudy.cloud,true);
+ assert.equal(rainy.rain,true);
+ assert.equal(snowy.snow,true);
+ assert.equal(sunset.sunset,true);
+ assert.equal(night.night,true);
+ assert.notEqual(sunny.top,cloudy.top);
+ assert.notEqual(sunny.horizon,sunset.horizon);
+ assert.notEqual(sunset.top,night.top);
+});
+test('city photo fetch requires a recognized reuse license and a real Commons image URL',async()=>{
+ const page={title:'File:New York City skyline.jpg',imageinfo:[{
+  thumburl:'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/NYC.jpg/1200px-NYC.jpg',
+  extmetadata:{LicenseShortName:{value:'CC BY-SA 4.0'},Artist:{value:'Example contributor'}}
+ }]};
+ const requests=[];
+ const mock=async url=>{requests.push(url);return{ok:true,json:async()=>({query:{pages:[page]}})}};
+ const photo=await findCapitalPhoto({id:'new-york-city',capital:'New York City'},'day',mock);
+ assert.match(photo.url,/^https:\/\/upload\.wikimedia\.org/);
+ assert.equal(photo.license,'CC BY-SA 4.0');
+ assert.ok(requests[0].includes('origin=*'));
+ const denied=async()=>({ok:true,json:async()=>({query:{pages:[{
+  ...page,imageinfo:[{...page.imageinfo[0],extmetadata:{LicenseShortName:{value:'All rights reserved'}}}]
+ }]}})});
+ await assert.rejects(findCapitalPhoto({id:'another-place',capital:'Another Place'},'day',denied),/No verified-license/);
 });
