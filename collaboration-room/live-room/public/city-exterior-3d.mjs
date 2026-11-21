@@ -138,7 +138,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     return b;
   }
   const dispose=[];
-  let active=true,mode='dusk',last=0,raf=0,frameCount=0,drawCalls=0;
+  let active=true,mode='normal',last=0,raf=0,frameCount=0,drawCalls=0;
   // Preserve solid original wall/window and replace wall only with its exact framed aperture.
   // Glass remains hidden while 3D is active. No other existing scene object is changed.
   const prior={wall:wall.visible,glass:glass.visible};
@@ -348,6 +348,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     schemeSelect.addEventListener('change',()=>setMode(schemeSelect.value));
     panel.appendChild(schemeSelect);
     button('Restore',stop);
+    setMode('normal');
     const api=Object.freeze({
       get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
       setMode,dispose:stop
