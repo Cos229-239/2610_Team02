@@ -1,6 +1,6 @@
 import {capitalCoordinates} from './geo-capitals-coordinates.mjs';
 import {fetchCapitalTile,buildCapitalScene} from './geo-capital-mesh.mjs';
-import {findCapitalPhoto,buildPhotoEnvironment,environmentPalette,buildSkyFallback} from './geo-capital-photo.mjs';
+import {findCapitalPhoto,buildPhotoEnvironment,buildSkyFallback} from './geo-capital-photo.mjs';
 import {installSceneCompositor} from './geo-scene-compositor.mjs';
 // TowerFlow geographic foundation: one scene owner, no generic fake capital cities.
 const capitals=[
