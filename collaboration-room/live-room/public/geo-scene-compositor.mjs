@@ -33,7 +33,7 @@ export function installSceneCompositor({mount=document.body}={}){
  const ctx=effects.getContext('2d',{alpha:true});
  if(!ctx)throw Error('2D canvas unavailable');
  let preset=visualPreset(),destination=null,source=null,raf=0,lastTick=0,frame=0;
- let serial=0,photoLoad=0,disposed=false;
+ let serial=0,photoLoad=0,disposed=false,exteriorOnly=false;
  const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
  const width=()=>effects.width;
  const height=()=>effects.height;
@@ -51,7 +51,10 @@ export function installSceneCompositor({mount=document.body}={}){
   const w=width(),h=height();
   ctx.clearRect(0,0,w,h);
   if(!destination)return;
-  // Tinted light changes across the live scene while preserving its background.
+  // The selected city is rendered OUTSIDE the glazing in Three.js.
+  // Never paint rain/clouds over the workstation when an exterior panorama
+  // already owns those effects; the window glass remains the boundary.
+  if(exteriorOnly)return;
   ctx.fillStyle=preset.tint;ctx.fillRect(0,0,w,h);
   if(preset.sunset){
    const glow=ctx.createLinearGradient(0,0,0,h);
@@ -96,8 +99,9 @@ export function installSceneCompositor({mount=document.body}={}){
   }
  }
  if(!reducedMotion)raf=requestAnimationFrame(draw);
- function update({time='day',weather='sunny',name=null,photoURL=null,photoSource=null,photoLicense=null,warning=null}={}){
+ function update({time='day',weather='sunny',name=null,photoURL=null,photoSource=null,photoLicense=null,warning=null,worldExterior=false}={}){
   preset=visualPreset(time,weather);
+  exteriorOnly=Boolean(worldExterior);
   destination=name;
   source=photoSource;
   const current=++serial;
@@ -112,7 +116,9 @@ export function installSceneCompositor({mount=document.body}={}){
   label.style.display='block';
   label.textContent=name+'  ·  '+timeName+'  ·  '+weatherName+
    (warning?'  ·  '+warning:'');
-  if(photoURL){
+  // 2D photo duplication is forbidden. The world-anchored exterior plane
+  // renders the city through its real window frames, not over the HUD.
+  if(false && photoURL){
    const temp=new Image();
    temp.referrerPolicy='no-referrer';
    const request=++photoLoad;
