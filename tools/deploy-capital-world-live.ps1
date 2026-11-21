@@ -18,8 +18,8 @@ $backedUp = $false
 $oldWorldExists = $false
 $transcriptStarted = $false
 function Require([bool]$condition,[string]$message){if(-not $condition){throw $message}}
-function Git([string[]]$parts){
-  $lines = & git -C $repo @parts
+function Invoke-TfGit([string[]]$parts){
+  $lines = & git.exe -C $repo @parts
   if($LASTEXITCODE -ne 0){throw ('Git command failed: ' + ($parts -join ' '))}
   return ($lines -join "`n").Trim()
 }
@@ -46,16 +46,16 @@ try {
   $room = Join-Path $live 'public\room.js'
   $world = Join-Path $live 'public\capital-world.mjs'
   Require (Test-Path $room) 'Live room.js unavailable.'
-  $url=Git @('remote','get-url','origin')
+  $url=Invoke-TfGit @('remote','get-url','origin')
   Require ($url -match 'Cos229-239[/\\]2610_Team02(\.git)?$') 'Unexpected repository origin.'
   Write-Host "[1] PRESERVATION: repository identity PASS; live room exists"
-  $unmerged = & git -C $repo diff --name-only --diff-filter=U
+  $unmerged = & git.exe -C $repo diff --name-only --diff-filter=U
   Require ($LASTEXITCODE -eq 0) 'Cannot read Git index state.'
   if($unmerged){Write-Warning 'Unmerged Git index entries present. Left untouched.'}
-  & git -C $repo fetch origin
+  & git.exe -C $repo fetch origin
   Require ($LASTEXITCODE -eq 0) 'Git fetch failed.'
-  $head=Git @('rev-parse',$ref)
-  $base=Git @('merge-base','origin/dev',$ref)
+  $head=Invoke-TfGit @('rev-parse',$ref)
+  $base=Invoke-TfGit @('merge-base','origin/dev',$ref)
   Write-Host "[2] FEATURE HEAD: $head"
   Write-Host "[2] MERGE BASE: $base"
   $stageCurrent = Join-Path $temporary 'current-room.js'
@@ -66,7 +66,7 @@ try {
   ExportBlob $base $pathRoom $stageBase
   ExportBlob $ref $pathRoom $stageFeature
   ExportBlob $ref $pathWorld $stageWorld
-  Require ((Git @('hash-object',$stageWorld)) -eq (Git @('rev-parse',("${ref}:${pathWorld}")))) 'Module blob integrity mismatch.'
+  Require ((Invoke-TfGit @('hash-object',$stageWorld)) -eq (Invoke-TfGit @('rev-parse',("${ref}:${pathWorld}")))) 'Module blob integrity mismatch.'
   Write-Host '[3] VERIFIED EXACT GIT SOURCE FILES' -ForegroundColor Green
   # 3-way merge *only* in temporary files: current live, merge-base, requested feature.
   # Keep all unrelated local graphics changes, or stop if the merge is ambiguous.
@@ -135,11 +135,16 @@ try {
       }
     }
     if($changed){
-      [System.IO.File]::Copy($priorRoom,$room,$true)
-      if($oldWorldExists){[System.IO.File]::Copy($priorWorld,$world,$true)}
-      elseif(Test-Path $world){Remove-Item -LiteralPath $world -Force}
-      $changed=$false
-      Write-Warning 'Original live files restored due to local deployment failure.'
+      try {
+        [System.IO.File]::Copy($priorRoom,$room,$true)
+        if($oldWorldExists){[System.IO.File]::Copy($priorWorld,$world,$true)}
+        elseif(Test-Path $world){Remove-Item -LiteralPath $world -Force}
+        $changed=$false
+        Write-Warning 'Original live files restored due to local deployment failure.'
+      } catch {
+        Write-Warning ('Rollback failed: '+$_.Exception.Message)
+        Write-Warning ('RECOVERY COPIES PRESERVED AT: '+$temporary)
+      }
     }
     throw
   }
@@ -157,6 +162,8 @@ try {
 } finally {
   if($transcriptStarted){Stop-Transcript | Out-Null}
   try {Get-Content -LiteralPath $report -Raw | Set-Clipboard;Write-Host 'REPORT COPIED TO CLIPBOARD.' -ForegroundColor Cyan} catch {Write-Warning 'Clipboard copy failed.'}
-  try {Remove-Item -LiteralPath $temporary -Recurse -Force -ErrorAction SilentlyContinue} catch {}
+  if(-not $changed){
+    try {Remove-Item -LiteralPath $temporary -Recurse -Force -ErrorAction SilentlyContinue} catch {}
+  }
   Write-Host ('RESULT: '+$(if($success){'ASSETS VERIFIED, BROWSER CHECK PENDING'}else{'NOT FULLY VERIFIED'}))
 }
