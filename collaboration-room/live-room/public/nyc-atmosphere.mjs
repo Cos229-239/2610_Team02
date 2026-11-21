@@ -136,6 +136,26 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
     const state=climate(new Date(),weather||{});
     const rng=seedRandom(7723);
     const mats=[0,1,2,3].map(i=>materialsFor(state.night,state.cloud,i));
+    // Weather-responsive sky behind the skyline, not a global room background
+    // replacement. This is deliberately outside the existing room geometry.
+    const skyGeometry=new THREE.PlaneGeometry(270,150);
+    const skyMaterial=new THREE.ShaderMaterial({
+      depthWrite:false,fog:false,
+      uniforms:{
+        top:{value:new THREE.Color(state.night?0x0b1730:
+          state.cloud>.7?0x768da3:0x609fc9)},
+        horizon:{value:new THREE.Color(state.night?0x344056:
+          state.cloud>.7?0xafb9bf:0xc6ddeb)},
+        haze:{value:Math.min(.85,state.cloud*.45+(state.rain>0?.24:0))}
+      },
+      vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:'varying vec2 vUv;uniform vec3 top;uniform vec3 horizon;uniform float haze;void main(){float h=clamp(vUv.y,0.0,1.0);vec3 col=mix(horizon,top,smoothstep(0.0,0.95,h));col=mix(col,vec3(0.66,0.71,0.76),haze*(1.0-h));gl_FragColor=vec4(col,1.0);}'
+    });
+    const sky=new THREE.Mesh(skyGeometry,skyMaterial);
+    sky.position.set(0,40,-35);
+    sky.name='TF_NYC_SKY_BACKGROUND_V1';
+    group.add(sky);
+    materials.push(skyMaterial);
     let count=0,windows=0;
     const glassGeo=new THREE.PlaneGeometry(.40,.54);
     const glassMat=new THREE.MeshBasicMaterial({color:state.night?0xffdda1:0x9fcee6,
@@ -149,8 +169,10 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       const pts=profile.points;
       if(pts.length<4)continue;
       const shape=new THREE.Shape();
-      shape.moveTo(pts[0][0],pts[0][1]);
-      for(const [x,z] of pts.slice(1))shape.lineTo(x,z);
+      // Rotating the extrusion into world Y negates its original Y: flip
+      // footprint Y here to preserve north/south geometry orientation.
+      shape.moveTo(pts[0][0],-pts[0][1]);
+      for(const [x,z] of pts.slice(1))shape.lineTo(x,-z);
       const geometry=new THREE.ExtrudeGeometry(shape,{
         depth:profile.height,bevelEnabled:false,curveSegments:1,steps:1
       });
