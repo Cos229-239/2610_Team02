@@ -41,11 +41,14 @@ try {
 }
 // TF_NYC_ATMOSPHERE_V1_BOOTSTRAP_END
 '@
-$next=$source+[Environment]::NewLine+$bootstrap
+$append=$utf8.GetBytes([Environment]::NewLine+$bootstrap)
+$nextBytes=[byte[]]::new($before.Length+$append.Length)
+[Array]::Copy($before,0,$nextBytes,0,$before.Length)
+[Array]::Copy($append,0,$nextBytes,$before.Length,$append.Length)
 $stageRoom=Join-Path ([IO.Path]::GetTempPath()) ('tf-nyc-check-'+[guid]::NewGuid().ToString('N')+'.mjs')
 $stageCity=Join-Path ([IO.Path]::GetTempPath()) ('tf-nyc-module-'+[guid]::NewGuid().ToString('N')+'.mjs')
 try{
- [IO.File]::WriteAllText($stageRoom,$next,$utf8)
+ [IO.File]::WriteAllBytes($stageRoom,$nextBytes)
  [IO.File]::WriteAllText($stageCity,$module,$utf8)
  & node --check $stageRoom
  if($LASTEXITCODE -ne 0){throw 'Live room syntax invalid; nothing installed'}
@@ -63,7 +66,7 @@ $installedCity=$false
 try{
  [IO.File]::WriteAllText($cityFile,$module,$utf8)
  $installedCity=$true
- [IO.File]::WriteAllText($roomFile,$next,$utf8)
+ [IO.File]::WriteAllBytes($roomFile,$nextBytes)
 }catch{
  [IO.File]::WriteAllBytes($roomFile,$before)
  if($installedCity){Remove-Item -LiteralPath $cityFile -Force -ErrorAction SilentlyContinue}
