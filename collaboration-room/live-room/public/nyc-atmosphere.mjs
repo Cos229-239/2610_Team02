@@ -197,9 +197,11 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       emissive:state.night?0x20252d:0x172532,emissiveIntensity:.10
     });
     materials.push(roofMaterial);
-    const nearTone=state.night?[0x414951,0x293948,0x475260,0x323e51]:
-      [0x9ca4a7,0x687c88,0x8795a4,0x657983];
-    const farTone=state.night?0x526377:0x9fb5c3;
+    // Photo transcription: glass curtain wall, limestone/art deco,
+    // charcoal masonry, and pale concrete. Never all the same blue.
+    const nearTone=state.night?[0x263c48,0x51483f,0x373b43,0x434b50]:
+      [0x648d99,0xb9aa91,0x555d65,0xa2a6a1];
+    const farTone=state.night?0x637487:0xb0c4ce;
     const facadeBands=[0,.27,.54].map(mix=>
       nearTone.map(hex=>{
         const color=new THREE.Color(hex).lerp(new THREE.Color(farTone),mix);
@@ -216,13 +218,22 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       const band=depth<19?0:depth<48?1:2;
       return facadeBands[band][index%4];
     }
-    const glassGeo=new THREE.PlaneGeometry(.40,.54);
-    const glassMat=new THREE.MeshBasicMaterial({color:state.night?0xffdfac:0x8fc5de,
-      transparent:true,opacity:state.night?.56:.29,depthWrite:false,
-      side:THREE.DoubleSide});
-    // Reused window geometry, one batched mesh per contiguous facade group.
-    const windowMatrices=[];
+    const glassGeo=new THREE.PlaneGeometry(.38,.52);
+    const frameGeo=new THREE.PlaneGeometry(.49,.65);
+    const glassMat=new THREE.MeshBasicMaterial({color:0xffffff,
+      side:THREE.DoubleSide,depthWrite:false,transparent:true,
+      opacity:state.night?.87:.78});
+    const frameMat=new THREE.MeshBasicMaterial({
+      color:state.night?0x1c2b38:0x344d5d,side:THREE.DoubleSide,
+      depthWrite:false,transparent:true,opacity:.95
+    });
+    // Instancing is retained for performance; per-instance colors stop
+    // the repetitive copy-paste tower appearance.
+    const glassMatrices=[],frameMatrices=[],paneColors=[];
     const transform=new THREE.Object3D();
+    const palette=state.night?
+      [0x1a2b37,0x2b3e4c,0xffd89b,0xe1ad74,0x7192a6,0x1c2630]:
+      [0x284758,0x457c95,0x8dbcd1,0xb4c9ce,0x345f73,0x96b5c4];
     for(const item of features) {
       const profile=meshProfile(item);
       const pts=profile.points;
@@ -267,7 +278,7 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       if(count>52)continue;
       // Photo-informed façades: place windows on the actual footprint edge,
       // never on an axis-aligned bounding box of a rotated Manhattan building.
-      for(let edge=0;edge<pts.length-1 && windowMatrices.length<3000;edge++){
+      for(let edge=0;edge<pts.length-1 && glassMatrices.length<2600;edge++){
         const p=pts[edge],q=pts[edge+1];
         const dx=q[0]-p[0],dz=q[1]-p[1];
         const length=Math.hypot(dx,dz);
@@ -280,24 +291,40 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
             if(rng()<.34)continue;
             const fraction=(c+.5)/columns;
             transform.position.set(
-              p[0]+dx*fraction+nx*.055,
+              p[0]+dx*fraction+nx*.058,
               .38+(f+.5)*(profile.height-.38)/floors,
-              p[1]+dz*fraction+nz*.055
+              p[1]+dz*fraction+nz*.058
             );
             transform.rotation.set(0,Math.atan2(nx,nz),0);
             transform.updateMatrix();
-            windowMatrices.push(transform.matrix.clone());
+            frameMatrices.push(transform.matrix.clone());
+            // Glass 0.012 units outside the frame to prevent z-fighting.
+            transform.position.x+=nx*.014;
+            transform.position.z+=nz*.014;
+            transform.updateMatrix();
+            glassMatrices.push(transform.matrix.clone());
+            paneColors.push(palette[Math.floor(rng()*palette.length)]);
           }
         }
       }
     }
-    if(windowMatrices.length) {
-      const instanced=new THREE.InstancedMesh(glassGeo,glassMat,windowMatrices.length);
-      for(let i=0;i<windowMatrices.length;i++)instanced.setMatrixAt(i,windowMatrices[i]);
-      instanced.instanceMatrix.needsUpdate=true;instanced.frustumCulled=false;
-      group.add(instanced);windows=windowMatrices.length;
-      materials.push(glassMat);
-    } else {glassGeo.dispose();glassMat.dispose();}
+    if(glassMatrices.length) {
+      const pane=new THREE.InstancedMesh(glassGeo,glassMat,glassMatrices.length);
+      const frame=new THREE.InstancedMesh(frameGeo,frameMat,frameMatrices.length);
+      for(let i=0;i<glassMatrices.length;i++){
+        pane.setMatrixAt(i,glassMatrices[i]);
+        frame.setMatrixAt(i,frameMatrices[i]);
+        pane.setColorAt(i,new THREE.Color(paneColors[i]));
+      }
+      pane.instanceMatrix.needsUpdate=true;frame.instanceMatrix.needsUpdate=true;
+      if(pane.instanceColor)pane.instanceColor.needsUpdate=true;
+      pane.frustumCulled=false;frame.frustumCulled=false;
+      group.add(frame,pane);windows=glassMatrices.length;
+      materials.push(glassMat,frameMat);
+    } else {
+      glassGeo.dispose();glassMat.dispose();
+      frameGeo.dispose();frameMat.dispose();
+    }
     // Distance layers are baked into geometry footprint colors; no room-wide fog override.
     buildings=count;lastGeometry=features;
     group.visible=enabled;
