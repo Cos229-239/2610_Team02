@@ -215,7 +215,7 @@ export function installGeography({THREE,scene}){
  for(const value of ['sunny','partly cloudy','overcast','fog','rain','heavy rain','thunderstorm','snow']){
   const op=document.createElement('option');op.value=value;op.textContent=value.toUpperCase();manualSelect.append(op);
  }
- manualSelect.hidden=true;weatherModeSelect.value='manual';manualSelect.value='sunny';
+ manualSelect.hidden=false;weatherModeSelect.value='manual';manualSelect.value='sunny';
  weatherControls.append(weatherModeSelect,manualSelect);
  const restore=document.createElement('button');
  restore.textContent='RETURN TO ORIGINAL ROOM';restore.type='button';
