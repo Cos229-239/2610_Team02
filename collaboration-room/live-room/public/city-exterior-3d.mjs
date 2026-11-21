@@ -3,7 +3,8 @@
    City is procedural fiction, not geographically surveyed architecture.
 */
 import {createCinematicDisaster} from './cinematic-disaster-scenario.mjs';
-export const CITY_VERSION='tf-exterior-3d-v3-cinematic';
+import {createCinematicStorm} from './cinematic-storm-system.mjs';
+export const CITY_VERSION='tf-exterior-3d-v4-cinematic-storms';
 export const CITY_EVENTS=Object.freeze([["normal","Normal city activity"],["sunny","Sunny"],["cloudy","Cloudy"],["rain","Rain"],["snow","Snow"],["blizzard","Blizzard / strong winds"],["thunder","Thunderstorm"],["severe","Severe thunderstorm / tornado / wind"],["fire","Urban fire"],["cataclysm","Cataclysm"],["typhoon","Typhoon (fictional)"],["hurricane","Hurricane (fictional)"],["zombie","Zombie apocalypse (fiction)"],["airborne","Airborne illness / emergency response (fiction)"],["purge","12-hour lawless-night (fiction)"],["rapture","Rapture: 3 phases (fictional interpretation)"],["sept11","September 11 remembrance (non-graphic NYC)"]].map(row=>Object.freeze(row)));
 
 const near=(a,b,e=.04)=>Math.abs(a-b)<e;
@@ -285,6 +286,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     const lightning=new THREE.PointLight(0xd5e7ff,0,115,2);
     lightning.position.set(-65,64,0);group.add(lightning);
     const disaster=createCinematicDisaster({THREE,urban});
+    const cinematicStorm=createCinematicStorm({THREE,group,urban,streetLevel:STREET_LEVEL});
     const chaos={enabled:false,scheme:'normal',events:0};
     const roadMats=[palette.road,wet];
     // Controls don't cover navigation: tiny inspector placed above original HUD.
@@ -324,6 +326,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       peopleGroup.visible=['zombie','airborne','purge','rapture'].includes(next);
       raptureGroup.visible=next==='rapture';
       if(next==='sept11')disaster.start();else disaster.stop();
+      cinematicStorm.setMode(['severe','hurricane','typhoon','blizzard'].includes(next)?next:null);
       // Controls can be created after the first normal-mode call.
       if(typeof seek!=='undefined'&&seek){seek.style.display=next==='sept11'?'inline-block':'none';seek.value='0';}
       if(typeof phaseStatus!=='undefined'&&phaseStatus)phaseStatus.textContent=next==='sept11'?'Aircraft approach · fictionalized':'';
@@ -334,6 +337,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       if(!active)return;
       active=false;win.cancelAnimationFrame(raf);
       disaster.dispose();
+      cinematicStorm.dispose();
       wall.visible=prior.wall;glass.visible=prior.glass;
       originalTrims.forEach(({object,visible})=>{object.visible=visible});
       leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
@@ -373,7 +377,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     button('Restore',stop);
     setMode('normal');
     const api=Object.freeze({
-      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
+      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,storm:cinematicStorm.state,skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
       setMode,dispose:stop
     });
     scene.add(group);wall.visible=false;glass.visible=false;doc.body.append(panel);
@@ -383,6 +387,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       // appears as a rectangular photograph when looking up or sideways.
       sky.position.copy(camera.position);
       const delta=Math.min(.05,Math.max(0,(time-last)/1000));last=time;
+      cinematicStorm.update(delta);
       if(mode==='sept11'){
         const p=disaster.update(delta);
         seek.value=String(Math.floor(p.elapsed));
@@ -442,6 +447,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     originalTrims.forEach(({object,visible})=>{object.visible=visible});
       leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
     disaster.dispose();
+    cinematicStorm.dispose();
     scene.remove(group);
     for(const g of geometries)g.dispose();
     for(const m of [...Object.values(palette),...effectMats])m.dispose();
