@@ -92,7 +92,7 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   scene.add(group);
   const disposables=[], materials=[];
   let enabled=Boolean(autoEnable), disposed=false, weatherTimer=null,weather=null;
-  let dataMode='loading',buildings=0,lastWeather='offline',lastGeometry=null;
+  let dataMode='loading',buildings=0,lastWeather='offline',lastGeometry=null,lastGeometryError=null;
   const fallback=proceduralFallback();
   const previousVisibility=group.visible;
   const hud=document.createElement('div');
@@ -136,30 +136,30 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
     const state=climate(new Date(),weather||{});
     const rng=seedRandom(7723);
     const mats=[0,1,2,3].map(i=>materialsFor(state.night,state.cloud,i));
-    // Weather-responsive sky behind the skyline, not a global room background
-    // replacement. This is deliberately outside the existing room geometry.
-    const skyGeometry=new THREE.PlaneGeometry(270,150);
-    const skyMaterial=new THREE.ShaderMaterial({
-      depthWrite:false,fog:false,
-      uniforms:{
-        top:{value:new THREE.Color(state.night?0x0b1730:
-          state.cloud>.7?0x768da3:0x609fc9)},
-        horizon:{value:new THREE.Color(state.night?0x344056:
-          state.cloud>.7?0xafb9bf:0xc6ddeb)},
-        haze:{value:Math.min(.85,state.cloud*.45+(state.rain>0?.24:0))}
-      },
-      vertexShader:'varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-      fragmentShader:'varying vec2 vUv;uniform vec3 top;uniform vec3 horizon;uniform float haze;void main(){float h=clamp(vUv.y,0.0,1.0);vec3 col=mix(horizon,top,smoothstep(0.0,0.95,h));col=mix(col,vec3(0.66,0.71,0.76),haze*(1.0-h));gl_FragColor=vec4(col,1.0);}'
-    });
-    const sky=new THREE.Mesh(skyGeometry,skyMaterial);
-    sky.position.set(0,40,-35);
-    sky.name='TF_NYC_SKY_BACKGROUND_V1';
-    group.add(sky);
-    materials.push(skyMaterial);
+    // V2: no opaque rectangle or independent sky backdrop. The original
+    // TowerFlow sky and horizon stay visible. Atmospheric depth comes from
+    // camera-distance façade tones and low-opacity geometry, not a sky card.
     let count=0,windows=0;
+    const roofMaterial=new THREE.MeshStandardMaterial({
+      color:state.night?0x4e5861:0x8b979b,roughness:.83,metalness:.13,
+      emissive:state.night?0x20252d:0x172532,emissiveIntensity:.10
+    });
+    materials.push(roofMaterial);
+    const nearTone=state.night?[0x414951,0x293948,0x475260,0x323e51]:
+      [0x9ca4a7,0x687c88,0x8795a4,0x657983];
+    const farTone=state.night?0x526377:0x9fb5c3;
+    // Photographic reference: foreground facade contrast and distant
+    // atmospheric desaturation, rather than repeated uniformly blue towers.
+    function facadeMaterial(index,depth){
+      const material=mats[index%4];
+      const baseColor=new THREE.Color(nearTone[index%4]);
+      const t=Math.min(.58,Math.max(0,depth/80)*.54);
+      material.color.copy(baseColor.lerp(new THREE.Color(farTone),t));
+      return material;
+    }
     const glassGeo=new THREE.PlaneGeometry(.40,.54);
-    const glassMat=new THREE.MeshBasicMaterial({color:state.night?0xffdda1:0x9fcee6,
-      transparent:true,opacity:state.night?.62:.32,depthWrite:false,
+    const glassMat=new THREE.MeshBasicMaterial({color:state.night?0xffdfac:0x8fc5de,
+      transparent:true,opacity:state.night?.56:.29,depthWrite:false,
       side:THREE.DoubleSide});
     // Reused window geometry, one batched mesh per contiguous facade group.
     const windowMatrices=[];
@@ -178,10 +178,33 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       });
       // Local extrude XY maps to world XZ, depth to world Y.
       geometry.rotateX(-Math.PI/2);
-      const mesh=new THREE.Mesh(geometry,mats[Math.floor(rng()*4)]);
+      const category=Math.floor(rng()*4);
+      const centerZ=pts.reduce((n,p)=>n+p[1],0)/pts.length;
+      const mesh=new THREE.Mesh(geometry,facadeMaterial(category,Math.abs(centerZ)));
       mesh.receiveShadow=false;mesh.castShadow=false;
       mesh.name='NYC footprint '+item.id;
       group.add(mesh);count++;
+      // Rooftop crown / mechanical boxes. NYC reference photographs show
+      // stepped roofs, parapets, and HVAC instead of identical flat caps.
+      if(count<=76){
+        const xs=pts.map(p=>p[0]),zs=pts.map(p=>p[1]);
+        const minX=Math.min(...xs),maxX=Math.max(...xs);
+        const minZ=Math.min(...zs),maxZ=Math.max(...zs);
+        const cx=(minX+maxX)*.5,cz=(minZ+maxZ)*.5;
+        const width=maxX-minX,depth=maxZ-minZ;
+        if(width>.7 && depth>.7 && profile.height>5.4){
+          const crown=new THREE.Mesh(
+            new THREE.BoxGeometry(Math.min(2.8,width*.7),.36+ rng()*.32,Math.min(2.6,depth*.67)),
+            roofMaterial);
+          crown.position.set(cx,profile.height+.21,cz);
+          group.add(crown);
+          if(count%8===0){
+            const spire=new THREE.Mesh(new THREE.CylinderGeometry(.025,.08,2.4,5),roofMaterial);
+            spire.position.set(cx,profile.height+1.7,cz);
+            group.add(spire);
+          }
+        }
+      }
       if(count>52)continue;
       const xs=pts.map(p=>p[0]),zs=pts.map(p=>p[1]);
       const minX=Math.min(...xs),maxX=Math.max(...xs);
@@ -242,6 +265,8 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
     } catch(error) {
       if(disposed)return;
       dataMode='SIMULATED (NYC data unavailable)';
+      lastGeometryError=String(error?.message||error).slice(0,140);
+      console.warn('NYC footprint source unavailable; using clearly labelled simulation:',lastGeometryError);
       build(fallback);
     }
   }
@@ -282,7 +307,9 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   const api=Object.freeze({
     setEnabled,get enabled(){return enabled;},
     get diagnostics(){return {dataMode,buildings,lastWeather,sceneAttached:group.parent===scene,
-      cameraFar:camera.far,position:{x:group.position.x,z:group.position.z}};},
+      cameraFar:camera.far,lastGeometryError,
+      hasOpaqueSkyCard:!!group.getObjectByName('TF_NYC_SKY_BACKGROUND_V1'),
+      position:{x:group.position.x,z:group.position.z}};},
     refresh:async()=>{await Promise.all([loadGeometry(),loadWeather()]);return api.diagnostics},
     dispose(){
       if(disposed)return;
