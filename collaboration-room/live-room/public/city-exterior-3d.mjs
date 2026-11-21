@@ -31,6 +31,10 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
   if(win.tfCityExterior3D)return win.tfCityExterior3D;
   const glass=locateAtriumWindow(scene),wall=locateAtriumWall(scene);
   const group=new THREE.Group();group.name='TF_EXTERIOR_CITY_ACTUAL_3D_V1';
+  // Room and main camera retain their coordinates. Street is 21 storeys below in scene units.
+  const STREET_LEVEL=-70; // illustration, not surveyed real-world metres
+  const urban=new THREE.Group();urban.name='TF_CITY_STREET_21';
+  urban.position.y=STREET_LEVEL;group.add(urban);
   const mat=(color,roughness=.82,metalness=.08)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
   const palette={
     road:mat('#19232c',.72),sidewalk:mat('#515c61',.91),line:mat('#a0aba2',.95),
@@ -50,7 +54,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
   const rand=rng(37021),animation=[];
   const frontage=[-66,-53,-40,-27,-14,-1,12,25,38,51,64];
   function tower(cx,cz,w,d,height,style){
-    const b=new THREE.Group();b.position.set(cx,0,cz);group.add(b);
+    const b=new THREE.Group();b.position.set(cx,0,cz);urban.add(b);
     const base=style===0?palette.brick:style===1?palette.concrete:palette.steel;
     box(b,w,height,d,0,height/2,0,base);
     box(b,w+.5,.28,d+.5,0,height+.14,0,palette.roof);
@@ -139,6 +143,13 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
   // The old 12x5.5 painted aperture and its trims visually divide the exterior into
   // a square inset. The entire 32x11 room wall now becomes the window.
   const originalTrims=[];
+   const leftHitTargets=[];
+   scene.traverse(object=>{
+     if(object.userData?.tfWall==='left'&&object.isMesh){
+       leftHitTargets.push({object,raycast:object.raycast});
+     }
+   });
+   if(leftHitTargets.length!==1)throw Error('Expected exactly one left wall hit target; found '+leftHitTargets.length);
   const atrium=scene.getObjectByName('TF_REFERENCE_ATRIUM_V2');
   for(const object of atrium.children){
     const p=object.geometry?.parameters;
@@ -159,6 +170,8 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     for(const y of [.13,10.91])
       box(group,.09,.11,31.7,-20.57,y,0,palette.frame);
     originalTrims.forEach(({object})=>{object.visible=false});
+    // Disable click-through to projector while glass is active; restore on disposal.
+    leftHitTargets.forEach(({object})=>{object.raycast=()=>{};});
     // Continuous gradient sky closes the camera's old painted background.
     // Face of sky is ~100 scene units beyond glass, safely within far clip 130.
     // Multiple broad horizontal strips avoid a distinct square or visible image edges.
@@ -181,11 +194,11 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     sky.rotation.y=Math.PI/2;sky.position.set(-120,50,0);sky.renderOrder=-1000;
     group.add(sky);
     // Street lights and structures run below the continuous open sky.
-    box(group,96,.34,146,-70,-.52,0,palette.sidewalk);
-    box(group,12,.05,146,-30,-.28,0,palette.road);
-    box(group,13,.05,146,-60,-.28,0,palette.road);
+    box(urban,96,.34,146,-70,-.52,0,palette.sidewalk);
+    box(urban,12,.05,146,-30,-.28,0,palette.road);
+    box(urban,13,.05,146,-60,-.28,0,palette.road);
     for(const x of [-36,-54,-67]){
-      for(let z=-67;z<67;z+=10)box(group,.12,.02,3.7,x,-.22,z,palette.line);
+      for(let z=-67;z<67;z+=10)box(urban,.12,.02,3.7,x,-.22,z,palette.line);
     }
     // Keep a clear setback from the pane so nearby facades do not loom
     // across the full window. Source uses scene units, not metres.
@@ -193,22 +206,22 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       for(const z of frontage){
         if(Math.abs(z)<17&&x===-53)continue;
         const d=7+rand()*5,w=7+rand()*4;
-        const h=x===-53?9+rand()*17:x===-83?18+rand()*32:23+rand()*42;
+        const h=x===-53?42+rand()*22:x===-83?72+rand()*35:105+rand()*40;
         tower(x,z,w,d,h,Math.floor(rand()*3));
       }
     }
     // Foreground real-height streetlamps with point illumination sampled sparsely.
     for(let z=-57;z<=57;z+=20){
-      box(group,.13,5,.13,-39,2.4,z,palette.frame);
-      box(group,1.9,.1,.13,-38.1,4.9,z,palette.frame);
+      box(urban,.13,5,.13,-39,2.4,z,palette.frame);
+      box(urban,1.9,.1,.13,-38.1,4.9,z,palette.frame);
       const lamp=new THREE.PointLight(0xffc992,4.5,9,2);
-      lamp.position.set(-37.4,4.7,z);group.add(lamp);
+      lamp.position.set(-37.4,4.7,z);urban.add(lamp);
     }
     // Actual moving vehicles: car bodies and headlights are world geometry.
     const cars=[];
     for(let i=0;i<12;i++){
       const isNear=i%2===0;
-      const vehicle=new THREE.Group();group.add(vehicle);
+      const vehicle=new THREE.Group();urban.add(vehicle);
       const x=isNear?-30:-59;
       const z=-65+i*12;
       vehicle.position.set(x,0,z);
@@ -221,7 +234,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     }
     const rainPositions=new Float32Array(1900*3);
     for(let i=0;i<1900;i++){
-      rainPositions[i*3]=-23-rand()*85;rainPositions[i*3+1]=rand()*35;rainPositions[i*3+2]=(rand()-.5)*130;
+      rainPositions[i*3]=-23-rand()*85;rainPositions[i*3+1]=STREET_LEVEL+rand()*95;rainPositions[i*3+2]=(rand()-.5)*130;
     }
     const particleGeometry=new THREE.BufferGeometry();
     particleGeometry.setAttribute('position',new THREE.BufferAttribute(rainPositions,3));
@@ -261,6 +274,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       active=false;win.cancelAnimationFrame(raf);
       wall.visible=prior.wall;glass.visible=prior.glass;
       originalTrims.forEach(({object,visible})=>{object.visible=visible});
+      leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
       scene.remove(group);panel.remove();
       for(const g of geometries)g.dispose();
       const used=new Set(Object.values(palette));used.add(snowfall);used.add(wet);used.add(skyMat);
@@ -276,7 +290,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     chaosButton.title='Storm / Blackout / Rush Hour — new experimental scenarios, not a recovered preset';
     button('Restore',stop);
     const api=Object.freeze({
-      get state(){return {active,mode,frames:frameCount,drawCalls,originalFloorUntouched:true}},
+      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,leftWindowClickable:false,originalFloorUntouched:true}},
       setMode,dispose:stop
     });
     scene.add(group);wall.visible=false;glass.visible=false;doc.body.append(panel);
@@ -310,7 +324,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         for(let i=0;i<p.length;i+=3){
           p[i+1]-=(mode==='rain'||mode==='storm'?13:2.1)*delta;
           p[i]+=(mode==='rain'||mode==='storm')?-1.5*delta:.3*delta;
-          if(p[i+1]<-.1)p[i+1]=24+(i%17);
+          if(p[i+1]<STREET_LEVEL)p[i+1]=STREET_LEVEL+85+(i%17);
           if(p[i]<-115)p[i]=-23;
         }
         particleGeometry.attributes.position.needsUpdate=true;
@@ -323,6 +337,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
   }catch(error){
     wall.visible=prior.wall;glass.visible=prior.glass;
     originalTrims.forEach(({object,visible})=>{object.visible=visible});
+      leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
     scene.remove(group);
     for(const g of geometries)g.dispose();
     for(const m of Object.values(palette))m.dispose();
