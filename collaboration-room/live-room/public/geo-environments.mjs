@@ -1,3 +1,5 @@
+import {capitalCoordinates} from './geo-capitals-coordinates.mjs';
+import {fetchCapitalTile,buildCapitalScene} from './geo-capital-mesh.mjs';
 // TowerFlow geographic foundation: one scene owner, no generic fake capital cities.
 const capitals=[
 'Alabama|Montgomery|America/Chicago','Alaska|Juneau|America/Juneau',
@@ -28,7 +30,7 @@ const capitals=[
 export const destinations=Object.freeze([...capitals.map(line=>{
  const [state,capital,timeZone]=line.split('|');
  return Object.freeze({id:state.toLowerCase().replaceAll(' ','-'),state,capital,timeZone,
-  kind:'state',status:'reference-pending'});
+  kind:'state',status:'real-osm-on-demand',...capitalCoordinates[state]});
 }),Object.freeze({id:'washington-dc',state:'Washington, D.C.',capital:'Federal District',
  timeZone:'America/New_York',kind:'district',status:'architectural-study',
  latitude:38.8893,longitude:-77.0502})]);
@@ -36,7 +38,7 @@ export const modes=Object.freeze(['morning','day','night']);
 export function validateDestinations(list=destinations){
  return list.length===51&&list.filter(d=>d.kind==='state').length===50&&
   list.filter(d=>d.kind==='district').length===1&&new Set(list.map(d=>d.id)).size===51&&
-  list.every(d=>{try{new Intl.DateTimeFormat('en-US',{timeZone:d.timeZone});return !!d.capital;}
+  list.every(d=>{try{new Intl.DateTimeFormat('en-US',{timeZone:d.timeZone});return !!d.capital&&Number.isFinite(d.latitude)&&Number.isFinite(d.longitude);}
    catch{return false;}});
 }
 export function selectMode(previous,mode){
@@ -137,7 +139,7 @@ export function installGeography({THREE,scene}){
  weather.style.cssText='position:fixed;left:22px;top:68px;z-index:910;color:#ecf8ff;background:#081624ed;padding:4px 9px;font:12px system-ui';
  weather.textContent='☀️ · WEATHER UNVERIFIED';document.body.append(weather);
  let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'live'});
- let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0;
+ let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0,loadSerial=0;
  const originalSkyline=scene.getObjectByName('TF_CITY_SKYLINE');
  const skylineWasVisible=originalSkyline?.visible;
  let nycWasEnabled=null;
@@ -147,10 +149,10 @@ export function installGeography({THREE,scene}){
   for(const d of destinations){
    if(!(d.state+' '+d.capital).toLowerCase().includes(query))continue;
    const b=document.createElement('button');b.type='button';
-   b.textContent=d.state+' — '+d.capital+(d.status==='reference-pending'?' · PENDING':' · STUDY');
-   b.disabled=d.status==='reference-pending';
+   b.textContent=d.state+' — '+d.capital+(d.kind==='district'?' · MEMORIAL STUDY':' · REAL OSM DATA');
+   b.setAttribute('aria-current',String(state.destination===d.id));
    b.style.cssText='display:block;width:100%;text-align:left;margin:4px 0;background:#122b3e;color:#eaf5ff;border:1px solid #4b7892;padding:7px';
-   b.title=b.disabled?'Authentic geographic scene not yet developed':'Open the architectural study';
+   b.title='Load geographic geometry only when its source is available';
    b.addEventListener('click',()=>activate(d.id));list.append(b);
   }
  }
@@ -158,7 +160,8 @@ export function installGeography({THREE,scene}){
   state=selectMode(state,value);
   if(active)active.setTime(value);
   for(const radio of mode.querySelectorAll('input'))radio.checked=radio.value===value;
-  weather.textContent=weatherForecast?weatherGlyph(weatherForecast.condition,value)+' · D.C. '+weatherForecast.condition+' · NWS forecast':(value==='night'?'🌙':'☀️')+' · WEATHER UNVERIFIED';
+  const d=destinations.find(v=>v.id===state.destination);
+  weather.textContent=weatherForecast?weatherGlyph(weatherForecast.condition,value)+' · '+d?.capital+' · '+weatherForecast.condition+' · NWS forecast':(value==='night'?'🌙':'☀️')+' · WEATHER UNVERIFIED';
  }
  for(const value of modes){
   const label=document.createElement('label');label.style.marginRight='5px';
@@ -167,9 +170,26 @@ export function installGeography({THREE,scene}){
   input.addEventListener('change',()=>{if(input.checked)setTime(value);});
   label.append(input,document.createTextNode(' '+value.toUpperCase()));mode.append(label);
  }
- function activate(id){
-  if(id!=='washington-dc')return false;
-  const prepared=createDCLandmarkStudy(THREE,state.timeMode);
+ async function activate(id){
+  const d=destinations.find(v=>v.id===id);
+  if(!d)return false;
+  const serial=++loadSerial;
+  status.textContent='Loading '+d.capital+' real geographic geometry…';
+  let prepared;
+  try{
+   if(d.kind==='district')prepared=createDCLandmarkStudy(THREE,state.timeMode);
+   else{
+    const tile=await fetchCapitalTile(d);
+    if(serial!==loadSerial)return false;
+    prepared=buildCapitalScene(THREE,tile,state.timeMode);
+    prepared.report={buildings:tile.buildings.length,roads:tile.roads.length,
+      estimated:tile.buildings.filter(v=>v.estimation!=='OSM height tag').length};
+   }
+  }catch(error){
+    if(serial===loadSerial)status.textContent='Unavailable: '+d.capital+' — '+String(error.message||error)+'; prior scene retained.';
+    return false;
+  }
+  if(serial!==loadSerial){prepared.dispose();return false;}
   if(nycWasEnabled===null && window.tfNYCAtmosphere)nycWasEnabled=window.tfNYCAtmosphere.enabled;
   window.tfNYCAtmosphere?.setEnabled(false);
   if(originalSkyline)originalSkyline.visible=false;
@@ -178,12 +198,15 @@ export function installGeography({THREE,scene}){
   prepared.group.position.set(63,0,-57);
   prepared.group.scale.setScalar(.40);
   scene.add(prepared.group);state=Object.freeze({...state,destination:id});
-  status.textContent='WASHINGTON, D.C. · Architectural study, not verified high-fidelity reconstruction';
+  status.textContent=d.kind==='district'?'WASHINGTON, D.C. · Architectural study, not verified high-fidelity reconstruction':d.capital+' · '+prepared.report.buildings+' verified OSM footprint records, '+prepared.report.estimated+' estimated heights';
+  render();weatherForecast=null;
   if(!weatherTimer){
    const update=async()=>{
      const serial=++weatherRequest;
      try{
-       const result=await fetchNWSHourlyForecast(38.8893,-77.0502);
+       const target=destinations.find(v=>v.id===state.destination);
+       if(!target)return;
+       const result=await fetchNWSHourlyForecast(target.latitude,target.longitude);
        if(serial!==weatherRequest)return;
        weatherForecast=result;setTime(state.timeMode);
      }catch{
