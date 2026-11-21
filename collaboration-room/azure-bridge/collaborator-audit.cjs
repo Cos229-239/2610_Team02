@@ -1,0 +1,86 @@
+'use strict';
+// Read-only file-level contribution coverage; no execution or disk writes.
+// "Works" can only be asserted from independently verified test evidence,
+// never from a present file, a successful fetch, or a commit alone.
+const repo = 'Cos229-239/2610_Team02';
+const base = 'https://api.github.com/repos/' + repo;
+const targets = Object.freeze({
+  'svn-760': {login:'SVN-760',name:'Malik',ref:'dev',expected:[
+    'TowerFlow Files/TowerFlow (Malik modified)/CMakeLists.txt',
+    'TowerFlow Files/TowerFlow (Malik modified)/TowerFlowGUI.cpp',
+    'TowerFlow Files/TowerFlow (Malik modified)/TowerFlowGUI.h',
+    'TowerFlow Files/TowerFlow (Malik modified)/tests/OperationsTests.cpp']},
+  hyperrealmend:{login:'HyperRealmEnd',name:'Omarion',ref:'dev',expected:[
+    'Towerflow_OW/TowerFlow.slnx',
+    'Towerflow_OW/TowerFlow/Inventory.cpp',
+    'Towerflow_OW/TowerFlow/Report.cpp',
+    'Towerflow_OW/TowerFlow/UserInterface.cpp']},
+  daynaperezcolon:{login:'DaynaPerezColon',name:'Dayna',ref:'dev',expected:[
+    'DisplayHelper.h','InputVailidation.h','InventoryStorage.h','Logger.h']},
+  lopobunnie:{login:'Lopobunnie',name:'William',ref:'WilliamPersonal',expected:[
+    'TowerFlowWindow/TowerFlowWinForm/TowerFlowWinForm.slnx',
+    'TowerFlowWindow/TowerFlowWinForm/Form1.cs',
+    'TowerFlowWindow/TowerFlowWinForm/PartData.cs',
+    'TowerFlowWindow/TowerFlowWinForm/TowerFlowWinForm.csproj']}
+});
+const skip = /(^|\/)(?:bin|obj|x64|Debug|Release|node_modules|build|\.vs)\//i;
+function summarize(target, devTree, ownTree, evidence) {
+  const devPaths=new Set(devTree.map(x=>x.path));
+  const personalPaths=new Set(ownTree.map(x=>x.path));
+  const files=target.expected.map(path=>{
+    const inDev=devPaths.has(path), inPersonal=personalPaths.has(path);
+    const association=evidence[path]; // true/false/null; only true confirms GitHub author evidence
+    const contribution=inDev ? (association===true?'confirmed':association===false?'unattributed':'unknown') : 'not-on-dev';
+    const color=!inDev ? (inPersonal?'amber':'red') : association===true?'green':'amber';
+    return {path,inDev,inPersonal,contribution,color,build:'not-run',runtime:'unverified',
+      finding:!inDev?(inPersonal?'Present on personal branch; missing from dev':'Missing from dev and personal branch')
+        :association===true?'Contributor commit associated with this file; runtime not verified'
+        :'File exists on dev; contributor attribution/functional outcome not verified'};
+  });
+  return {member:target.login,branch:'dev',personalBranch:target.ref,files,
+    counts:{dev:files.filter(x=>x.inDev).length,missing:files.filter(x=>!x.inDev).length,
+      red:files.filter(x=>x.color==='red').length},
+    verdict:files.some(x=>!x.inDev)?'missing-dev-contributions':'needs-runtime-validation',
+    working:[],notWorking:[],
+    missing:files.filter(x=>!x.inDev).map(x=>x.path),
+    unknown:['No native build/test receipts collected','No verified runtime or adapter contract evidence'],
+    caveat:'Green means GitHub source and author history verified, NOT working code. Red means expected file absent from dev and personal branch; author-email mismatch may affect attribution.'};
+}
+function makeCollaboratorAudit(read=fetch,clock=Date.now) {
+  const cache=new Map();
+  return async function audit(member,token){
+    const target=targets[String(member||'').toLowerCase()];
+    if(!target) throw Object.assign(Error('Unknown collaborator'),{status:400});
+    const cached=cache.get(target.login);
+    if(cached && clock()<cached.until) return cached.result;
+    const headers={Authorization:'Bearer '+token,'User-Agent':'TowerFlow-Collaborator-Audit',Accept:'application/vnd.github+json'};
+    const get=async route=>{
+      const response=await read(base+route,{headers,redirect:'error',signal:AbortSignal.timeout(12000)});
+      if(!response.ok) throw Error('GitHub audit request failed');
+      return response.json();
+    };
+    const getTree=async ref=>{
+      const commit=await get('/commits/'+encodeURIComponent(ref));
+      const sha=commit?.commit?.tree?.sha;
+      if(!/^[0-9a-f]{40}$/.test(sha||'')) throw Error('Missing validated tree revision');
+      const tree=await get('/git/trees/'+sha+'?recursive=1');
+      if(tree.truncated || !Array.isArray(tree.tree)) throw Error('Incomplete repository tree');
+      return {revision:commit.sha,files:tree.tree.filter(e=>e.type==='blob'&&typeof e.path==='string'&&!skip.test(e.path))};
+    };
+    const dev=await getTree('dev');
+    const own=target.ref==='dev'?dev:await getTree(target.ref).catch(()=>({revision:null,files:[]}));
+    const evidence={};
+    // Bounded requests: no cloning or downloading source code into the server.
+    await Promise.all(target.expected.filter(p=>dev.files.some(f=>f.path===p)).map(async path=>{
+      try {
+        const records=await get('/commits?'+new URLSearchParams({sha:'dev',author:target.login,path,per_page:'1'}));
+        evidence[path]=Array.isArray(records)?records.length>0:null;
+      }catch{evidence[path]=null;}
+    }));
+    const report={...summarize(target,dev.files,own.files,evidence),
+      revision:dev.revision,personalRevision:own.revision,checkedAt:new Date(clock()).toISOString()};
+    cache.set(target.login,{result:report,until:clock()+30000});
+    return report;
+  };
+}
+module.exports={targets,summarize,makeCollaboratorAudit};
