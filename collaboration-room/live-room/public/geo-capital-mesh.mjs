@@ -103,9 +103,9 @@ export function buildCapitalScene(THREE,tile,mode){
  let time=mode,condition='sun';
  function applyLighting(){
   const cloudy=/cloud|overcast|rain|storm/i.test(condition);
-  sunlight.intensity=(time==='night'?.18:time==='morning'?.95:1.6)*(cloudy?.6:1);
-  sunlight.color.setHex(time==='morning'?0xffb779:time==='night'?0x8ca3c8:0xffe9cb);
-  ambient.intensity=time==='night'?.25:time==='morning'?.56:.83;
+  sunlight.intensity=(time==='night'?.18:time==='sunset'?.68:time==='morning'?.95:1.6)*(cloudy?.6:1);
+  sunlight.color.setHex(time==='morning'?0xffb779:time==='sunset'?0xff946b:time==='night'?0x8ca3c8:0xffe9cb);
+  ambient.intensity=time==='night'?.25:time==='sunset'?.45:time==='morning'?.56:.83;
   groundMat.color.setHex(/rain|storm/i.test(condition)?0x3d5d4e:0x52785e);
   roadMat.color.setHex(/rain|storm/i.test(condition)?0x2b414b:0x505c62);
  }
