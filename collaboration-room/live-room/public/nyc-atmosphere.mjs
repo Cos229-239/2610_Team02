@@ -283,15 +283,21 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
         const roofPoint=interiorRoofPoint(pts);
         const cx=roofPoint?.[0],cz=roofPoint?.[1];
         const width=maxX-minX,depth=maxZ-minZ;
-        if(roofPoint&&width>.7 && depth>.7 && profile.height>5.4){
+        const roofWidth=Math.min(1.45,width*.27);
+        const roofDepth=Math.min(1.30,depth*.27);
+        const roofFootFits=roofPoint&&[
+          [-1,-1],[-1,1],[1,-1],[1,1]
+        ].every(([sx,sz])=>pointInFootprint(
+          cx+sx*roofWidth*.5,cz+sz*roofDepth*.5,pts));
+        if(roofFootFits && width>.7 && depth>.7 && profile.height>5.4){
+          const roofH=.36+rng()*.32;
           const crown=new THREE.Mesh(
-            new THREE.BoxGeometry(Math.min(2.8,width*.7),.36+ rng()*.32,Math.min(2.6,depth*.67)),
-            roofMaterial);
-          crown.position.set(cx,profile.height+.21,cz);
+            new THREE.BoxGeometry(roofWidth,roofH,roofDepth),roofMaterial);
+          crown.position.set(cx,profile.height+roofH*.5,cz);
           group.add(crown);
           if(count%8===0){
             const spire=new THREE.Mesh(new THREE.CylinderGeometry(.025,.08,2.4,5),roofMaterial);
-            spire.position.set(cx,profile.height+1.7,cz);
+            spire.position.set(cx,profile.height+roofH+1.2,cz);
             group.add(spire);
           }
         }
