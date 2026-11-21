@@ -114,20 +114,13 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   hud.append(toggle,status);
   document.body.append(hud);
 
-  const materialsFor=(night,cloud,layer)=>{
-    const palette=night?[0x263849,0x1f2d40,0x32404b,0x3e4c58]:
-      [0x57718a,0x536d85,0x82929c,0x637a91];
-    const color=palette[layer%palette.length];
-    const material=new THREE.MeshStandardMaterial({color,metalness:.12,
-      roughness:night?.67:.79,emissive:night?0x172c3c:0x1b2b3b,
-      emissiveIntensity:night?.20:.22});
-    materials.push(material);return material;
-  };
   function clear() {
-    while(group.children.length){
-      const child=group.children[0];group.remove(child);
-      if(child.geometry)child.geometry.dispose();
-    }
+    // Every weather refresh rebuilds the environment. Dispose nested ground,
+    // window and rooftop geometry exactly once to avoid leaking GPU memory.
+    const geometry=new Set();
+    group.traverse(obj=>{if(obj.geometry)geometry.add(obj.geometry);});
+    while(group.children.length)group.remove(group.children[0]);
+    for(const g of geometry)g.dispose();
     for(const m of materials.splice(0))m.dispose();
     for(const item of disposables.splice(0))item.dispose?.();
   }
@@ -192,6 +185,7 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
     // Preserve original sky and all existing world objects; the new ground
     // is limited to the geographically separate NYC scene group.
     let count=0,windows=0;
+    const referenceMode='PHOTO-TRANSCRIBED V3';
     const roofMaterial=new THREE.MeshStandardMaterial({
       color:state.night?0x4e5861:0x8b979b,roughness:.83,metalness:.13,
       emissive:state.night?0x20252d:0x172532,emissiveIntensity:.10
@@ -408,7 +402,10 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   weatherTimer=setInterval(()=>void loadWeather(),10*60*1000);
   const api=Object.freeze({
     setEnabled,get enabled(){return enabled;},
-    get diagnostics(){return {dataMode,buildings,lastWeather,sceneAttached:group.parent===scene,
+    get diagnostics(){return {dataMode,buildings,lastWeather,
+      grounding:'BUILDINGS at y=0; STREET GROUND at y=-0.22',
+      referenceMode:'PHOTO-TRANSCRIBED V3',
+      sceneAttached:group.parent===scene,
       cameraFar:camera.far,lastGeometryError,
       hasOpaqueSkyCard:!!group.getObjectByName('TF_NYC_SKY_BACKGROUND_V1'),
       position:{x:group.position.x,z:group.position.z}};},
