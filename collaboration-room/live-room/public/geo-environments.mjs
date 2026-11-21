@@ -370,7 +370,7 @@ export function installGeography({THREE,scene}){
  });
  function returnToOriginal(){
   ++loadSerial;++weatherRequest;clearWeatherVisual();
-  if(active){scene.remove(active.group);active.dispose();active=null;}
+  if(active){active.group.parent?.remove(active.group);active.dispose();active=null;}
   if(originalSkyline)originalSkyline.visible=skylineWasVisible;
   if(nycWasEnabled!==null){window.tfNYCAtmosphere?.setEnabled(nycWasEnabled);nycWasEnabled=null;}
   state=Object.freeze({...state,destination:null});weatherForecast=null;
