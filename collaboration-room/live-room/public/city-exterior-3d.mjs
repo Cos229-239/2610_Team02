@@ -96,9 +96,9 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     box(group,.6,11,9.8,-21,5.5,11.1,wall.material);
     box(group,.6,3.7,12.4,-21,1.85,0,wall.material);
     box(group,.6,1.6,12.4,-21,10.2,0,wall.material);
-    for(const z of [-6.2,0,6.2])box(group,.13,5.7,.16,-20.58,6.65,z,palette.frame);
-    box(group,.13,.17,12.4,-20.58,9.52,0,palette.frame);
-    box(group,.13,.17,12.4,-20.58,3.8,0,palette.frame);
+    // Do not duplicate the original atrium window mullions.
+    // Its original frame already exists at x=-20.58, z=[-6,-3,0,3,6].
+    // The extra 3D mullions from V1 produced double-thick/oblique grids.
     // Near (21–42 units), mid (42–76 units), far (76–118 units).
     box(group,96,.34,146,-70,-.52,0,palette.sidewalk);
     box(group,12,.05,146,-30,-.28,0,palette.road);
@@ -106,11 +106,13 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     for(const x of [-36,-54,-67]){
       for(let z=-67;z<67;z+=10)box(group,.12,.02,3.7,x,-.22,z,palette.line);
     }
-    for(const x of [-43,-77,-101]){
+    // Keep a clear setback from the pane so nearby facades do not loom
+    // across the full window. Source uses scene units, not metres.
+    for(const x of [-53,-83,-108]){
       for(const z of frontage){
-        if(Math.abs(z)<9&&x===-43)continue;
+        if(Math.abs(z)<17&&x===-53)continue;
         const d=7+rand()*5,w=7+rand()*4;
-        const h=x===-43?9+rand()*24:x===-77?20+rand()*37:23+rand()*45;
+        const h=x===-53?9+rand()*17:x===-83?18+rand()*32:23+rand()*42;
         tower(x,z,w,d,h,Math.floor(rand()*3));
       }
     }
