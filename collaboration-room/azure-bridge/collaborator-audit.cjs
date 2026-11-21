@@ -27,8 +27,9 @@ const skip = /(^|\/)(?:bin|obj|x64|Debug|Release|node_modules|build|\.vs)\//i;
 const codeFile = /\.(?:c|cc|cpp|cxx|h|hpp|cs|csproj|vcxproj|sln|slnx|js|mjs|cjs)$/i;
 function belongs(target,path) {
   return typeof path==='string' && !path.split('/').some(p=>p==='..'||p==='.'||!p) &&
-    !/[\\:\x00-\x1f]/.test(path) && !skip.test(path) && codeFile.test(path) &&
-    (target.expected.includes(path) || target.roots?.some(root=>path.startsWith(root)) || target.files?.test(path));
+    !/[\\:\x00-\x1f]/.test(path) && !skip.test(path) &&
+    (target.expected.includes(path) || (codeFile.test(path) &&
+      (target.roots?.some(root=>path.startsWith(root)) || target.files?.test(path))));
 }
 function summarize(target, devTree, ownTree, evidence) {
   const devPaths=new Set(devTree.map(x=>x.path));
