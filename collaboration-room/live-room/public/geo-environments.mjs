@@ -316,7 +316,8 @@ export function installGeography({THREE,scene}){
    photoURL:selectedPhoto?.url||null,
    photoSource:selectedPhoto?.source||null,
    photoLicense:selectedPhoto?.license||null,
-   warning:active?.report?.skyOnly?'ORIGINAL SKYLINE — CITY IMAGE UNAVAILABLE':null});
+   warning:active?.report?.skyOnly?'ORIGINAL SKYLINE — CITY IMAGE UNAVAILABLE':null,
+   worldExterior:!!active});
  }
  function setTime(value){
   effectsEnabled=true;
@@ -364,7 +365,8 @@ export function installGeography({THREE,scene}){
    // City image is separately composited even if WebGL texture loading fails.
    sceneEffects.update({name:d.capital,time:state.timeMode,
     weather:state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny',
-    photoURL:photo.url,photoSource:photo.source,photoLicense:photo.license});
+    photoURL:photo.url,photoSource:photo.source,photoLicense:photo.license,
+    worldExterior:true});
    prepared=await buildPhotoEnvironment(THREE,photo,state.timeMode);
   }catch(error){photoError=String(error.message||error);}
   if(!prepared){
