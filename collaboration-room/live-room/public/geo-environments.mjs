@@ -108,6 +108,9 @@ export function installGeography({THREE,scene}){
  weather.textContent='☀️ · WEATHER UNVERIFIED';document.body.append(weather);
  let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'live'});
  let active=null;
+ const originalSkyline=scene.getObjectByName('TF_CITY_SKYLINE');
+ const skylineWasVisible=originalSkyline?.visible;
+ let nycWasEnabled=null;
  function render(){
   list.replaceChildren();
   const query=search.value.trim().toLowerCase();
@@ -137,6 +140,9 @@ export function installGeography({THREE,scene}){
  function activate(id){
   if(id!=='washington-dc')return false;
   const prepared=createDCLandmarkStudy(THREE,state.timeMode);
+  if(nycWasEnabled===null && window.tfNYCAtmosphere)nycWasEnabled=window.tfNYCAtmosphere.enabled;
+  window.tfNYCAtmosphere?.setEnabled(false);
+  if(originalSkyline)originalSkyline.visible=false;
   if(active){scene.remove(active.group);active.dispose();}
   active=prepared;
   prepared.group.position.set(63,0,-57);
@@ -151,6 +157,8 @@ export function installGeography({THREE,scene}){
   get diagnostics(){return{destinations:destinations.length,sceneActive:!!active,
    validatedHighFidelityScenes:0,knownArchitecturalStudies:1};},
   dispose(){if(active){scene.remove(active.group);active.dispose();}
+   if(originalSkyline)originalSkyline.visible=skylineWasVisible;
+   if(nycWasEnabled!==null)window.tfNYCAtmosphere?.setEnabled(nycWasEnabled);
    wrap.remove();weather.remove();delete window.tfGeography;}});
  window.tfGeography=api;return api;
 }
