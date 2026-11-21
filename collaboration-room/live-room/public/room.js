@@ -331,14 +331,37 @@ function activateTFStation(id) {
             encodeURIComponent(memberDesk.login));
         makeLink('Review contributions',base+'/pulls?q=is%3Apr+author%3A'+
             encodeURIComponent(memberDesk.login));
+        // GitHub account ownership is resolved by the existing authenticated
+        // Azure Bridge /loadout endpoint, never by the desk being viewed.
+        const account = document.createElement('p');
+        account.className = 'muted';
+        account.textContent = 'Checking your signed-in GitHub account…';
         const work = document.createElement('button');
         work.type = 'button';
-        work.textContent = 'Open my contribution workspace';
+        work.textContent = 'Open MY workspace (my GitHub account)';
+        work.disabled = true;
         work.onclick = () => {
             if (typeof window.tfOpenMemberDesk === 'function') window.tfOpenMemberDesk();
             else showToast('Contribution desk is unavailable in this hosted build.');
         };
         actions.append(work);
+        content.append(account);
+        api('/api/me').then(me => {
+            if (!account.isConnected) return;
+            const login = me && me.login;
+            if (!login) {
+                account.textContent = 'Sign in with your own GitHub account to open your workspace.';
+                return;
+            }
+            account.textContent = 'Signed in as @' + login +
+                (login.toLowerCase() === memberDesk.login.toLowerCase()
+                    ? ' · This is your assigned desk.'
+                    : ' · This is ' + memberDesk.name + '\'s display; your workspace remains yours.');
+            work.disabled = false;
+        }).catch(() => {
+            if (account.isConnected) account.textContent =
+                'Could not verify your GitHub account. Sign in again before opening a workspace.';
+        });
         const note = document.createElement('p');
         note.className = 'muted';
         note.textContent = memberDesk.ref === 'dev'
