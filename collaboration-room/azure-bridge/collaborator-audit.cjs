@@ -24,25 +24,34 @@ const targets = Object.freeze({
     'TowerFlowWindow/TowerFlowWinForm/TowerFlowWinForm.csproj']}
 });
 const skip = /(^|\/)(?:bin|obj|x64|Debug|Release|node_modules|build|\.vs)\//i;
+const codeFile = /\.(?:c|cc|cpp|cxx|h|hpp|cs|csproj|vcxproj|sln|slnx|js|mjs|cjs)$/i;
+function belongs(target,path) {
+  return typeof path==='string' && !path.split('/').some(p=>p==='..'||p==='.'||!p) &&
+    !/[\\:\x00-\x1f]/.test(path) && !skip.test(path) && codeFile.test(path) &&
+    (target.expected.includes(path) || target.roots?.some(root=>path.startsWith(root)) || target.files?.test(path));
+}
 function summarize(target, devTree, ownTree, evidence) {
   const devPaths=new Set(devTree.map(x=>x.path));
   const personalPaths=new Set(ownTree.map(x=>x.path));
-  const files=target.expected.map(path=>{
+  const all=[...new Set([...target.expected,
+    ...devTree.map(f=>f.path).filter(p=>belongs(target,p)),
+    ...ownTree.map(f=>f.path).filter(p=>belongs(target,p))])].slice(0,80);
+  const files=all.map(path=>{
     const inDev=devPaths.has(path), inPersonal=personalPaths.has(path);
     const association=evidence[path]; // true/false/null; only true confirms GitHub author evidence
     const contribution=inDev ? (association===true?'confirmed':association===false?'unattributed':'unknown') : 'not-on-dev';
     const color=!inDev ? (inPersonal?'amber':'red') : association===true?'green':'amber';
-    return {path,inDev,inPersonal,contribution,color,build:'not-run',runtime:'unverified',
+    return {path,expected:target.expected.includes(path),inDev,inPersonal,contribution,color,build:'not-run',runtime:'unverified',
       finding:!inDev?(inPersonal?'Present on personal branch; missing from dev':'Missing from dev and personal branch')
         :association===true?'Contributor commit associated with this file; runtime not verified'
         :'File exists on dev; contributor attribution/functional outcome not verified'};
   });
   return {member:target.login,branch:'dev',personalBranch:target.ref,files,
-    counts:{dev:files.filter(x=>x.inDev).length,missing:files.filter(x=>!x.inDev).length,
+    counts:{dev:files.filter(x=>x.inDev).length,missing:files.filter(x=>x.expected&&!x.inDev).length,
       red:files.filter(x=>x.color==='red').length},
-    verdict:files.some(x=>!x.inDev)?'missing-dev-contributions':'needs-runtime-validation',
+    verdict:files.some(x=>x.expected&&!x.inDev)?'missing-dev-contributions':'needs-runtime-validation',
     working:[],notWorking:[],
-    missing:files.filter(x=>!x.inDev).map(x=>x.path),
+    missing:files.filter(x=>x.expected&&!x.inDev).map(x=>x.path),
     unknown:['No native build/test receipts collected','No verified runtime or adapter contract evidence'],
     caveat:'Green means GitHub source and author history verified, NOT working code. Red means expected file absent from dev and personal branch; author-email mismatch may affect attribution.'};
 }
@@ -87,7 +96,7 @@ function makeCollaboratorAudit(read=fetch,clock=Date.now) {
 function makeCollaboratorSource(read=fetch) {
   return async function source(member, file, ref, token) {
     const target=targets[String(member||'').toLowerCase()];
-    if(!target || typeof file!=='string' || !target.expected.includes(file) ||
+    if(!target || !belongs(target,file) ||
       (ref!=='dev' && ref!==target.ref)) {
       throw Object.assign(Error('Not an allowlisted source path'),{status:400});
     }
