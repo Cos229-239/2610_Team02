@@ -123,7 +123,7 @@ export function buildPhotoEnvironment(THREE,photo,mode){
    setWeather(next){condition=next;updateCanvas();},
    dispose(){group.parent?.remove(group);geometry?.dispose();material?.dispose();texture?.dispose();
     overlayGeometry?.dispose();overlayMaterial?.dispose();overlayTexture?.dispose();},
-   report:{photographic:true,source:photo.source,license:photo.license}};
+   report:{photographic:true,source:photo.source,license:photo.license,imageURL:photo.url}};
  }
  return initialize();
 }
