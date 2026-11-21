@@ -67,3 +67,12 @@ test('v3 recognizes capitalized ArcGIS roof fields',()=>{
   assert.equal(result[0].feet,192);
   assert.equal(result[0].id,'1000101');
 });
+
+test('NYC V4 replaces only named legacy skyline reversibly, without deletion',()=>{
+ const source=readFileSync(new URL('./nyc-atmosphere.mjs',import.meta.url),'utf8');
+ assert.ok(source.includes("getObjectByName('TF_CITY_SKYLINE')"));
+ assert.ok(source.includes('legacySkyline.visible=false'));
+ assert.ok(source.includes('legacySkyline.visible=legacyWasVisible'));
+ assert.equal(source.includes('scene.remove(legacySkyline)'),false);
+ assert.equal(source.includes('legacySkyline.clear()'),false);
+});
