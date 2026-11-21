@@ -19,13 +19,13 @@ function photograph(page){
 export async function findCapitalPhoto(destination,mode='day',request=fetch){
  const key=destination.id+':'+mode;
  if(cache.has(key))return cache.get(key);
- const titles=curated[destination.id],night=mode==='night';
+ const night=mode==='night';
  const city=destination.id==='new-york-city'?'New York City':destination.capital==='Federal District'?'Washington D.C.':destination.capital;
  const query=city+' skyline'+(night?' night':'');
  const data=await json(params({generator:'search',gsrnamespace:'6',gsrsearch:query,gsrlimit:'12',
    prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'1400'}),request);
  let pages=data?.query?.pages||[];
- const cityWords=city.toLowerCase().split(/\\s+/).filter(w=>w.length>3);
+ const cityWords=city.toLowerCase().split(/\s+/).filter(w=>w.length>3);
  pages=pages.filter(p=>{
   const title=String(p.title||'').toLowerCase();
   return cityWords.some(w=>title.includes(w))&&/skyline|panorama|downtown|cityscape|view/.test(title)&&
