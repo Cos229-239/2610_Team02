@@ -87,25 +87,72 @@ $updates = @()
 if ((& $normalize ([IO.File]::ReadAllText($liveJs))) -cne (& $normalize $working)) {
     $updates += [pscustomobject]@{Path=$liveJs; Text=$working}
 }
+# Reconcile existing Azure files by adding only the reviewed integration capability.
+# Do not replace the host's customized server / desk UI.
+function Inject-Once {
+    param([string]$Text,[string]$Anchor,[string]$Insert,[string]$Label)
+    if ($Text.Split([string[]]@($Anchor),[StringSplitOptions]::None).Count -ne 2) {
+        throw "Cannot safely integrate $Label; missing/duplicate exact anchor. No files installed."
+    }
+    return $Text.Replace($Anchor,$Insert+$Anchor)
+}
 foreach ($file in $files) {
     $rel = $file.Replace('\','/')
     $destination = Join-Path $room $file
     $new = & $read $revision $rel
-    if (Test-Path $destination) {
-        $current = [IO.File]::ReadAllText($destination)
-        $baseline = if ($file -eq 'azure-bridge\integration-intake.cjs') { '' } else { & $read 'origin/dev' $rel }
-        if ((& $normalize $current) -cne (& $normalize $baseline) -and
-            (& $normalize $current) -cne (& $normalize $new)) {
-            throw "Local bridge customization detected: $file. No changes installed."
-        }
-        if ((& $normalize $current) -cne (& $normalize $new)) {
-            $updates += [pscustomobject]@{Path=$destination;Text=$new}
-        }
-    } else {
+    if (!(Test-Path $destination)) {
         if ($file -ne 'azure-bridge\integration-intake.cjs') {
-            throw "Missing preexisting Azure Bridge component: $file"
+            throw "Missing preexisting Azure Bridge component: $file. No files installed."
         }
         $updates += [pscustomobject]@{Path=$destination;Text=$new}
+        continue
+    }
+    $current = [IO.File]::ReadAllText($destination)
+    if ((& $normalize $current) -ceq (& $normalize $new)) { continue }
+    if ($file -eq 'azure-bridge\integration-intake.cjs') {
+        throw 'Existing integration intake has local changes. No overwrite attempted.'
+    }
+    if ($file -eq 'azure-bridge\server.cjs') {
+        $import = "const {makeIntegrationIntake} = require('./integration-intake.cjs');"
+        $init = '    const intake = makeIntegrationIntake();'
+        $routeStart = "    // Authenticated, read-only dev integration manifest."
+        $routeEnd = "    // Read-only, account-independent view of *merged dev* contributions."
+        $a = $new.IndexOf($routeStart,[StringComparison]::Ordinal)
+        $b = $new.IndexOf($routeEnd,[StringComparison]::Ordinal)
+        if ($a -lt 0 -or $b -le $a) { throw 'Reviewed intake route not found.' }
+        $route = $new.Substring($a,$b-$a)
+        if ($current.Contains($import) -or $current.Contains('/integration-intake')) {
+            throw 'Existing intake integration differs from reviewed module. No overwrite.'
+        }
+        $current = Inject-Once $current "const {makeTeamUpdates} = require('./team-updates.cjs');" ($import+"`n") 'intake import'
+        $current = Inject-Once $current '    const updates = makeTeamUpdates(publicDir);' ("`n"+$init) 'intake initialization'
+        $routeAnchor = "    app.get(prefix + '/team-updates', auth, ensureMember,"
+        $routeStartLocal = $current.IndexOf($routeAnchor,[StringComparison]::Ordinal)
+        if ($routeStartLocal -lt 0 -or $current.IndexOf($routeAnchor,$routeStartLocal+1,[StringComparison]::Ordinal) -ge 0) {
+            throw 'Existing team update route is missing or duplicated. No overwrite.'
+        }
+        # Insert before the existing update route, without changing the route's body.
+        $current = $current.Insert($routeStartLocal,$route)
+        Write-Host 'Preserved customized Azure server and added integration endpoint only.' -ForegroundColor Green
+    }
+    elseif ($file -eq 'azure-bridge\desk.js') {
+        $buttonStart = '<button data-try-dev>Try merged web app</button>'
+        $buttonNew = '<button data-integration>Review integration</button>'
+        $handlerStart = "        section.querySelector('[data-integration]').onclick = async () => {"
+        $handlerEnd = "        section.querySelector('[data-try-dev]').onclick=studio.openPreview;"
+        $a = $new.IndexOf($handlerStart,[StringComparison]::Ordinal)
+        $b = $new.IndexOf($handlerEnd,[StringComparison]::Ordinal)
+        if ($a -lt 0 -or $b -le $a) { throw 'Reviewed integration controls not found.' }
+        $handler = $new.Substring($a,$b-$a)
+        if ($current.Contains('data-integration') -or $current.Contains('/integration-intake')) {
+            throw 'Existing integration controls differ from reviewed module. No overwrite.'
+        }
+        $current = Inject-Once $current $buttonStart $buttonNew 'desk integration button'
+        $current = Inject-Once $current $handlerEnd $handler 'desk integration handler'
+        Write-Host 'Preserved customized Development Desk and added integration action only.' -ForegroundColor Green
+    }
+    if ((& $normalize ([IO.File]::ReadAllText($destination))) -cne (& $normalize $current)) {
+        $updates += [pscustomobject]@{Path=$destination;Text=$current}
     }
 }
 $node = (Get-Command node -ErrorAction Stop).Source
