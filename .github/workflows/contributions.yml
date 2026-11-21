@@ -31,6 +31,18 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Parse geographic installer using PowerShell AST (no installation)
+        shell: pwsh
+        run: |
+          $script = Join-Path $PWD 'tools/sync-geography-weather.ps1'
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            throw "Installer PowerShell parse failed"
+          }
+          Write-Host 'Geographic installer PowerShell AST: PASS'
       - name: Build and run the shared header with debug symbols
         shell: pwsh
         run: |
