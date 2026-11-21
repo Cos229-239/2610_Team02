@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {NYC_ORIGIN,climate,footprintFeatures,proceduralFallback,meshProfile} from './nyc-atmosphere.mjs';
 
 test('New York time conversion stays separate from user local timezone',()=>{
@@ -25,4 +26,13 @@ test('fallback deterministic and explicitly separate from measured NYC data',()=
   assert.deepEqual(a,b);
   assert.ok(a.every(v=>v.id.startsWith('sim-')));
   assert.ok(Math.abs(NYC_ORIGIN.lon+73.9832)<.001);
+});
+
+test('NYC V2 has no opaque planar sky card and does not replace global scene atmosphere',()=>{
+  const source=readFileSync(new URL('./nyc-atmosphere.mjs',import.meta.url),'utf8');
+  assert.equal(source.includes('new THREE.PlaneGeometry(270,150)'),false);
+  assert.equal(source.includes('scene.background='),false);
+  assert.equal(source.includes('scene.fog='),false);
+  assert.ok(source.includes('facadeBands'));
+  assert.ok(source.includes('for(let edge=0;edge<pts.length-1'));
 });
