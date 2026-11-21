@@ -295,7 +295,7 @@ export function installGeography({THREE,scene}){
   list.replaceChildren();
   const query=search.value.trim().toLowerCase();
   for(const d of [...destinations,nycDestination]){
-   if(!(d.state+' '+d.capital).toLowerCase().includes(query))continue;
+   if(!(d.state+' '+d.capital+(d.id==='new-york-city'?' NYC Manhattan':'')).toLowerCase().includes(query))continue;
    const b=document.createElement('button');b.type='button';
    b.textContent=d.state+' — '+d.capital+(d.kind==='district'?' · LANDMARK STUDY':d.kind==='city'?' · CITY, NOT CAPITAL':' · PHOTO / OSM');
    b.setAttribute('aria-current',String(state.destination===d.id));
