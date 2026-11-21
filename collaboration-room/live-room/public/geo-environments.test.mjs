@@ -112,8 +112,12 @@ test('selected city replaces towers with a true world-space photographic exterio
   createLinearGradient(){return {addColorStop(){}};},createRadialGradient(){return{addColorStop(){}};}};
  globalThis.document={createElement:()=>({width:1024,height:512,getContext:()=>ctx})};
  class Obj {constructor(){this.children=[];this.position={x:0,set:(x,y,z)=>{this.position.x=x;this.position.y=y;this.position.z=z;}};this.rotation={};}
-  add(...items){this.children.push(...items);}
-  getObjectByName(name){return this.children.find(item=>item.name===name);}
+  add(...items){for(const item of items){item.parent=this;this.children.push(item);}}
+  remove(item){this.children=this.children.filter(child=>child!==item);item.parent=null;}
+  clone(){const copy=new Obj();copy.name=this.name;return copy;}
+  getObjectByName(name){if(this.name===name)return this;
+   for(const item of this.children){const found=item.getObjectByName?.(name);if(found)return found;}
+   return null;}
  }
  class Geo {constructor(...size){this.parameters=size;}dispose(){}}
  class Material {constructor(opts={}){Object.assign(this,opts);this.color={setHex(){}};}dispose(){}}
@@ -129,6 +133,12 @@ test('selected city replaces towers with a true world-space photographic exterio
   const weather=city.group.getObjectByName('TF_CAPITAL_WEATHER_GLASS_OVERLAY');
   const aircraft=city.group.getObjectByName('TF_CAPITAL_EXTERIOR_AIRCRAFT');
   assert.ok(photo&&weather&&aircraft);
+  const business=city.group.getObjectByName('TF_CAPITAL_BUSINESS_EXTERIOR');
+  const businessCity=city.group.getObjectByName('TF_CAPITAL_BUSINESS_CITY_0');
+  assert.ok(business&&businessCity);
+  assert.ok(businessCity.position.x>83);
+  assert.equal(business.children.filter(x=>x.name?.startsWith('TF_CAPITAL_BUSINESS_CITY_')).length,3);
+
   assert.ok(photo.position.x<-21&&weather.position.x<-21);
   assert.ok(weather.position.x>photo.position.x);
   assert.equal(photo.geometry.parameters[0],84);
