@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {installCapitalWorld} from './capital-world.mjs';
 const $=id=>document.getElementById(id), scene=new THREE.Scene();scene.background=new THREE.Color('#07101a');scene.fog=new THREE.FogExp2('#0a1623',0.014);
 const camera=new THREE.PerspectiveCamera(73,innerWidth/innerHeight,.1,130),renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;$('scene').appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0x83b9e5,0x152039,2.1));
@@ -8,7 +9,11 @@ function mat(color,metalness=.28,roughness=.45,emissive=0x000000,intensity=0){re
 const wall=mat('#172638',.55,.46),floor=mat('#182432',.36,.63),dark=mat('#050e18',.7,.3),silver=mat('#4d6575',.75,.25),neon=mat('#5cddff',.25,.17,'#1cbaff',2.6),violet=mat('#ab95ff',.2,.24,'#7161ff',1.8),gold=mat('#d6b68d',.52,.36);
 function box(w,h,d,x,y,z,m,parent=scene){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);parent.add(mesh);return mesh;}
 function plane(w,h,x,y,z,m,rotate=0){let mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),m);mesh.position.set(x,y,z);mesh.rotation.y=rotate;scene.add(mesh);return mesh;}
-box(42,.5,32,0,-.27,0,floor);box(42,.5,32,0,11.4,0,wall);box(.6,11,32,-21,5.5,0,wall);box(.6,11,32,21,5.5,0,wall);box(42,11,.6,0,5.5,-16,wall);box(42,11,.6,0,5.5,16,wall);
+box(42,.5,32,0,-.27,0,floor);box(42,.5,32,0,11.4,0,wall);
+// Exterior observation window: left atrium wall, original floor/ceiling and room boundary retained.
+for(const z of [-12.5,12.5])box(.6,11,7,-21,5.5,z,wall);
+box(.6,3.25,18,-21,1.625,0,wall);box(.6,2.75,18,-21,10.025,0,wall);
+box(.6,11,32,21,5.5,0,wall);box(42,11,.6,0,5.5,-16,wall);box(42,11,.6,0,5.5,16,wall);
 // Reflective seams, luminous ceiling rails, and wall insets.
 for(let i=-18;i<=18;i+=3){box(.045,.02,32,i,.02,0,silver);box(.055,.04,32,i,11.12,0,neon);}
 for(let i=-13;i<=13;i+=3){box(42,.02,.045,0,.015,i,silver);box(42,.04,.055,0,11.1,i,neon);}
@@ -106,7 +111,10 @@ box(42, .5, 32, tfRoomX, -.27, 0, floor);
 box(42, .5, 32, tfRoomX, 11.4, 0, wall);
 
 box(.6, 11, 32, tfRoomX - 21, 5.5, 0, wall);
-box(.6, 11, 32, tfRoomX + 21, 5.5, 0, wall);
+// Exterior observation window: right development wall. Navigation bounds and other walls unchanged.
+for (const z of [-12.5,12.5]) box(.6,11,7,tfRoomX+21,5.5,z,wall);
+box(.6,3.25,18,tfRoomX+21,1.625,0,wall);
+box(.6,2.75,18,tfRoomX+21,10.025,0,wall);
 
 box(42, 11, .6, tfRoomX, 5.5, -16, wall);
 box(42, 11, .6, tfRoomX, 5.5, 16, wall);
@@ -3502,3 +3510,10 @@ scene.add(group);
 window.tfReferenceStudio=Object.freeze({dispose(){scene.remove(group);group.traverse(o=>{if(o.geometry)o.geometry.dispose();});materials.forEach(m=>m.dispose());delete window.tfReferenceStudio;}});
 }());
 // TF_REFERENCE_STUDIO_V1_END
+
+// TF_CAPITAL_WORLD_V1_BEGIN
+// Real geometrical openings and 3D city layers are generated outside the existing rooms.
+// Independent browser-only activity selection, no world-sync publication or changes to tools.
+try{installCapitalWorld({THREE,scene,renderer,document});}
+catch(error){console.error('Capital exterior unavailable; original TowerFlow remains active.',error);}
+// TF_CAPITAL_WORLD_V1_END
