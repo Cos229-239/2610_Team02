@@ -127,8 +127,10 @@ test('selected city replaces towers with a true world-space photographic exterio
   MeshBasicMaterial:Material,CanvasTexture:Texture,DoubleSide:2,SRGBColorSpace:'srgb',
   TextureLoader:class{setCrossOrigin(){}load(url,done){done(new Texture());}}};
  try{
+  const dayRoom=new Obj();dayRoom.name='TF_DAYLIGHT_BUSINESS_ROOM';dayRoom.visible=true;
+  const scene={getObjectByName:name=>name==='TF_DAYLIGHT_BUSINESS_ROOM'?dayRoom:null};
   const city=await buildPhotoEnvironment(THREE,{url:'https://upload.wikimedia.org/test.jpg',
-   source:'https://commons.wikimedia.org/wiki/File:Test',license:'CC BY-SA 4.0'},'day');
+   source:'https://commons.wikimedia.org/wiki/File:Test',license:'CC BY-SA 4.0'},'day',scene);
   const photo=city.group.getObjectByName('TF_CAPITAL_REAL_CITY_PHOTO');
   const weather=city.group.getObjectByName('TF_CAPITAL_WEATHER_GLASS_OVERLAY');
   const aircraft=city.group.getObjectByName('TF_CAPITAL_EXTERIOR_AIRCRAFT');
@@ -136,6 +138,9 @@ test('selected city replaces towers with a true world-space photographic exterio
   const business=city.group.getObjectByName('TF_CAPITAL_BUSINESS_EXTERIOR');
   const businessCity=city.group.getObjectByName('TF_CAPITAL_BUSINESS_CITY_0');
   assert.ok(business&&businessCity);
+  assert.equal(business.visible,true);
+  assert.equal(city.group.getObjectByName('TF_CAPITAL_COLLAB_EXTERIOR').visible,false);
+  assert.equal(typeof businessCity.onBeforeRender,'function');
   assert.ok(businessCity.position.x>83);
   assert.equal(business.children.filter(x=>x.name?.startsWith('TF_CAPITAL_BUSINESS_CITY_')).length,3);
 
