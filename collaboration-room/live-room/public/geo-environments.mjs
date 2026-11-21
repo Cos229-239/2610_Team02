@@ -240,15 +240,13 @@ export function installGeography({THREE,scene}){
  const sceneEffects=installSceneCompositor();
  let effectsEnabled=false,pendingDestination=null,selectedPhoto=null;
  let weatherMesh=null,weatherGeometry=null,weatherMaterial=null,weatherAnimation=0;
- const originalBackground=scene.background,originalFogColor=scene.fog?.color?.clone?.();
  function applyExteriorBackground(){
-  // Preserve the user's proven cinematic scene background and fog.
-  // A sky-color-only change would be hidden by the room's opaque walls.
-  // The additive viewport compositor owns visible sunlight/cloud/rain effects.
+  // Preserve the renderer's existing dynamic background and fog ownership.
+  // Weather is composited into the visible camera viewport instead.
  }
  function restoreExteriorBackground(){
-  scene.background=originalBackground;
-  if(originalFogColor&&scene.fog?.color)scene.fog.color.copy(originalFogColor);
+  // Intentionally no-op: this module never overwrites global background/fog.
+  // Do not reset another TowerFlow theme's live appearance.
  }
 
  function clearWeatherVisual(){
