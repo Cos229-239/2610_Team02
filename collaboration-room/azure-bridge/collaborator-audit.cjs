@@ -41,11 +41,11 @@ function summarize(target, devTree, ownTree, evidence) {
     const inDev=devPaths.has(path), inPersonal=personalPaths.has(path);
     const association=evidence[path]; // true/false/null; only true confirms GitHub author evidence
     const contribution=inDev ? (association===true?'confirmed':association===false?'unattributed':'unknown') : 'not-on-dev';
-    const color=!inDev ? (inPersonal?'amber':'red') : association===true?'green':'amber';
+    const color=!inDev ? (inPersonal?'amber':'red') : association===true?'green':association===false?'red':'amber';
     return {path,expected:target.expected.includes(path),inDev,inPersonal,contribution,color,build:'not-run',runtime:'unverified',
       finding:!inDev?(inPersonal?'Present on personal branch; missing from dev':'Missing from dev and personal branch')
         :association===true?'Contributor commit associated with this file; runtime not verified'
-        :'File exists on dev; contributor attribution/functional outcome not verified'};
+        :association===false?'No author-matched commit found for this file on dev; verify GitHub identity/email':'File exists on dev; contributor attribution/functional outcome not verified'};
   });
   return {member:target.login,branch:'dev',personalBranch:target.ref,files,
     counts:{dev:files.filter(x=>x.inDev).length,missing:files.filter(x=>x.expected&&!x.inDev).length,
@@ -54,7 +54,7 @@ function summarize(target, devTree, ownTree, evidence) {
     working:[],notWorking:[],
     missing:files.filter(x=>x.expected&&!x.inDev).map(x=>x.path),
     unknown:['No native build/test receipts collected','No verified runtime or adapter contract evidence'],
-    caveat:'Green means GitHub source and author history verified, NOT working code. Red means expected file absent from dev and personal branch; author-email mismatch may affect attribution.'};
+    caveat:'Green means GitHub source and author history verified, NOT working code. Red means expected file missing from both branches OR no author-matched contribution found on dev; Git author/email association can be incomplete.'};
 }
 function makeCollaboratorAudit(read=fetch,clock=Date.now) {
   const cache=new Map();
