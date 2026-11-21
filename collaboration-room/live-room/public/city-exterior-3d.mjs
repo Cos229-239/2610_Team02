@@ -5,7 +5,7 @@
 import {createCinematicDisaster} from './cinematic-disaster-scenario.mjs';
 import {createCinematicStorm} from './cinematic-storm-system.mjs';
 export const CITY_VERSION='tf-exterior-3d-v4-cinematic-storms';
-export const CITY_EVENTS=Object.freeze([["normal","Normal city activity"],["sunny","Sunny"],["cloudy","Cloudy"],["rain","Rain"],["snow","Snow"],["blizzard","Blizzard / strong winds"],["thunder","Thunderstorm"],["severe","Severe thunderstorm / tornado / wind"],["fire","Urban fire"],["cataclysm","Cataclysm"],["typhoon","Typhoon (fictional)"],["hurricane","Hurricane (fictional)"],["zombie","Zombie apocalypse (fiction)"],["airborne","Airborne illness / emergency response (fiction)"],["purge","12-hour lawless-night (fiction)"],["rapture","Rapture: 3 phases (fictional interpretation)"],["sept11","September 11 remembrance (non-graphic NYC)"]].map(row=>Object.freeze(row)));
+export const CITY_EVENTS=Object.freeze([["normal","Normal city activity"],["sunny","Sunny"],["cloudy","Cloudy"],["rain","Rain"],["snow","Snow"],["blizzard","Blizzard / strong winds"],["thunder","Thunderstorm"],["severe","Severe thunderstorm / tornado / wind"],["fire","Urban fire"],["cataclysm","Cataclysm"],["typhoon","Typhoon (fictional)"],["hurricane","Hurricane (fictional)"],["zombie","Zombie apocalypse (fiction)"],["airborne","Airborne illness / emergency response (fiction)"],["purge","12-hour lawless-night (fiction)"],["rapture","Rapture: 3 phases (fictional interpretation)"],["sept11","Fictional NYC disaster cinematic (alternate history)"]].map(row=>Object.freeze(row)));
 
 const near=(a,b,e=.04)=>Math.abs(a-b)<e;
 export function locateAtriumWindow(scene){
@@ -327,6 +327,9 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       raptureGroup.visible=next==='rapture';
       if(next==='sept11')disaster.start();else disaster.stop();
       cinematicStorm.setMode(['severe','hurricane','typhoon','blizzard'].includes(next)?next:null);
+      // Tinted skies, strong hurricane rain and brighter wet surfaces; texture is unchanged.
+      skyMat.color.set(['severe','hurricane','typhoon','blizzard'].includes(next)?'#78848f':'#ffffff');
+      particleMaterial.opacity=['hurricane','typhoon','severe'].includes(next)?.9:.55;
       // Controls can be created after the first normal-mode call.
       if(typeof seek!=='undefined'&&seek){seek.style.display=next==='sept11'?'inline-block':'none';seek.value='0';}
       if(typeof phaseStatus!=='undefined'&&phaseStatus)phaseStatus.textContent=next==='sept11'?'Aircraft approach · fictionalized':'';
@@ -431,9 +434,12 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         const p=particleGeometry.attributes.position.array;
         for(let i=0;i<p.length;i+=3){
           p[i+1]-=(rainModes.has(mode)?13:2.1)*delta;
-          p[i]+=(mode==='rain'||mode==='storm')?-1.5*delta:.3*delta;
+          const wind=mode==='hurricane'?-23:mode==='typhoon'?-29:mode==='severe'?-17:mode==='blizzard'?-9:mode==='rain'?-1.5:.3;
+          p[i]+=wind*delta;
+          p[i+2]+=wind*delta*.35;
           if(p[i+1]<STREET_LEVEL)p[i+1]=STREET_LEVEL+85+(i%17);
           if(p[i]<-115)p[i]=-23;
+          if(p[i+2]<-75)p[i+2]=75;
         }
         particleGeometry.attributes.position.needsUpdate=true;
       }
