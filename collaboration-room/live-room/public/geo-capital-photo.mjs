@@ -65,12 +65,12 @@ export function buildPhotoEnvironment(THREE,photo,mode){
  if(!ctx)throw Error('Canvas sky rendering unavailable');
  overlayTexture=new THREE.CanvasTexture(canvas);
  overlayTexture.colorSpace=THREE.SRGBColorSpace;
- overlayMaterial=new THREE.MeshBasicMaterial({map:overlayTexture,transparent:true,opacity:1,
+ overlayMaterial=new THREE.MeshBasicMaterial({map:overlayTexture,transparent:true,opacity:1,fog:false,
   toneMapped:false,depthWrite:false,side:THREE.DoubleSide});
- overlayGeometry=new THREE.PlaneGeometry(120,58);
+ overlayGeometry=new THREE.PlaneGeometry(84,40);
  const overlay=new THREE.Mesh(overlayGeometry,overlayMaterial);
  overlay.name='TF_CAPITAL_WEATHER_GLASS_OVERLAY';
- overlay.position.set(-42.93,7,0);overlay.rotation.y=Math.PI/2;overlay.renderOrder=5;overlay.raycast=()=>{};
+ overlay.position.set(-46.93,6.5,0);overlay.rotation.y=Math.PI/2;overlay.renderOrder=5;overlay.raycast=()=>{};
  group.add(overlay);
  function updateCanvas(){
   const p=environmentPalette(current,condition),w=canvas.width,h=canvas.height;
@@ -113,13 +113,13 @@ export function buildPhotoEnvironment(THREE,photo,mode){
    loader.load(photo.url,resolve,undefined,()=>reject(Error('City photograph texture unavailable')));
   });
   texture.colorSpace=THREE.SRGBColorSpace;
-  material=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false,depthWrite:false});
-  geometry=new THREE.PlaneGeometry(120,58);
+  material=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false,depthWrite:false,fog:false});
+  geometry=new THREE.PlaneGeometry(84,40);
   const surface=new THREE.Mesh(geometry,material);
   surface.name='TF_CAPITAL_REAL_CITY_PHOTO';
   // Far outside the glazing at x=-21. This replaces city towers in the
   // actual Three.js world; never duplicate the photo as a fixed UI overlay.
-  surface.position.set(-43,7,0);surface.rotation.y=Math.PI/2;surface.renderOrder=4;surface.raycast=()=>{};
+  surface.position.set(-47,6.5,0);surface.rotation.y=Math.PI/2;surface.renderOrder=4;surface.raycast=()=>{};
   group.add(surface);
   // Preserve exterior liveliness independently of the hidden legacy towers.
   // One low-cost distant aircraft traverses the selected city panorama.
@@ -136,9 +136,10 @@ export function buildPhotoEnvironment(THREE,photo,mode){
   // This callback executes only while the exterior photo is actually rendered.
   surface.onBeforeRender=()=>{
    const seconds=(performance.now()-flightEpoch)/1000;
-   flight.position.set(-41,11+Math.sin(seconds*.09)*1.1,
+   flight.position.set(-45,11+Math.sin(seconds*.09)*1.1,
     -46+(seconds*1.35)%92);
    beacon.visible=(Math.floor(seconds*2)%2)===0;
+   if(environmentPalette(current,condition).cloud)overlayTexture.offset.x=(seconds*.0006)%1;
   };
   updateCanvas();
   return {group,setTime(next){current=next;updateCanvas();},
