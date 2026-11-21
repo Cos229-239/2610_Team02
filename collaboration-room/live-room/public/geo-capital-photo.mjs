@@ -2,6 +2,13 @@
 // Wikimedia Commons metadata is checked per image. A photograph is NOT a 3D scan.
 const BASE='https://commons.wikimedia.org/w/api.php';
 const cache=new Map();
+// A deterministic, location-confirmed Alaska reference. The Commons metadata
+// API remains authoritative for license, author and actual image URL.
+// Source camera geotag: 58.289373 N, -134.400816 W, bearing 315 degrees.
+// This is a historical 2009 PHOTO, not a current simulation or 3D scan.
+export const verifiedCapitalPhotoTitles=Object.freeze({
+ alaska:'File:Downtown Juneau and Mount Juneau, Alaska from Gastineau Channel.jpg'
+});
 const allowable=/^(?:CC0|CC BY(?:-SA)?(?: [1-9](?:\.\d)?)?|Public domain)/i;
 const htmlText=s=>String(s||'').replace(/<[^>]*>/g,' ').replace(/&amp;/g,'&').replace(/&nbsp;/g,' ').trim();
 function params(data){return BASE+'?'+new URLSearchParams({action:'query',format:'json',formatversion:'2',origin:'*',...data});}
@@ -20,21 +27,33 @@ export async function findCapitalPhoto(destination,mode='day',request=fetch){
  const key=destination.id+':'+mode;
  if(cache.has(key))return cache.get(key);
  const night=mode==='night';
- const city=destination.id==='new-york-city'?'New York City':destination.capital==='Federal District'?'Washington D.C.':destination.capital;
- const district=destination.kind==='district';
- const locale=destination.kind==='state'?' '+destination.state:'';
- const query=district?'Lincoln Memorial Reflecting Pool Washington D.C.':city+locale+' skyline'+(night?' night':'');
- const data=await json(params({generator:'search',gsrnamespace:'6',gsrsearch:query,gsrlimit:'12',
-   prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'1400'}),request);
- let pages=data?.query?.pages||[];
- const cityWords=city.toLowerCase().split(/\s+/).filter(w=>w.length>3);
- pages=pages.filter(p=>{
-  const title=String(p.title||'').toLowerCase();
-  return (district?/lincoln memorial|reflecting pool|washington monument/.test(title):
-    cityWords.some(w=>title.includes(w))&&/skyline|panorama|downtown|cityscape|view/.test(title))&&
-   !/map|flag|logo|drawing|diagram|historic|painting|illustration/.test(title);
- });
-
+ const title=verifiedCapitalPhotoTitles[destination.id];
+ let pages=[];
+ if(title){
+  // The exact Commons file and its CC license were independently checked.
+  // Avoid subjective search ranking and misleading generic cities.
+  const data=await json(params({titles:title,prop:'imageinfo',
+   iiprop:'url|extmetadata',iiurlwidth:'1400'}),request);
+  pages=data?.query?.pages||[];
+  pages=pages.filter(page=>page.title===title);
+ }else{
+  const city=destination.id==='new-york-city'?'New York City':
+   destination.capital==='Federal District'?'Washington D.C.':destination.capital;
+  const district=destination.kind==='district';
+  const locale=destination.kind==='state'?' '+destination.state:'';
+  const query=district?'Lincoln Memorial Reflecting Pool Washington D.C.':
+   city+locale+' skyline'+(night?' night':'');
+  const data=await json(params({generator:'search',gsrnamespace:'6',gsrsearch:query,
+   gsrlimit:'12',prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'1400'}),request);
+  pages=data?.query?.pages||[];
+  const cityWords=city.toLowerCase().split(/\s+/).filter(w=>w.length>3);
+  pages=pages.filter(p=>{
+   const t=String(p.title||'').toLowerCase();
+   return (district?/lincoln memorial|reflecting pool|washington monument/.test(t):
+    cityWords.some(w=>t.includes(w))&&/skyline|panorama|downtown|cityscape|view/.test(t))&&
+    !/map|flag|logo|drawing|diagram|historic|painting|illustration/.test(t);
+  });
+ }
  for(const page of pages){
   const photo=photograph(page);
   if(photo){cache.set(key,photo);return photo;}
