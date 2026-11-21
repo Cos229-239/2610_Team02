@@ -116,7 +116,7 @@ test('selected city replaces towers with a true world-space photographic exterio
   getObjectByName(name){return this.children.find(item=>item.name===name);}
  }
  class Geo {constructor(...size){this.parameters=size;}dispose(){}}
- class Material {constructor(){this.color={setHex(){}};}dispose(){}}
+ class Material {constructor(opts={}){Object.assign(this,opts);this.color={setHex(){}};}dispose(){}}
  class Mesh extends Obj{constructor(geometry,material){super();this.geometry=geometry;this.material=material;}}
  class Texture{constructor(){this.offset={x:0};}dispose(){}}
  const THREE={Group:Obj,Mesh,BoxGeometry:Geo,SphereGeometry:Geo,PlaneGeometry:Geo,
