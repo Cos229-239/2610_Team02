@@ -118,7 +118,7 @@ export function installSceneCompositor({mount=document.body}={}){
    (warning?'  ·  '+warning:'');
   // 2D photo duplication is forbidden. The world-anchored exterior plane
   // renders the city through its real window frames, not over the HUD.
-  if(false && photoURL){
+  if(photoURL && !worldExterior){
    const temp=new Image();
    temp.referrerPolicy='no-referrer';
    const request=++photoLoad;
