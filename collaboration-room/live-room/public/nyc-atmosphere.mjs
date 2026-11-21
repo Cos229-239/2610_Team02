@@ -72,6 +72,32 @@ export function meshProfile(item,origin=NYC_ORIGIN,unitsPerMeter=9) {
   ]);
   return {points,height:Math.min(75,Math.max(2,item.feet*.3048/unitsPerMeter))};
 }
+// Never position mechanical roofs over an empty parcel corner.
+export function pointInFootprint(x,z,points) {
+  let inside=false;
+  for(let i=0,j=points.length-1;i<points.length;j=i++){
+    const [xi,zi]=points[i],[xj,zj]=points[j];
+    if(((zi>z)!==(zj>z)) &&
+      x<(xj-xi)*(z-zi)/(zj-zi)+xi)inside=!inside;
+  }
+  return inside;
+}
+export function interiorRoofPoint(points) {
+  if(points.length<3)return null;
+  const unique=points.length>3&&points[0][0]===points.at(-1)[0]&&
+    points[0][1]===points.at(-1)[1]?points.slice(0,-1):points;
+  const mid=[unique.reduce((n,p)=>n+p[0],0)/unique.length,
+    unique.reduce((n,p)=>n+p[1],0)/unique.length];
+  if(pointInFootprint(mid[0],mid[1],points))return mid;
+  // For concave footprints, only retain an interior centroid of a local
+  // triangle; otherwise omit the rooftop ornament instead of floating it.
+  for(let i=1;i<unique.length-1;i++){
+    const p=[(unique[0][0]+unique[i][0]+unique[i+1][0])/3,
+      (unique[0][1]+unique[i][1]+unique[i+1][1])/3];
+    if(pointInFootprint(p[0],p[1],points))return p;
+  }
+  return null;
+}
 async function fetchJson(url,timeout=8000) {
   const control=new AbortController(),timer=setTimeout(()=>control.abort(),timeout);
   try {
@@ -254,9 +280,10 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
         const xs=pts.map(p=>p[0]),zs=pts.map(p=>p[1]);
         const minX=Math.min(...xs),maxX=Math.max(...xs);
         const minZ=Math.min(...zs),maxZ=Math.max(...zs);
-        const cx=(minX+maxX)*.5,cz=(minZ+maxZ)*.5;
+        const roofPoint=interiorRoofPoint(pts);
+        const cx=roofPoint?.[0],cz=roofPoint?.[1];
         const width=maxX-minX,depth=maxZ-minZ;
-        if(width>.7 && depth>.7 && profile.height>5.4){
+        if(roofPoint&&width>.7 && depth>.7 && profile.height>5.4){
           const crown=new THREE.Mesh(
             new THREE.BoxGeometry(Math.min(2.8,width*.7),.36+ rng()*.32,Math.min(2.6,depth*.67)),
             roofMaterial);
