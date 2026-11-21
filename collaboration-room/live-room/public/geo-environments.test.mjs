@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {destinations,validateDestinations,selectMode,createDCLandmarkStudy} from './geo-environments.mjs';
+import {destinations,validateDestinations,selectMode,createDCLandmarkStudy,weatherGlyph,fetchNWSHourlyForecast} from './geo-environments.mjs';
 test('50 distinct states and one federal district with capital mappings',()=>{
  assert.equal(destinations.length,51);
  assert.equal(destinations.filter(x=>x.kind==='state').length,50);
@@ -32,4 +32,26 @@ test('DC exterior reference includes 36 distinct colonnade shaft objects',()=>{
  assert.equal(dc.group.name,'TF_DC_LINCOLN_REFERENCE_STUDY');
  assert.equal(dc.group.children.filter(x=>x.geometry instanceof THREE.CylinderGeometry).length,36);
  dc.setTime('night');dc.setTime('morning');dc.dispose();
+});
+test('weather display distinguishes storms, rain, cloud and night without fabrication',()=>{
+ assert.equal(weatherGlyph('Thunderstorms','day'),'⛈️');
+ assert.equal(weatherGlyph('Rain showers','day'),'🌧️');
+ assert.equal(weatherGlyph('Mostly Cloudy','day'),'☁️');
+ assert.equal(weatherGlyph('Clear','night'),'🌙');
+});
+test('NWS hourly forecast preserves source, validates host and remains forecast, not observation',async()=>{
+ const requests=[];
+ const response=async url=>{
+  requests.push(url);
+  if(url.includes('/points/'))return {ok:true,json:async()=>({
+   properties:{forecastHourly:'https://api.weather.gov/gridpoints/LWX/99,70/forecast/hourly'}
+  })};
+  return {ok:true,json:async()=>({properties:{periods:[{
+   shortForecast:'Mostly Cloudy',temperature:49,temperatureUnit:'F'}]}})};
+ };
+ const result=await fetchNWSHourlyForecast(38.8893,-77.0502,response);
+ assert.equal(requests.length,2);
+ assert.equal(result.condition,'Mostly Cloudy');
+ assert.match(result.source,/FORECAST — NOT OBSERVED/);
+ await assert.rejects(fetchNWSHourlyForecast(0,0,response));
 });
