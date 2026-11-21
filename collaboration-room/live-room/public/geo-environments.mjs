@@ -134,12 +134,70 @@ export function installGeography({THREE,scene}){
  const list=document.createElement('div');list.style.cssText='max-height:42vh;overflow-y:auto';
  const status=document.createElement('p');status.setAttribute('role','status');
  status.textContent='D.C. architectural study available; other cities require verified reference scenes.';
- body.append(search,mode,status,list);wrap.append(heading,body);document.body.append(wrap);
+ const weatherControls=document.createElement('div');
+ weatherControls.style.cssText='display:flex;gap:5px;flex-wrap:wrap;margin:8px 0';
+ const weatherModeSelect=document.createElement('select');
+ weatherModeSelect.setAttribute('aria-label','Weather source');
+ const manualSelect=document.createElement('select');
+ manualSelect.setAttribute('aria-label','Simulated weather');
+ for(const [value,label] of [['live','LIVE NWS'],['manual','MANUAL']]){
+  const op=document.createElement('option');op.value=value;op.textContent=label;weatherModeSelect.append(op);
+ }
+ for(const value of ['sun','clouds','rain','thunderstorm']){
+  const op=document.createElement('option');op.value=value;op.textContent=value.toUpperCase();manualSelect.append(op);
+ }
+ manualSelect.hidden=true;
+ weatherControls.append(weatherModeSelect,manualSelect);
+ const restore=document.createElement('button');
+ restore.textContent='RETURN TO ORIGINAL ROOM';restore.type='button';
+ body.append(search,mode,weatherControls,status,restore,list);wrap.append(heading,body);document.body.append(wrap);
  const weather=document.createElement('div');weather.id='tf-geography-weather';
  weather.style.cssText='position:fixed;left:22px;top:68px;z-index:910;color:#ecf8ff;background:#081624ed;padding:4px 9px;font:12px system-ui';
  weather.textContent='☀️ · WEATHER UNVERIFIED';document.body.append(weather);
- let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'live'});
+ let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'live',manualWeather:'sun'});
  let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0,loadSerial=0;
+ let weatherMesh=null,weatherGeometry=null,weatherMaterial=null,weatherAnimation=0;
+ function clearWeatherVisual(){
+  if(weatherAnimation)cancelAnimationFrame(weatherAnimation);
+  weatherAnimation=0;
+  weatherMesh?.parent?.remove(weatherMesh);
+  weatherGeometry?.dispose();weatherMaterial?.dispose();
+  weatherMesh=weatherGeometry=weatherMaterial=null;
+ }
+ function applyWeatherVisual(){
+  clearWeatherVisual();
+  if(!active)return;
+  const condition=state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'';
+  const rain=/rain|storm|shower|drizzle/i.test(condition);
+  const cloud=/cloud|overcast|rain|storm/i.test(condition);
+  if(active.group){
+   active.group.traverse(obj=>{
+    if(obj.type==='DirectionalLight')obj.intensity*=cloud?.62:1;
+   });
+  }
+  if(!rain)return;
+  const points=new Float32Array(180*3);
+  for(let i=0;i<180;i++){
+   points[i*3]=(Math.random()-.5)*52;
+   points[i*3+1]=Math.random()*22+1;
+   points[i*3+2]=(Math.random()-.5)*42;
+  }
+  weatherGeometry=new THREE.BufferGeometry();
+  weatherGeometry.setAttribute('position',new THREE.BufferAttribute(points,3));
+  weatherMaterial=new THREE.PointsMaterial({color:0xaed7f4,size:.17,opacity:.7,transparent:true});
+  weatherMesh=new THREE.Points(weatherGeometry,weatherMaterial);
+  weatherMesh.name='TF_CAPITAL_WEATHER_RAIN';
+  active.group.add(weatherMesh);
+  const tick=()=>{
+   if(!weatherMesh||!active)return;
+   for(let i=1;i<points.length;i+=3){
+    points[i]-=.27;if(points[i]<0)points[i]=22;
+   }
+   weatherGeometry.attributes.position.needsUpdate=true;
+   weatherAnimation=requestAnimationFrame(tick);
+  };
+  weatherAnimation=requestAnimationFrame(tick);
+ }
  const originalSkyline=scene.getObjectByName('TF_CITY_SKYLINE');
  const skylineWasVisible=originalSkyline?.visible;
  let nycWasEnabled=null;
@@ -156,12 +214,33 @@ export function installGeography({THREE,scene}){
    b.addEventListener('click',()=>activate(d.id));list.append(b);
   }
  }
+ function renderWeather(){
+  const d=destinations.find(v=>v.id===state.destination);
+  const label=state.weatherMode==='manual'?state.manualWeather+' · SIMULATED':
+   weatherForecast?weatherForecast.condition+' · NWS HOURLY FORECAST':
+   'NWS WEATHER UNAVAILABLE';
+  weather.textContent=weatherGlyph(label,state.timeMode)+' · '+(d?.capital||'CAPITAL')+' · '+label;
+  applyWeatherVisual();
+ }
  function setTime(value){
   state=selectMode(state,value);
   if(active)active.setTime(value);
   for(const radio of mode.querySelectorAll('input'))radio.checked=radio.value===value;
+  renderWeather();
+ }
+ async function updateWeather(){
   const d=destinations.find(v=>v.id===state.destination);
-  weather.textContent=weatherForecast?weatherGlyph(weatherForecast.condition,value)+' · '+d?.capital+' · '+weatherForecast.condition+' · NWS forecast':(value==='night'?'🌙':'☀️')+' · WEATHER UNVERIFIED';
+  if(!d||state.weatherMode!=='live')return;
+  const serial=++weatherRequest,current=state.destination;
+  try{
+   const result=await fetchNWSHourlyForecast(d.latitude,d.longitude);
+   if(serial!==weatherRequest||state.destination!==current)return;
+   weatherForecast=result;renderWeather();
+  }catch{
+   if(serial!==weatherRequest)return;
+   weather.textContent=weatherForecast?'⚠️ '+d.capital+' · CACHED NWS FORECAST':
+    '⚠️ '+d.capital+' · NWS WEATHER UNAVAILABLE';
+  }
  }
  for(const value of modes){
   const label=document.createElement('label');label.style.marginRight='5px';
@@ -200,33 +279,39 @@ export function installGeography({THREE,scene}){
   scene.add(prepared.group);state=Object.freeze({...state,destination:id});
   status.textContent=d.kind==='district'?'WASHINGTON, D.C. · Architectural study, not verified high-fidelity reconstruction':d.capital+' · '+prepared.report.buildings+' verified OSM footprint records, '+prepared.report.estimated+' estimated heights';
   render();weatherForecast=null;
-  if(!weatherTimer){
-   const update=async()=>{
-     const serial=++weatherRequest;
-     try{
-       const target=destinations.find(v=>v.id===state.destination);
-       if(!target)return;
-       const result=await fetchNWSHourlyForecast(target.latitude,target.longitude);
-       if(serial!==weatherRequest)return;
-       weatherForecast=result;setTime(state.timeMode);
-     }catch{
-       if(serial!==weatherRequest)return;
-       if(weatherForecast)weather.textContent+=' · CACHED';
-       else weather.textContent='⚠️ · NWS FORECAST UNAVAILABLE';
-     }
-   };
-   void update();weatherTimer=setInterval(()=>void update(),15*60*1000);
-  }
+  ++weatherRequest;
+  if(state.weatherMode==='live')void updateWeather();
+  renderWeather();
   return true;
  }
+ weatherModeSelect.addEventListener('change',()=>{
+  state=Object.freeze({...state,weatherMode:weatherModeSelect.value});
+  manualSelect.hidden=state.weatherMode!=='manual';
+  ++weatherRequest;
+  if(state.weatherMode==='live')void updateWeather();
+  renderWeather();
+ });
+ manualSelect.addEventListener('change',()=>{
+  state=Object.freeze({...state,manualWeather:manualSelect.value});
+  renderWeather();
+ });
+ function returnToOriginal(){
+  ++loadSerial;++weatherRequest;clearWeatherVisual();
+  if(active){scene.remove(active.group);active.dispose();active=null;}
+  if(originalSkyline)originalSkyline.visible=skylineWasVisible;
+  if(nycWasEnabled!==null){window.tfNYCAtmosphere?.setEnabled(nycWasEnabled);nycWasEnabled=null;}
+  state=Object.freeze({...state,destination:null});weatherForecast=null;
+  status.textContent='Original TowerFlow skyline restored.';render();renderWeather();
+ }
+ restore.addEventListener('click',returnToOriginal);
+ weatherTimer=setInterval(()=>{if(state.weatherMode==='live')void updateWeather();},15*60*1000);
  heading.addEventListener('click',()=>{body.hidden=!body.hidden;heading.setAttribute('aria-expanded',String(!body.hidden));});
  search.addEventListener('input',render);render();
  const api=Object.freeze({activate,setTime,get state(){return state;},
   get diagnostics(){return{destinations:destinations.length,sceneActive:!!active,
    validatedHighFidelityScenes:0,knownArchitecturalStudies:1};},
-  dispose(){if(active){scene.remove(active.group);active.dispose();}
-   if(originalSkyline)originalSkyline.visible=skylineWasVisible;
-   if(nycWasEnabled!==null)window.tfNYCAtmosphere?.setEnabled(nycWasEnabled);
+  returnToOriginal,
+  dispose(){returnToOriginal();
    if(weatherTimer)clearInterval(weatherTimer);weatherRequest++;
    wrap.remove();weather.remove();delete window.tfGeography;}});
  window.tfGeography=api;return api;
