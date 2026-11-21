@@ -9,7 +9,8 @@ $branch='feature/team02-member-desks-preservation-20261120'
 $path='collaboration-room/live-room/public/nyc-atmosphere.mjs'
 $accepted=@(
   'e33cf8300fd64fd616fdc9e192d062cf5e1d3ea2',  # reviewed V1
-  'dad2e5d3ef5541af22bef4032a52c43fbc2d52c0'   # reviewed V2
+  'dad2e5d3ef5541af22bef4032a52c43fbc2d52c0',  # reviewed V2
+  '137ea5c561b4114af8e314cefd90ed8987c355d2'   # previously installed V3
 )
 if(!(Test-Path (Join-Path $repo '.git'))){throw 'Team Git checkout missing'}
 if(!(Test-Path -LiteralPath $file) -or !(Test-Path -LiteralPath $roomFile)){
@@ -32,7 +33,7 @@ $currentBytes=[IO.File]::ReadAllBytes($file)
 $current=[IO.File]::ReadAllText($file)
 $updated=ReadGit $revision
 if((Canonical $current) -ceq (Canonical $updated)){
-  Write-Host 'NYC V3 already installed. No changes needed.' -ForegroundColor Green
+  Write-Host 'NYC skyline update already installed. No changes needed.' -ForegroundColor Green
   return
 }
 $match=$false
@@ -73,7 +74,7 @@ if($liveBefore -cne $liveAfter){
  [IO.File]::WriteAllBytes($file,$currentBytes)
  throw 'Original room changed concurrently; NYC module restored'
 }
-Write-Host 'NYC PHOTO RECONSTRUCTION V3 — INSTALLED' -ForegroundColor Green
+Write-Host 'NYC LEGACY SKYLINE RECONCILIATION — INSTALLED' -ForegroundColor Green
 Write-Host "Reviewed Git revision: $revision"
 Write-Host 'Original room.js hash unchanged; no server, geometry, team desks or OAuth changes.'
 Write-Host 'Press Ctrl+Shift+R to refresh TowerFlow, then toggle NYC ON/OFF for visual A/B.'
