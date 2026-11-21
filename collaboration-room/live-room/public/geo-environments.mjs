@@ -1,6 +1,6 @@
 import {capitalCoordinates} from './geo-capitals-coordinates.mjs';
 import {fetchCapitalTile,buildCapitalScene} from './geo-capital-mesh.mjs';
-import {findCapitalPhoto,buildPhotoEnvironment,environmentPalette} from './geo-capital-photo.mjs';
+import {findCapitalPhoto,buildPhotoEnvironment,environmentPalette,buildSkyFallback} from './geo-capital-photo.mjs';
 // TowerFlow geographic foundation: one scene owner, no generic fake capital cities.
 const capitals=[
 'Alabama|Montgomery|America/Chicago','Alaska|Juneau|America/Juneau',
@@ -360,19 +360,25 @@ export function installGeography({THREE,scene}){
       estimated:tile.buildings.filter(v=>v.estimation!=='OSM height tag').length};
     }
    }catch(error){
-    if(serial===loadSerial)status.textContent='Source unavailable: '+d.capital+
-     ' · photo: '+photoError+' · OSM: '+String(error.message||error)+'; previous scene retained.';
-    return false;
+    if(serial!==loadSerial)return false;
+    prepared=buildSkyFallback(THREE,state.timeMode);
+    prepared.report.warning='Photo unavailable ('+photoError+'); OSM unavailable ('+
+     String(error.message||error)+'). Original generic skyline retained; no authentic city reconstruction.';
    }
   }
   if(serial!==loadSerial){prepared.dispose();return false;}
-  if(nycWasEnabled===null && window.tfNYCAtmosphere)nycWasEnabled=window.tfNYCAtmosphere.enabled;
-  window.tfNYCAtmosphere?.setEnabled(false);
-  if(originalSkyline)originalSkyline.visible=false;
+  const skyOnly=prepared.report?.skyOnly===true;
+  if(!skyOnly){
+   if(nycWasEnabled===null && window.tfNYCAtmosphere)nycWasEnabled=window.tfNYCAtmosphere.enabled;
+   window.tfNYCAtmosphere?.setEnabled(false);
+   if(originalSkyline)originalSkyline.visible=false;
+  }else if(originalSkyline){
+   originalSkyline.visible=skylineWasVisible;
+  }
   if(active){active.group.parent?.remove(active.group);active.dispose();}
   active=prepared;
   const placement=capitalWorldPlacement(d.kind);
-  if(!prepared.report?.photographic){
+  if(!prepared.report?.photographic&&!prepared.report?.skyOnly){
    prepared.group.position.set(placement.x,placement.y,placement.z);
    prepared.group.rotation.y=placement.rotationY;
    prepared.group.scale.setScalar(placement.scale);
@@ -382,7 +388,9 @@ export function installGeography({THREE,scene}){
   const cityRoom=scene.getObjectByName('TF_NIGHT_CITY_INTERIOR');
   (cityRoom||scene).add(prepared.group);
   state=Object.freeze({...state,destination:id});
-  status.textContent=prepared.report?.photographic?
+  status.textContent=prepared.report?.skyOnly?
+   d.capital+' · CITY PHOTO / OSM UNAVAILABLE — GENERIC ORIGINAL SKYLINE + LIVE SKY EFFECTS':
+   prepared.report?.photographic?
    d.capital+' · PHOTOGRAPHIC REFERENCE (not 3D) · '+prepared.report.license:
    d.kind==='district'?'WASHINGTON, D.C. · Architectural study, not photoreal':
    d.capital+' · '+prepared.report.buildings+' OSM building records; '+prepared.report.estimated+' estimated heights';
