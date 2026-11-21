@@ -124,3 +124,44 @@ export function buildPhotoEnvironment(THREE,photo,mode){
  }
  return initialize();
 }
+
+export function buildSkyFallback(THREE,mode='day'){
+ const group=new THREE.Group();group.name='TF_CAPITAL_SOURCE_UNAVAILABLE_SKY';
+ const canvas=document.createElement('canvas');canvas.width=512;canvas.height=256;
+ const ctx=canvas.getContext('2d');if(!ctx)throw Error('Canvas sky unavailable');
+ const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+ const material=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,depthWrite:false,toneMapped:false});
+ const geometry=new THREE.PlaneGeometry(66,34);
+ const mesh=new THREE.Mesh(geometry,material);mesh.name='TF_CAPITAL_PROCEDURAL_SKY_ONLY';
+ mesh.position.set(-90,9,0);mesh.rotation.y=Math.PI/2;mesh.raycast=()=>{};
+ group.add(mesh);
+ let time=mode,weather='sunny';
+ function render(){
+  const p=environmentPalette(time,weather),w=canvas.width,h=canvas.height;
+  const gradient=ctx.createLinearGradient(0,0,0,h);
+  gradient.addColorStop(0,p.top);gradient.addColorStop(1,p.horizon);
+  ctx.fillStyle=gradient;ctx.fillRect(0,0,w,h);
+  if(p.cloud){
+   let seed=919;
+   const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+   for(let i=0;i<35;i++){
+    const x=random()*w,y=random()*(h*.7),radius=22+random()*70;
+    const g=ctx.createRadialGradient(x,y,0,x,y,radius);
+    g.addColorStop(0,'rgba(235,238,249,.36)');g.addColorStop(1,'rgba(235,238,249,0)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,radius,radius*.3,0,0,Math.PI*2);ctx.fill();
+   }
+  }
+  if(p.rain){
+   ctx.strokeStyle='rgba(219,232,248,.4)';ctx.lineWidth=1;
+   for(let i=0;i<120;i++){
+    const x=(i*131)%w,y=(i*97)%h;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3,y+13);ctx.stroke();
+   }
+  }
+  texture.needsUpdate=true;
+ }
+ render();
+ return {group,setTime(next){time=next;render();},setWeather(next){weather=next;render();},
+  dispose(){group.parent?.remove(group);geometry.dispose();material.dispose();texture.dispose();},
+  report:{skyOnly:true,photographic:false,source:null,warning:'No verified city image or OSM tile; original skyline remains visible'}};
+}
