@@ -139,6 +139,58 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
     // V2: no opaque rectangle or independent sky backdrop. The original
     // TowerFlow sky and horizon stay visible. Atmospheric depth comes from
     // camera-distance façade tones and low-opacity geometry, not a sky card.
+    // V3 PHOTOGRAPH TRANSCRIPTION: Manhattan buildings have continuous
+    // street and ground contact. A zero-elevation base prevents the skyline
+    // from reading as a cluster of floating rectangular solids.
+    const terrain=new THREE.Group();terrain.name='TF_NYC_GROUNDED_STREETS_V3';
+    const groundSize=135;
+    const groundGeo=new THREE.PlaneGeometry(groundSize,groundSize);
+    const groundMat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,side:THREE.DoubleSide,fog:false,
+      uniforms:{ground:{value:new THREE.Color(state.night?0x26323b:0x656b6b)}},
+      vertexShader:'varying vec2 uvTerrain; void main(){uvTerrain=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      fragmentShader:'varying vec2 uvTerrain;uniform vec3 ground;void main(){vec2 p=abs(uvTerrain-.5)*2.0;float a=1.0-smoothstep(.74,.99,max(p.x,p.y));gl_FragColor=vec4(ground,a*.95);}'
+    });
+    const ground=new THREE.Mesh(groundGeo,groundMat);
+    ground.rotation.x=-Math.PI/2;
+    ground.position.y=-.22;
+    ground.name='NYC street-level ground (not aerial facade)';
+    terrain.add(ground);
+    materials.push(groundMat);
+    const roadMat=new THREE.MeshBasicMaterial({color:state.night?0x22262e:0x434d51,transparent:true,opacity:.90,depthWrite:false});
+    const laneMat=new THREE.MeshBasicMaterial({color:state.night?0xbba777:0xc9bd8d,transparent:true,opacity:.45,depthWrite:false});
+    const parkMat=new THREE.MeshStandardMaterial({color:state.night?0x273d31:0x54785a,roughness:.97,metalness:0});
+    const treeMat=new THREE.MeshStandardMaterial({color:state.night?0x213d2f:0x355c38,roughness:1});
+    materials.push(roadMat,laneMat,parkMat,treeMat);
+    function flat(w,d,x,z,material,y=-.19){
+      const g=new THREE.PlaneGeometry(w,d);
+      const mesh=new THREE.Mesh(g,material);
+      mesh.rotation.x=-Math.PI/2;
+      mesh.position.set(x,y,z);terrain.add(mesh);
+      return mesh;
+    }
+    // The street layout is an approximate photo-informed urban floor.
+    // No precision street-map claim until NYC road centerlines are imported.
+    for(let k=-4;k<=4;k++){
+      const c=k*12;
+      flat(1.55,117,c,0,roadMat);
+      flat(116,1.48,0,c,roadMat);
+      flat(.04,116,c,0,laneMat,-.178);
+    }
+    // Bryant Park vegetation is a stylized visual anchor west of Fifth Ave,
+    // not a surveyed park-boundary mesh.
+    flat(14,8.5,-12,-2.5,parkMat,-.16);
+    const canopy=new THREE.IcosahedronGeometry(.75,1);
+    for(let ix=0;ix<7;ix++)for(let iz=0;iz<3;iz++){
+      const tree=new THREE.Mesh(canopy,treeMat);
+      tree.scale.set(1,.68,1);
+      tree.position.set(-18+ix*1.83,.44,-5.8+iz*3.22);
+      terrain.add(tree);
+    }
+    terrain.renderOrder=-2;
+    group.add(terrain);
+    // Preserve original sky and all existing world objects; the new ground
+    // is limited to the geographically separate NYC scene group.
     let count=0,windows=0;
     const roofMaterial=new THREE.MeshStandardMaterial({
       color:state.night?0x4e5861:0x8b979b,roughness:.83,metalness:.13,
