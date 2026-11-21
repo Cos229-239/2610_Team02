@@ -1,4 +1,5 @@
 import {environmentPalette,findCapitalPhoto} from './geo-capital-photo.mjs';
+import {visualPreset} from './geo-scene-compositor.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {destinations,validateDestinations,selectMode,createDCLandmarkStudy,weatherGlyph,fetchNWSHourlyForecast} from './geo-environments.mjs';
@@ -90,4 +91,17 @@ test('city photo fetch requires a recognized reuse license and a real Commons im
   ...page,imageinfo:[{...page.imageinfo[0],extmetadata:{LicenseShortName:{value:'All rights reserved'}}}]
  }]}})});
  await assert.rejects(findCapitalPhoto({id:'another-place',capital:'Another Place'},'day',denied),/No verified-license/);
+});
+
+test('viewport compositor has distinct proven rain, snow, fog, storm, night and sunset behaviors',()=>{
+ const sunny=visualPreset('day','sunny'),rain=visualPreset('day','rain');
+ const snow=visualPreset('day','snow'),storm=visualPreset('night','thunderstorm');
+ const fog=visualPreset('morning','fog'),sunset=visualPreset('sunset','sunny');
+ assert.equal(sunny.particleCount,0);
+ assert.equal(rain.rain,true);assert.ok(rain.particleCount>0);
+ assert.equal(snow.snow,true);
+ assert.equal(storm.storm,true);assert.equal(storm.night,true);
+ assert.equal(fog.fog,true);assert.equal(sunset.sunset,true);
+ assert.notEqual(sunny.tint,sunset.tint);
+ assert.notEqual(sunset.tint,storm.tint);
 });
