@@ -1,5 +1,8 @@
 # TowerFlow AI Operator Instructions
 
+**MANDATORY FIRST READ:** [ADR-20261121-LIVE-ROOM-PRESERVATION-BOOT-AND-GRAPHICS-ACCEPTANCE.md](ADR-20261121-LIVE-ROOM-PRESERVATION-BOOT-AND-GRAPHICS-ACCEPTANCE.md). This ADR documents the confirmed 2026-11-21 graphics regression and exact-byte restoration, Windows live-server boot/Tailscale recovery, observed directory topology, and required same-pose visual acceptance. Never treat `tools/deploy-capital-world-live.ps1` as production-approved or bypass the visual release gate.
+
+
 Scope: collaboration-room/live-room and its browser assets. These are reusable instructions for AI coding assistants, not evidence that an untested deployment works.
 
 ## Preserve and inspect
