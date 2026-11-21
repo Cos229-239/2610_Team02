@@ -53,7 +53,27 @@ foreach ($marker in $markers) {
         if ($existingA -lt 0 -or $existingB -le $existingA) { throw "Incomplete existing marker: $start" }
         $oldBlock = $working.Substring($existingA,$existingB + $end.Length - $existingA)
         if ((& $normalize $oldBlock) -cne (& $normalize $block)) {
-            throw "Desktop customization differs inside $start. Preserved; manual reconcile required."
+            if ($start -ne '// TF_TEAM02_MEMBER_DESKS_V1_HANDLER_BEGIN') {
+                throw "Desktop customization differs inside $start. Preserved; manual reconcile required."
+            }
+            # Keep the already installed handler, its account routing and its graphics.
+            # Add only the missing *read-only* dev synchronization widget.
+            $syncStart = '        // Live read-only view of that teammate'
+            $syncEnd = '        refreshDesk();'
+            $p = $block.IndexOf($syncStart,[StringComparison]::Ordinal)
+            $q = $block.IndexOf($syncEnd,[StringComparison]::Ordinal)
+            if ($p -lt 0 -or $q -le $p) { throw 'Reviewed dev-sync sub-block missing.' }
+            $syncWidget = $block.Substring($p,$q + $syncEnd.Length - $p)
+            if ($oldBlock.Contains('refreshDesk();') -or $oldBlock.Contains('member-dev?member=')) {
+                throw 'Existing desktop sync differs from reviewed version. No overwrite attempted.'
+            }
+            $appendAnchor = '        content.append(info,actions,note);'
+            if ($oldBlock.Split([string[]]@($appendAnchor),[StringSplitOptions]::None).Count -ne 2) {
+                throw 'Local desk panel composition differs; preservation requires an exact anchor.'
+            }
+            $mergedBlock = $oldBlock.Replace($appendAnchor,$appendAnchor+"`n"+$syncWidget)
+            $working = $working.Replace($oldBlock,$mergedBlock)
+            Write-Host 'Preserved existing handler and inserted dev-sync widget only.' -ForegroundColor Green
         }
         continue
     }
