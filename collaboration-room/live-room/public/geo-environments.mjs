@@ -187,7 +187,7 @@ export function installGeography({THREE,scene}){
  const mode=document.createElement('div');mode.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin:9px 0';
  const list=document.createElement('div');list.style.cssText='max-height:42vh;overflow-y:auto';
  const status=document.createElement('p');status.setAttribute('role','status');
- status.textContent='D.C. architectural study available; other cities require verified reference scenes.';
+ status.textContent='Select a capital. Source-backed geometry is loaded only on demand.';
  const weatherControls=document.createElement('div');
  weatherControls.style.cssText='display:flex;gap:5px;flex-wrap:wrap;margin:8px 0';
  const weatherModeSelect=document.createElement('select');
@@ -204,7 +204,14 @@ export function installGeography({THREE,scene}){
  weatherControls.append(weatherModeSelect,manualSelect);
  const restore=document.createElement('button');
  restore.textContent='RETURN TO ORIGINAL ROOM';restore.type='button';
- body.append(search,mode,weatherControls,status,restore,list);wrap.append(heading,body);document.body.append(wrap);
+ const sourceAttribution=document.createElement('p');
+ sourceAttribution.style.cssText='font-size:11px;max-width:290px';
+ const attribution=document.createElement('a');attribution.href='https://www.openstreetmap.org/copyright';
+ attribution.target='_blank';attribution.rel='noopener noreferrer';
+ attribution.textContent='Geography © OpenStreetMap contributors (ODbL).';
+ attribution.style.color='#8fe5ff';
+ sourceAttribution.append(attribution);
+ body.append(search,mode,weatherControls,status,restore,list,sourceAttribution);wrap.append(heading,body);document.body.append(wrap);
  const weather=document.createElement('div');weather.id='tf-geography-weather';
  weather.style.cssText='position:fixed;left:22px;top:68px;z-index:910;color:#ecf8ff;background:#081624ed;padding:4px 9px;font:12px system-ui';
  weather.textContent='☀️ · WEATHER UNVERIFIED';document.body.append(weather);
