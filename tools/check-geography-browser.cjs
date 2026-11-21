@@ -69,7 +69,7 @@ async function main(){
   const pathname=new URL(req.url,'http://localhost').pathname;
   if(pathname==='/')return res.writeHead(200,{'Content-Type':'text/html'}).end('<!doctype html><html><head></head><body><script type="module" src="/pilot.mjs"></script></body></html>');
   if(pathname==='/pilot.mjs')return res.writeHead(200,{'Content-Type':'text/javascript'}).end(page);
-  const allowed=new Set(['geo-environments.mjs','geo-capital-mesh.mjs','geo-capitals-coordinates.mjs','geo-capital-photo.mjs']);
+  const allowed=new Set(['geo-environments.mjs','geo-capital-mesh.mjs','geo-capitals-coordinates.mjs','geo-capital-photo.mjs','geo-scene-compositor.mjs']);
   const filename=pathname.slice(1);
   if(!allowed.has(filename))return res.writeHead(404).end();
   return res.writeHead(200,{'Content-Type':'text/javascript'}).end(fs.readFileSync(path.join(root,filename)));
