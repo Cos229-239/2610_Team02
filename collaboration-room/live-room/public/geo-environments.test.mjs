@@ -27,10 +27,11 @@ test('DC exterior reference includes 36 distinct colonnade shaft objects',()=>{
  class Light extends Object3D {constructor(){super();this.color={setHex(){}};this.intensity=1;}}
  const THREE={Group:Object3D,Mesh,MeshStandardMaterial:Material,BoxGeometry:Geometry,
   CylinderGeometry:class extends Geometry {},ConeGeometry:Geometry,
-  DirectionalLight:Light,HemisphereLight:Light};
+  SphereGeometry:Geometry,IcosahedronGeometry:Geometry,
+  DirectionalLight:Light,HemisphereLight:Light,PointLight:Light};
  const dc=createDCLandmarkStudy(THREE,'day');
  assert.equal(dc.group.name,'TF_DC_LINCOLN_REFERENCE_STUDY');
- assert.equal(dc.group.children.filter(x=>x.geometry instanceof THREE.CylinderGeometry).length,36);
+ assert.equal(dc.group.children.filter(x=>x.geometry instanceof THREE.CylinderGeometry).length,44); // 36 Doric + 8 inner
  dc.setTime('night');dc.setTime('morning');dc.dispose();
 });
 test('weather display distinguishes storms, rain, cloud and night without fabrication',()=>{
