@@ -208,9 +208,14 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     }
     // Keep a clear setback from the pane so nearby facades do not loom
     // across the full window. Source uses scene units, not metres.
+    // High-floor observation corridor: an unobstructed view into the streets
+    // below. Previous dense grid filled the window and hid the -70 street datum.
+    // Preserve distant skyline at the sides; draw a real view gap in the middle.
+    let skippedForSightline=0;
     for(const x of [-53,-83,-108]){
       for(const z of frontage){
-        if(Math.abs(z)<17&&x===-53)continue;
+        const corridor=x===-53?36:x===-83?27:19;
+        if(Math.abs(z)<corridor){skippedForSightline++;continue;}
         const d=7+rand()*5,w=7+rand()*4;
         const h=x===-53?42+rand()*22:x===-83?72+rand()*35:105+rand()*40;
         tower(x,z,w,d,h,Math.floor(rand()*3));
@@ -257,6 +262,10 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     panel.id='tf-city3d-probe';
     panel.style.cssText='position:fixed;bottom:104px;right:12px;z-index:100002;background:#07111ddf;border:1px solid #4b7c8a;border-radius:7px;padding:8px;color:#d8ecf2;font:12px system-ui,sans-serif;display:flex;gap:6px;align-items:center';
     const label=doc.createElement('span');label.textContent='CITY • 3D';panel.append(label);
+    const telemetry=doc.createElement('span');
+    telemetry.style.cssText='color:#a7e0e0;white-space:nowrap;font:11px ui-monospace,monospace';
+    telemetry.textContent='21F · street -70 · clear corridor';
+    panel.append(telemetry);
     const button=(text,action)=>{
       const b=doc.createElement('button');b.textContent=text;b.type='button';
       b.style.cssText='padding:4px 7px;color:white;background:#183545;border:1px solid #4b7c8a;border-radius:4px;cursor:pointer';
@@ -301,7 +310,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     weatherButton.title='Provisional effects only; original Chaos Schemes are not implemented here';
     button('Restore',stop);
     const api=Object.freeze({
-      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,leftWindowClickable:false,originalFloorUntouched:true}},
+      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
       setMode,dispose:stop
     });
     scene.add(group);wall.visible=false;glass.visible=false;doc.body.append(panel);
