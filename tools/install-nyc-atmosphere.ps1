@@ -35,7 +35,7 @@ $bootstrap=@'
 import {installNYCAtmosphere} from './nyc-atmosphere.mjs';
 try {
   installNYCAtmosphere({THREE,scene,renderer,camera,
-    position:{x:62,z:-63},autoEnable:true,fetchData:true});
+    position:{x:62,z:-83},autoEnable:true,fetchData:true});
 } catch (error) {
   console.warn('NYC atmosphere failed safely; original TowerFlow scene preserved',error);
 }
