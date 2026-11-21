@@ -10,11 +10,12 @@
 export const DISASTER_DURATION_SECONDS=120;
 export const DISASTER_PHASES=Object.freeze([
   {start:0,id:'approach',label:'Aircraft approach'},
-  {start:15,id:'impact-one',label:'First impact / evacuation'},
-  {start:35,id:'impact-two',label:'Second impact / emergency response'},
-  {start:60,id:'fire',label:'Structural fires / smoke'},
-  {start:80,id:'collapse-one',label:'First structural collapse'},
-  {start:103,id:'collapse-two',label:'Second structural collapse'}
+  {start:15,id:'impact-one',label:'First aircraft strikes tower one'},
+  {start:32,id:'impact-two',label:'Second aircraft strikes tower one'},
+  {start:52,id:'impact-three',label:'Third aircraft strikes tower two'},
+  {start:62,id:'fire',label:'Escalating fires, smoke and rescue'},
+  {start:83,id:'collapse-one',label:'Tower one collapses — debris and dust'},
+  {start:104,id:'collapse-two',label:'Tower two collapses — expanding dust cloud'}
 ]);
 export function disasterPhase(seconds){
   if(!Number.isFinite(seconds)||seconds<0)throw Error('Invalid disaster elapsed time');
@@ -83,9 +84,15 @@ export function createCinematicDisaster({THREE,urban,seed=911042}={}){
     structural.userData.baseHeight=p.h;
     towers.push({tower,structural,upper,position:p});
   }
-  // Aircraft shapes fly along a deterministic approach path and disappear at impact.
+  // Alternate-history fictional sequence: TWO strikes on tower one, THIRD on tower two.
+  // This is deliberately not a factual depiction of September 11, 2001.
+  const impactSequence=Object.freeze([
+    {start:0,hit:15,tower:0,y:94,heading:-1},
+    {start:20,hit:32,tower:0,y:82,heading:1},
+    {start:39,hit:52,tower:1,y:92,heading:-1}
+  ]);
   const aircraft=[];
-  for(let i=0;i<2;i++){
+  for(let i=0;i<impactSequence.length;i++){
     const flight=new THREE.Group();root.add(flight);
     const body=mesh(flight,1.2,1.1,9,0,0,0,surface.aircraft);
     mesh(flight,19,.24,2.4,0,.1,0,surface.aircraft);
@@ -138,12 +145,28 @@ export function createCinematicDisaster({THREE,urban,seed=911042}={}){
     blob(person,.31,0,1.95,0,surface.evacuee);
     evacuees.push({person,origin:pz,speed:1.2+rand()*3.5});
   }
+  const impactBursts=[];
+  const burstMat=new THREE.MeshBasicMaterial({color:'#ffad54',transparent:true,opacity:.88,depthWrite:false});
+  materials.push(burstMat);
+  for(const event of impactSequence){
+    const at=footprint[event.tower];
+    const burst=new THREE.Group();root.add(burst);
+    burst.position.set(at.x,event.y,at.z+event.heading*6);
+    for(let j=0;j<15;j++){
+      const m=blob(burst,.8+rand()*2.1,
+        (rand()-.5)*9,(rand()-.5)*9,(rand()-.5)*8,burstMat);
+      m.userData.ripple=.3+rand()*2;
+    }
+    burst.visible=false;
+    impactBursts.push(burst);
+  }
   const impactLight=new THREE.PointLight('#ffa46b',0,65,1.5);
   impactLight.position.set(-81,95,-17);root.add(impactLight);
   function reset(){
     elapsed=0;phase='approach';lastPhase='';
     for(const item of towers){item.structural.scale.set(1,1,1);item.structural.visible=true;item.upper.visible=false;item.upper.position.y=75;item.upper.rotation.set(0,0,0);}
     for(const a of aircraft)a.visible=true;
+    for(const burst of impactBursts){burst.visible=false;burst.scale.setScalar(1);}
     for(const item of [...plume,...fires,...debris,...groundDust])item.visible=false;
     for(const item of emergencyVehicles)item.truck.visible=false;
     for(const item of evacuees)item.person.visible=false;
@@ -154,17 +177,24 @@ export function createCinematicDisaster({THREE,urban,seed=911042}={}){
     if(!Number.isFinite(seconds)||seconds<0)throw Error('Invalid elapsed seconds');
     elapsed=Math.min(seconds,DISASTER_DURATION_SECONDS);
     const p=disasterPhase(elapsed);phase=p.id;
-    // Each aircraft approaches separately. Frame changes are time-derived, reproducible.
-    const targetA=towers[0].position,targetB=towers[1].position;
+    // Three separately staged impacts; each aircraft physically reaches its
+    // assigned tower facade before disappearing, followed by a short fireball.
     aircraft.forEach((a,i)=>{
-      const start=i===0?0:20,hit=i===0?15:35,target=i===0?targetA:targetB;
-      const t=Math.min(1,Math.max(0,(elapsed-start)/(hit-start)));
-      a.visible=elapsed>=start&&elapsed<hit;
-      a.position.set(-24+(target.x+24)*t,92-i*5,target.z+36*(1-t));
-      a.rotation.y=-.45;
+      const event=impactSequence[i],target=footprint[event.tower];
+      const t=Math.min(1,Math.max(0,(elapsed-event.start)/(event.hit-event.start)));
+      a.visible=elapsed>=event.start&&elapsed<event.hit;
+      const startX=event.heading<0?-24:-150;
+      const startZ=event.heading<0?target.z+55:target.z-55;
+      a.position.set(startX+(target.x-startX)*t,event.y,startZ+(target.z+event.heading*6-startZ)*t);
+      a.rotation.y=event.heading<0?-.47:Math.PI+.47;
+    });
+    impactBursts.forEach((burst,i)=>{
+      const age=elapsed-impactSequence[i].hit;
+      burst.visible=age>=0&&age<5;
+      if(burst.visible)burst.scale.setScalar(1+age*.65);
     });
     towers.forEach(({structural,upper},i)=>{
-      const impact=i===0?15:35,collapse=i===0?80:103;
+      const impact=i===0?15:52,collapse=i===0?83:104;
       const isHit=elapsed>=impact,fall=Math.max(0,(elapsed-collapse)/10);
       // Impact facade darkens, upper structure deforms, then lower structure descends.
       structural.scale.y=fall>0?Math.max(.04,1-fall*1.05):1;
@@ -173,7 +203,7 @@ export function createCinematicDisaster({THREE,urban,seed=911042}={}){
       upper.position.y=75-Math.min(fall,1)*57;
     });
     for(const puff of plume){
-      const impact=puff.userData.t===0?15:35,age=elapsed-impact;
+      const impact=puff.userData.t===0?15:52,age=elapsed-impact;
       puff.visible=age>=0;
       if(!puff.visible)continue;
       const drift=age*.22;
@@ -182,8 +212,8 @@ export function createCinematicDisaster({THREE,urban,seed=911042}={}){
       puff.material.opacity=.32;
     }
     for(const flame of fires){
-      const impact=flame.userData.t===0?15:35;
-      const collapse=flame.userData.t===0?80:103;
+      const impact=flame.userData.t===0?15:52;
+      const collapse=flame.userData.t===0?83:104;
       flame.visible=elapsed>=impact&&elapsed<collapse;
       if(flame.visible){
         const t=elapsed*.9+flame.userData.seed;
@@ -192,7 +222,7 @@ export function createCinematicDisaster({THREE,urban,seed=911042}={}){
       }
     }
     for(const f of debris){
-      const impact=f.userData.t===0?15:35,age=Math.max(0,elapsed-impact),fall=Math.max(0,elapsed-(f.userData.t===0?80:103));
+      const impact=f.userData.t===0?15:52,age=Math.max(0,elapsed-impact),fall=Math.max(0,elapsed-(f.userData.t===0?83:104));
       f.visible=elapsed>=impact&&age<12||fall>0&&fall<17;
       if(!f.visible)continue;
       const t=fall>0?fall:age*.42,base=f.userData.base;
@@ -200,7 +230,7 @@ export function createCinematicDisaster({THREE,urban,seed=911042}={}){
       f.rotation.set(t*.55,t*.38,t*.65);
     }
     for(const dust of groundDust){
-      const collapse=dust.userData.t===0?80:103,age=elapsed-collapse;
+      const collapse=dust.userData.t===0?83:104,age=elapsed-collapse;
       dust.visible=age>=0&&age<22;
       if(dust.visible){
         dust.position.copy(dust.userData.base);
@@ -217,7 +247,12 @@ export function createCinematicDisaster({THREE,urban,seed=911042}={}){
       item.person.position.z=item.origin+Math.max(0,elapsed-15)*item.speed;
       if(item.person.position.z>83)item.person.position.z=83;
     }
-    impactLight.intensity=(elapsed>=15&&elapsed<17||elapsed>=35&&elapsed<37)?18:0;
+    const recent=impactSequence.find(event=>elapsed>=event.hit&&elapsed<event.hit+2);
+    if(recent){
+      const at=footprint[recent.tower];
+      impactLight.position.set(at.x,recent.y,at.z);
+    }
+    impactLight.intensity=recent?36:0;
     return {active,elapsed,phase,phaseLabel:p.label};
   }
   reset();
