@@ -6,6 +6,7 @@ const path = require('node:path');
 const {mountDemo} = require('./debug-demo.cjs');
 const {mountPreview} = require('./merged-preview.cjs');
 const {makeTeamUpdates} = require('./team-updates.cjs');
+const {makeIntegrationIntake} = require('./integration-intake.cjs');
 const {makeLoadouts, publishedBranches} = require('./loadouts.cjs');
 const {quietEntry, memberEntry} = require('./quiet-entry.cjs');
 
@@ -13,6 +14,7 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     const permissions = { writer: 30 * 60_000, reader: 5 * 60_000 };
     const load = makeLoadouts();
     const updates = makeTeamUpdates(publicDir);
+    const intake = makeIntegrationIntake();
     const grants = new Map();
     const records = new Map();
     const digest = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -52,6 +54,10 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     });
     app.get(prefix + '/team-updates', auth, ensureMember, async (req, res) => {
         try { res.json(await updates(req.session.token)); } catch { res.sendStatus(502); }
+    });
+    // Authenticated, read-only dev integration manifest.
+    app.get(prefix + '/integration-intake', auth, ensureMember, async (req, res) => {
+        try { res.json(await intake(req.session.token)); } catch { res.sendStatus(502); }
     });
     // Read-only, account-independent view of *merged dev* contributions.
     // Browser desks poll this endpoint; no checkout, file writes or execution.
