@@ -55,10 +55,12 @@ export function environmentPalette(time='day',weather='sun'){
   brightness:night?.31:sunset?.77:time==='morning'?.86:1
  });
 }
-export function buildPhotoEnvironment(THREE,photo,mode){
+export function buildPhotoEnvironment(THREE,photo,mode,scene=null){
  const group=new THREE.Group();group.name='TF_CAPITAL_PHOTOGRAPHIC_WINDOW';
  let texture=null,material=null,geometry=null,overlayTexture=null,overlayMaterial=null,overlayGeometry=null;
  let current=mode,condition='sun';
+ const extraGeometries=[];
+ let visibilityTimer=0;
  const canvas=document.createElement('canvas');
  canvas.width=1024;canvas.height=512;
  const ctx=canvas.getContext('2d');
@@ -120,7 +122,41 @@ export function buildPhotoEnvironment(THREE,photo,mode){
   // Far outside the glazing at x=-21. This replaces city towers in the
   // actual Three.js world; never duplicate the photo as a fixed UI overlay.
   surface.position.set(-47,6.5,0);surface.rotation.y=Math.PI/2;surface.renderOrder=4;surface.raycast=()=>{};
-  group.add(surface);
+  // The collaboration room and business room occupy *different* world-space
+  // regions. A west exterior plane at x=-47 cannot represent the view from
+  // the business room (centered on x=62, glazing x=83, z=+/-15.7).
+  const collaboration=new THREE.Group();collaboration.name='TF_CAPITAL_COLLAB_EXTERIOR';
+  const business=new THREE.Group();business.name='TF_CAPITAL_BUSINESS_EXTERIOR';
+  group.remove(overlay);
+  collaboration.add(surface,overlay);
+  const walls=[
+   {x:105,z:0,angle:Math.PI/2,width:78},
+   {x:62,z:-42,angle:0,width:94},
+   {x:62,z:42,angle:Math.PI,width:94}
+  ];
+  for(let i=0;i<walls.length;i++){
+   const wall=walls[i];
+   const pg=new THREE.PlaneGeometry(wall.width,45);
+   const face=new THREE.Mesh(pg,material);
+   face.name='TF_CAPITAL_BUSINESS_CITY_'+i;
+   face.position.set(wall.x,6.5,wall.z);
+   face.rotation.y=wall.angle;face.renderOrder=4;face.raycast=()=>{};
+   const wg=new THREE.PlaneGeometry(wall.width,45);
+   const atmosphere=new THREE.Mesh(wg,overlayMaterial);
+   atmosphere.name='TF_CAPITAL_BUSINESS_WEATHER_'+i;
+   atmosphere.position.set(wall.x-(i===0?.07:0),6.5,wall.z+(i===1?.07:i===2?-.07:0));
+   atmosphere.rotation.y=wall.angle;atmosphere.renderOrder=5;atmosphere.raycast=()=>{};
+   business.add(face,atmosphere);extraGeometries.push(pg,wg);
+  }
+  group.add(collaboration,business);
+  const businessRoom=scene?.getObjectByName?.('TF_DAYLIGHT_BUSINESS_ROOM');
+  function syncRooms(){
+   const isBusiness=Boolean(businessRoom?.visible);
+   business.visible=isBusiness;
+   collaboration.visible=!isBusiness;
+  }
+  syncRooms();
+  if(businessRoom)visibilityTimer=setInterval(syncRooms,220);
   // Preserve exterior liveliness independently of the hidden legacy towers.
   // One low-cost distant aircraft traverses the selected city panorama.
   const flight=new THREE.Group();flight.name='TF_CAPITAL_EXTERIOR_AIRCRAFT';
@@ -131,7 +167,8 @@ export function buildPhotoEnvironment(THREE,photo,mode){
   flight.add(wing,hull);
   const beacon=new THREE.Mesh(new THREE.SphereGeometry(.09,6,4),
    new THREE.MeshBasicMaterial({color:0xff555b,fog:false}));
-  beacon.position.z=.47;flight.add(beacon);group.add(flight);
+  beacon.position.z=.47;flight.add(beacon);collaboration.add(flight);
+  const businessFlight=flight.clone();businessFlight.name='TF_CAPITAL_BUSINESS_AIRCRAFT';business.add(businessFlight);
   const flightEpoch=performance.now();
   // This callback executes only while the exterior photo is actually rendered.
   surface.onBeforeRender=()=>{
@@ -139,16 +176,18 @@ export function buildPhotoEnvironment(THREE,photo,mode){
    flight.position.set(-45,11+Math.sin(seconds*.09)*1.1,
     -46+(seconds*1.35)%92);
    beacon.visible=(Math.floor(seconds*2)%2)===0;
+   businessFlight.position.set(103,12+Math.sin(seconds*.12),-41+(seconds*1.3)%82);
    if(environmentPalette(current,condition).cloud)overlayTexture.offset.x=(seconds*.0006)%1;
   };
   updateCanvas();
   return {group,setTime(next){current=next;updateCanvas();},
    setWeather(next){condition=next;updateCanvas();},
-   dispose(){group.parent?.remove(group);geometry?.dispose();material?.dispose();texture?.dispose();
+   dispose(){if(visibilityTimer)clearInterval(visibilityTimer);
+    group.parent?.remove(group);geometry?.dispose();for(const g of extraGeometries)g.dispose();material?.dispose();texture?.dispose();
     overlayGeometry?.dispose();overlayMaterial?.dispose();overlayTexture?.dispose();
     wing.geometry.dispose();wing.material.dispose();hull.geometry.dispose();hull.material.dispose();
     beacon.geometry.dispose();beacon.material.dispose();},
-   report:{photographic:true,source:photo.source,license:photo.license,imageURL:photo.url}};
+   report:{photographic:true,source:photo.source,license:photo.license,imageURL:photo.url,businessExterior:!!businessRoom}};
  }
  return initialize();
 }
