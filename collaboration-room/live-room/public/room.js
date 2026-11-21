@@ -413,6 +413,78 @@ function activateTFStation(id) {
             }
             if (sync.isConnected && !$('panel').hidden) setTimeout(refreshDesk,60000);
         }
+        // Read-only, on-demand project-file audit for this collaborator's desk.
+        // States reflect GitHub evidence; no code executes in the room.
+        const auditButton = document.createElement('button');
+        auditButton.type = 'button';
+        auditButton.textContent = 'Inspect project files';
+        const auditView = document.createElement('section');
+        auditView.className = 'callout';
+        auditView.hidden = true;
+        auditButton.onclick = async () => {
+            auditButton.disabled = true;
+            auditView.hidden = false;
+            auditView.replaceChildren();
+            const status = document.createElement('p');
+            status.textContent = 'Reading source coverage from GitHub dev…';
+            auditView.append(status);
+            try {
+                const reply = await fetch('/api/azure-bridge/collaborator-audit?member='+
+                    encodeURIComponent(memberDesk.login),{credentials:'same-origin',cache:'no-store'});
+                if (!reply.ok) throw Error('Audit endpoint unavailable (HTTP '+reply.status+')');
+                const report = await reply.json();
+                if (report.member.toLowerCase() !== memberDesk.login.toLowerCase() ||
+                    !Array.isArray(report.files)) throw Error('Invalid audit response');
+                status.textContent = 'dev @ '+String(report.revision||'').slice(0,7)+
+                    ' · '+report.counts.dev+' expected files present · '+
+                    report.counts.missing+' missing from dev';
+                const legend = document.createElement('p');
+                legend.className = 'muted';
+                legend.textContent = 'GREEN: source + contributor history verified (not runtime). '+
+                    'AMBER: attribution unverified or personal-branch only. '+
+                    'RED: expected file absent from both branches. Functional tests: not run.';
+                auditView.append(legend);
+                const list = document.createElement('ol');
+                for (const file of report.files) {
+                    const row = document.createElement('li');
+                    row.style.borderLeft = '4px solid '+
+                        ({green:'#46d39b',amber:'#eab95d',red:'#f05b67'}[file.color]||'#eab95d');
+                    row.style.padding = '8px 12px';
+                    row.style.marginBottom = '8px';
+                    row.style.background = 'rgba(8,18,29,.68)';
+                    const title = document.createElement('strong');
+                    title.textContent = file.path.split('/').pop();
+                    title.style.color = ({green:'#46d39b',amber:'#eab95d',red:'#f05b67'}[file.color]||'#eab95d');
+                    const reason = document.createElement('p');
+                    reason.textContent = file.finding+' · Build: '+file.build+
+                        ' · Runtime: '+file.runtime;
+                    row.append(title,reason);
+                    if (file.inDev || file.inPersonal) {
+                        const a = document.createElement('a');
+                        const ref = file.inDev?'dev':report.personalBranch;
+                        a.href = base+'/blob/'+encodeURIComponent(ref)+'/'+
+                            file.path.split('/').map(encodeURIComponent).join('/');
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.textContent = 'Read original source';
+                        row.append(a);
+                    }
+                    list.append(row);
+                }
+                auditView.append(list);
+                const gap = document.createElement('p');
+                gap.className = 'muted';
+                gap.textContent = 'Works / broken: unknown until actual builds and runtime tests are supplied. '+
+                    'Missing-file flags are coverage findings, not proof the code is defective.';
+                auditView.append(gap);
+            } catch (error) {
+                status.textContent = 'Unable to verify collaborator files: '+error.message;
+            } finally {
+                auditButton.disabled = false;
+            }
+        };
+        actions.append(auditButton);
+        content.append(auditView);
         refreshDesk();
         return;
     }
