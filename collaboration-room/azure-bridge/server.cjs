@@ -7,7 +7,7 @@ const {mountDemo} = require('./debug-demo.cjs');
 const {mountPreview} = require('./merged-preview.cjs');
 const {makeTeamUpdates} = require('./team-updates.cjs');
 const {makeIntegrationIntake} = require('./integration-intake.cjs');
-const {makeCollaboratorAudit} = require('./collaborator-audit.cjs');
+const {makeCollaboratorAudit,makeCollaboratorSource} = require('./collaborator-audit.cjs');
 const {makeLoadouts, publishedBranches} = require('./loadouts.cjs');
 const {quietEntry, memberEntry} = require('./quiet-entry.cjs');
 
@@ -17,6 +17,7 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     const updates = makeTeamUpdates(publicDir);
     const intake = makeIntegrationIntake();
     const auditCollaborator = makeCollaboratorAudit();
+    const readCollaboratorSource = makeCollaboratorSource();
     const grants = new Map();
     const records = new Map();
     const digest = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -61,6 +62,14 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     app.get(prefix + '/collaborator-audit', auth, ensureMember, async (req,res) => {
         try { res.json(await auditCollaborator(req.query.member,req.session.token)); }
         catch (error) { res.sendStatus(error.status === 400 ? 400 : 502); }
+    });
+    app.get(prefix + '/collaborator-source', auth, ensureMember, async (req,res) => {
+        try {
+            res.json(await readCollaboratorSource(req.query.member,req.query.path,
+                req.query.ref,req.session.token));
+        } catch (error) {
+            res.sendStatus(error.status === 400 ? 400 : error.status === 404 ? 404 : 502);
+        }
     });
     // Authenticated, read-only dev integration manifest.
     app.get(prefix + '/integration-intake', auth, ensureMember, async (req, res) => {
