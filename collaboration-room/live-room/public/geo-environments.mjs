@@ -50,6 +50,7 @@ export function weatherGlyph(description,timeMode='day') {
  const text=String(description||'').toLowerCase();
  if(/thunder|storm/.test(text))return '⛈️';
  if(/rain|showers|drizzle/.test(text))return '🌧️';
+ if(/snow|flurries|sleet/.test(text))return '❄️';
  if(/cloud|overcast|fog/.test(text))return '☁️';
  return timeMode==='night'?'🌙':'☀️';
 }
@@ -169,9 +170,9 @@ export function createDCLandmarkStudy(THREE,mode){
  let currentMode=mode,condition='sun';
  function applyLighting(){
   const cloud=/cloud|overcast|rain|storm/i.test(condition);
-  light.intensity=(currentMode==='night'?.22:currentMode==='morning'?1.15:1.7)*(cloud?.62:1);
-  light.color.setHex(currentMode==='morning'?0xffb986:currentMode==='night'?0x8398b8:0xffead2);
-  ambient.intensity=currentMode==='night'?.28:currentMode==='morning'?.7:1;
+  light.intensity=(currentMode==='night'?.22:currentMode==='sunset'?.83:currentMode==='morning'?1.15:1.7)*(cloud?.62:1);
+  light.color.setHex(currentMode==='morning'?0xffb986:currentMode==='sunset'?0xff9677:currentMode==='night'?0x8398b8:0xffead2);
+  ambient.intensity=currentMode==='night'?.28:currentMode==='sunset'?.55:currentMode==='morning'?.7:1;
   stone.color.setHex(currentMode==='night'?0x727780:currentMode==='morning'?0xc4b39b:0xb9b4a7);
   water.color.setHex(/rain|storm/i.test(condition)?0x344d62:0x477789);
   monumentLight.intensity=currentMode==='night'?26:0;
@@ -261,9 +262,10 @@ export function installGeography({THREE,scene}){
   if(!active)return;
   const condition=state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'';
   const rain=/rain|storm|shower|drizzle/i.test(condition);
+  const snow=/snow|flurries|sleet/i.test(condition);
   applyExteriorBackground();
   active.setWeather?.(condition);
-  if(!rain)return;
+  if(!rain&&!snow)return;
   const points=new Float32Array(180*3);
   for(let i=0;i<180;i++){
    points[i*3]=(Math.random()-.5)*52;
@@ -272,14 +274,14 @@ export function installGeography({THREE,scene}){
   }
   weatherGeometry=new THREE.BufferGeometry();
   weatherGeometry.setAttribute('position',new THREE.BufferAttribute(points,3));
-  weatherMaterial=new THREE.PointsMaterial({color:0xaed7f4,size:.17,opacity:.7,transparent:true});
+  weatherMaterial=new THREE.PointsMaterial({color:snow?0xf8fcff:0xaed7f4,size:snow?.34:.17,opacity:.7,transparent:true});
   weatherMesh=new THREE.Points(weatherGeometry,weatherMaterial);
   weatherMesh.name='TF_CAPITAL_WEATHER_RAIN';
   active.group.add(weatherMesh);
   const tick=()=>{
    if(!weatherMesh||!active)return;
    for(let i=1;i<points.length;i+=3){
-    points[i]-=.27;if(points[i]<0)points[i]=22;
+    points[i]-=snow?.08:.27;if(points[i]<0)points[i]=22;
    }
    weatherGeometry.attributes.position.needsUpdate=true;
    weatherAnimation=requestAnimationFrame(tick);
