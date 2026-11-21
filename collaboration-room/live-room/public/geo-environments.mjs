@@ -289,6 +289,8 @@ export function installGeography({THREE,scene}){
   weatherAnimation=requestAnimationFrame(tick);
  }
  const originalSkyline=scene.getObjectByName('TF_CITY_SKYLINE');
+ const originalDayCity=scene.getObjectByName('TF_DEVELOPMENT_DAY_CITY');
+ const originalDayVisible=originalDayCity?.visible;
  const skylineWasVisible=originalSkyline?.visible;
  let nycWasEnabled=null;
  function render(){
@@ -368,7 +370,7 @@ export function installGeography({THREE,scene}){
     weather:state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny',
     photoURL:photo.url,photoSource:photo.source,photoLicense:photo.license,
     worldExterior:true});
-   prepared=await buildPhotoEnvironment(THREE,photo,state.timeMode);
+   prepared=await buildPhotoEnvironment(THREE,photo,state.timeMode,scene);
   }catch(error){photoError=String(error.message||error);}
   if(!prepared){
    try{
@@ -397,6 +399,9 @@ export function installGeography({THREE,scene}){
    originalSkyline.visible=skylineWasVisible;
   }
   if(active){active.group.parent?.remove(active.group);active.dispose();}
+  // The city outside the business room replaces its fake city/towers only
+  // when a verified photo is available. Preserve the original on fallback.
+  if(originalDayCity)originalDayCity.visible=prepared.report?.photographic?false:originalDayVisible;
   active=prepared;
   const placement=capitalWorldPlacement(d.kind);
   if(!prepared.report?.photographic&&!prepared.report?.skyOnly){
@@ -407,7 +412,7 @@ export function installGeography({THREE,scene}){
   // Attach inside the actual city-interior renderer, not as an unrelated
   // freestanding scene object. The old skyline group is reversibly hidden.
   const cityRoom=scene.getObjectByName('TF_NIGHT_CITY_INTERIOR');
-  (cityRoom||scene).add(prepared.group);
+  (prepared.report?.photographic?scene:cityRoom||scene).add(prepared.group);
   state=Object.freeze({...state,destination:id});pendingDestination=null;
   status.textContent=prepared.report?.skyOnly?
    d.capital+' · CITY PHOTO / OSM UNAVAILABLE — GENERIC ORIGINAL SKYLINE + LIVE SKY EFFECTS':
@@ -446,6 +451,7 @@ export function installGeography({THREE,scene}){
   sceneEffects.update({name:null});
   if(active){active.group.parent?.remove(active.group);active.dispose();active=null;}
   if(originalSkyline)originalSkyline.visible=skylineWasVisible;
+  if(originalDayCity)originalDayCity.visible=originalDayVisible;
   if(nycWasEnabled!==null){window.tfNYCAtmosphere?.setEnabled(nycWasEnabled);nycWasEnabled=null;}
   state=Object.freeze({...state,destination:null});weatherForecast=null;
   restoreExteriorBackground();
