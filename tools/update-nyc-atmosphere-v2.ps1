@@ -35,7 +35,7 @@ if ((Canonical $current) -ceq (Canonical $updated)) {
 if ((Canonical $current) -cne (Canonical $expectedOld)) {
   throw 'NYC module contains local customizations. Preserved; no files changed.'
 }
-if ($updated.Contains('TF_NYC_SKY_BACKGROUND_V1') -or !$updated.Contains('facadeBands') -or
+if ($updated.Contains('new THREE.PlaneGeometry(270,150)') -or !$updated.Contains('facadeBands') -or
     !$updated.Contains('actual footprint edge')) {
   throw 'Reviewed V2 contract invalid; no files changed.'
 }
