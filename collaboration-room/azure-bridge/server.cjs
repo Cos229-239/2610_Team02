@@ -7,6 +7,7 @@ const {mountDemo} = require('./debug-demo.cjs');
 const {mountPreview} = require('./merged-preview.cjs');
 const {makeTeamUpdates} = require('./team-updates.cjs');
 const {makeIntegrationIntake} = require('./integration-intake.cjs');
+const {makeCollaboratorAudit} = require('./collaborator-audit.cjs');
 const {makeLoadouts, publishedBranches} = require('./loadouts.cjs');
 const {quietEntry, memberEntry} = require('./quiet-entry.cjs');
 
@@ -15,6 +16,7 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     const load = makeLoadouts();
     const updates = makeTeamUpdates(publicDir);
     const intake = makeIntegrationIntake();
+    const auditCollaborator = makeCollaboratorAudit();
     const grants = new Map();
     const records = new Map();
     const digest = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -54,6 +56,11 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     });
     app.get(prefix + '/team-updates', auth, ensureMember, async (req, res) => {
         try { res.json(await updates(req.session.token)); } catch { res.sendStatus(502); }
+    });
+    // Read-only per-contributor source coverage; no branch checkout or code execution.
+    app.get(prefix + '/collaborator-audit', auth, ensureMember, async (req,res) => {
+        try { res.json(await auditCollaborator(req.query.member,req.session.token)); }
+        catch (error) { res.sendStatus(error.status === 400 ? 400 : 502); }
     });
     // Authenticated, read-only dev integration manifest.
     app.get(prefix + '/integration-intake', auth, ensureMember, async (req, res) => {
