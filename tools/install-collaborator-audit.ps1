@@ -65,11 +65,21 @@ $edits=@(
  [pscustomobject]@{Path=$serverFile;Content=$newServer},
  [pscustomobject]@{Path=$auditFile;Content=$auditSource}
 )
+# PowerShell piping to node --check can execute stdin as CommonJS on Windows.
+# Use a short-lived extension-correct file and check its syntax WITHOUT running it.
 $node=(Get-Command node -ErrorAction Stop).Source
+$encoding=[Text.UTF8Encoding]::new($false)
 foreach($edit in $edits){
- $args=if($edit.Path -eq $roomFile){@('--input-type=module','--check')}else{@('--check')}
- $edit.Content | & $node @args 2>&1 | Out-Host
- if($LASTEXITCODE){throw "JS syntax failed: $($edit.Path). No files installed"}
+ $ext=if($edit.Path -eq $roomFile){'.mjs'}else{'.cjs'}
+ $staged=Join-Path ([IO.Path]::GetTempPath()) ('tf-parse-'+[guid]::NewGuid().ToString('N')+$ext)
+ try {
+  [IO.File]::WriteAllText($staged,$edit.Content,$encoding)
+  & $node --check $staged
+  if($LASTEXITCODE -ne 0){throw "JS syntax failed: $($edit.Path). No files installed"}
+  Write-Host "SYNTAX PASS: $($edit.Path)" -ForegroundColor Green
+ } finally {
+  if(Test-Path -LiteralPath $staged){Remove-Item -LiteralPath $staged -Force}
+ }
 }
 $before=@{}
 $encoding=[Text.UTF8Encoding]::new($false)
