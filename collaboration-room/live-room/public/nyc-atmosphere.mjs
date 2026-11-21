@@ -365,8 +365,8 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
     return {buildings,windows};
   }
   function updateStatus() {
-    boundedText(status,'Midtown Manhattan',
-      dataMode+' · '+buildings+' buildings · weather '+lastWeather);
+    boundedText(status,'MIDTOWN PHOTO V3',
+      dataMode+' · '+buildings+' grounded buildings · weather '+lastWeather);
   }
   async function loadGeometry(){
     if(!fetchData){dataMode='SIMULATED (offline)';build(fallback);return;}
