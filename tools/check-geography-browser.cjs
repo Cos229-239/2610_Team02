@@ -34,7 +34,7 @@ const page=[
  "throw Error('Unexpected external request '+url)};",
  "try {const api=installGeography({THREE,scene});",
  "if(destinations.length!==51)throw Error('Destination count');",
- "const sh=document.getElementById('tf-geography-controls').shadowRoot;",
+ "const sh=document; // Geography controls currently live in document DOM; no shadow root.",
  "const head=sh.querySelector('button');head.click();",
  "if(![...sh.querySelectorAll('button')].some(b=>b.textContent.includes('South Carolina')))throw Error('Missing state button');",
  "if(!await api.activate('south-carolina'))throw Error('OSM activation failed');",
