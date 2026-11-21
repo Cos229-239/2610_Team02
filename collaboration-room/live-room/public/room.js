@@ -1947,9 +1947,11 @@ function animate(){requestAnimationFrame(animate);const delta=Math.min(clock.get
   }
   let towerflowDesiredTab="inventory",lastTabEnter=0;
 
+  // Exterior observation window occupies the left wall. That side is NEVER
+  // a projector target: clicking or aiming E at the glass must not activate
+  // or retarget the TowerFlow spacecraft. Other three walls remain interactive.
   const wallLayout={
     front:{x:0,z:-15.28,ry:0,w:39},back:{x:0,z:15.28,ry:Math.PI,w:39},
-    left:{x:-20.58,z:0,ry:Math.PI/2,w:29},
     right:{x:20.58,z:0,ry:-Math.PI/2,w:29}
   };
   const wallTargets=[];
