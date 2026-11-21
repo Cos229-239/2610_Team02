@@ -53,6 +53,43 @@ function mount(app, { auth, ensureMember, publicOrigin, publicDir, now = Date.no
     app.get(prefix + '/team-updates', auth, ensureMember, async (req, res) => {
         try { res.json(await updates(req.session.token)); } catch { res.sendStatus(502); }
     });
+    // Read-only, account-independent view of *merged dev* contributions.
+    // Browser desks poll this endpoint; no checkout, file writes or execution.
+    const deskAuthors = Object.freeze({
+        'svn-760':'SVN-760',
+        hyperrealmend:'HyperRealmEnd',
+        daynaperezcolon:'DaynaPerezColon',
+        lopobunnie:'Lopobunnie'
+    });
+    const memberDevCache = new Map();
+    app.get(prefix + '/member-dev', auth, ensureMember, async (req, res) => {
+        const member = typeof req.query.member === 'string' && deskAuthors[req.query.member.toLowerCase()];
+        if (!member) return res.sendStatus(400);
+        const key = member.toLowerCase();
+        const cached = memberDevCache.get(key);
+        if (cached && cached.until > now()) return res.json(cached.payload);
+        try {
+            const headers = {Authorization:'Bearer ' + req.session.token,
+                'User-Agent':'TowerFlow-Member-Desk',Accept:'application/vnd.github+json'};
+            const base = 'https://api.github.com/repos/Cos229-239/2610_Team02';
+            const response = await fetch(base+'/commits?'+new URLSearchParams({
+                sha:'dev',author:member,per_page:'5'
+            }),{headers,redirect:'error',signal:AbortSignal.timeout(10000)});
+            if (!response.ok) return res.sendStatus(502);
+            const commits = await response.json();
+            if (!Array.isArray(commits)) return res.sendStatus(502);
+            const payload = {
+                member,branch:'dev',checkedAt:new Date(now()).toISOString(),
+                commits:commits.map(c=>({
+                    sha:c.sha,title:String(c.commit?.message || '').split('\n')[0],
+                    at:c.commit?.committer?.date,author:c.author?.login || member
+                }))
+            };
+            if (memberDevCache.size >= 8) memberDevCache.delete(memberDevCache.keys().next().value);
+            memberDevCache.set(key,{payload,until:now()+45000});
+            res.json(payload);
+        } catch { res.sendStatus(502); }
+    });
     app.get(prefix + '/branches', auth, ensureMember, async (req, res) => {
         try { res.json(await publishedBranches(owned(req), req.session.token)); } catch { res.sendStatus(502); }
     });
