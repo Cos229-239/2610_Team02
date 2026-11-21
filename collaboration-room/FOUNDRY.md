@@ -39,3 +39,20 @@ npm test
 
 ## Next foundry stages
 Import the existing room, wire and test these controls in-browser, add CI checks, build isolated per-user repo worktrees for IDE changes, add preview/keep/discard workflow, and protect write privileges and room authentication. The browser runtime and local server are not remotely controlled by this repository connector.
+
+
+## 2026-11-20 — Four teammate desks (preservation-first staged change)
+
+**Intent:** Display one physical workbench each for Malik, Omarion, Dayna and William inside the **existing** development chamber, matching the existing `station()` workbench form instead of creating separate rooms, copying projects or replacing shared consoles.
+
+**Scope:** A bounded, additive edit of `collaboration-room/live-room/public/room.js` on `feature/team02-member-desks-preservation-20261120`:
+- Malik (`SVN-760`) → `dev` inventory Win32 GUI source.
+- Omarion (`HyperRealmEnd`) → `dev` inventory/sales/reporting source.
+- Dayna (`DaynaPerezColon`) → `dev` shared terminal UI source.
+- William (`Lopobunnie`) → `WilliamPersonal` Windows Forms solution; **not claimed merged into dev**.
+
+Desks reuse the existing physical desk function, show an in-room E-interaction panel for source/history/review, and route the signed-in viewer to their **own** already-existing contribution workspace. The workbenches do not expose a teammate's OS session or pretend that native code is deployed to the 3D room.
+
+**Preservation:** Original source content was mechanically recovered byte-for-byte by removing the two new marker blocks; preservation comparison **PASS**. Syntax parse of the staged module (with its external `import` line removed for the parser-only test) **PASS**. Four expected member IDs and source link path encoding checks **PASS**. Existing geometry, render loop, camera, room transition, WASD, projector, GitHub authentication, WebSocket and Azure Bridge sources have **not** been edited by this change.
+
+**Unverified:** Browser walk-up interaction, camera-space collision/visibility, live server file parity, OAuth user experience, Windows IDE execution, and teammate-facing visuals. This GitHub feature branch is **not** a running-room deployment. Do not overwrite the user's separate live room or run automatic `git reset`, `git clean`, `git switch`, `pull`, or installer operations on a dirty live tree. Review staged diff and reconcile with the actual live `public/room.js` before selectively publishing; then run two-account in-room acceptance and GPU/frame-time checks.
