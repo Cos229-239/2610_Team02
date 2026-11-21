@@ -7,6 +7,7 @@
 export const NYC_ORIGIN=Object.freeze({lat:40.7536,lon:-73.9832});
 const NYC_URL='https://data.cityofnewyork.us/resource/5zhs-2jue.geojson';
 const METEO_URL='https://api.open-meteo.com/v1/forecast';
+const ARCGIS_URL='https://services2.arcgis.com/IsDCghZ73NgoYoz5/ArcGIS/rest/services/NYC_Building_Footprint/FeatureServer/0/query';
 const DAY=24*3600*1000;
 export function climate(now, weather={}) {
   const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',
@@ -36,10 +37,10 @@ export function footprintFeatures(features,max=110) {
       poly.push([coord[0],coord[1]]);
     }
     if(!valid)continue;
-    const raw=Number(item.properties?.height_roof);
+    const raw=Number(item.properties?.height_roof ?? item.properties?.HEIGHTROOF ?? item.properties?.HeightRoof);
     // NYC roof-height field is reported in feet. Reject extreme or absent heights.
     const feet=Number.isFinite(raw)&&raw>12&&raw<2500?raw:55;
-    const id=String(item.properties?.bin||item.properties?.base_bbl||out.length);
+    const id=String(item.properties?.bin||item.properties?.BIN||item.properties?.base_bbl||out.length);
     out.push({id,poly,feet});
   }
   return out;
@@ -256,25 +257,41 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       dataMode+' · '+buildings+' buildings · weather '+lastWeather);
   }
   async function loadGeometry(){
-    if(!fetchData){dataMode='SIMULATED (offline)';build(fallback);return}
-    const url=new URL(NYC_URL);
-    url.searchParams.set('$where','within_box(the_geom, 40.7583, -73.9914, 40.7492, -73.9768)');
-    url.searchParams.set('$limit','120');
-    url.searchParams.set('$order','height_roof DESC');
-    try {
-      const json=await fetchJson(url.href,11000);
-      if(disposed)return;
-      const parsed=footprintFeatures(json.features);
-      if(parsed.length<12)throw Error('Insufficient city footprints');
-      dataMode='NYC OPEN DATA';
-      build(parsed);
-    } catch(error) {
-      if(disposed)return;
-      dataMode='SIMULATED (NYC data unavailable)';
-      lastGeometryError=String(error?.message||error).slice(0,140);
-      console.warn('NYC footprint source unavailable; using clearly labelled simulation:',lastGeometryError);
-      build(fallback);
+    if(!fetchData){dataMode='SIMULATED (offline)';build(fallback);return;}
+    const socrata=new URL(NYC_URL);
+    socrata.searchParams.set('$where','within_box(the_geom, 40.7583, -73.9914, 40.7492, -73.9768)');
+    socrata.searchParams.set('$limit','150');
+    socrata.searchParams.set('$order','height_roof DESC');
+    const arcgis=new URL(ARCGIS_URL);
+    arcgis.searchParams.set('f','geojson');
+    arcgis.searchParams.set('geometry','-73.9914,40.7492,-73.9768,40.7583');
+    arcgis.searchParams.set('geometryType','esriGeometryEnvelope');
+    arcgis.searchParams.set('inSR','4326');
+    arcgis.searchParams.set('outSR','4326');
+    arcgis.searchParams.set('spatialRel','esriSpatialRelIntersects');
+    arcgis.searchParams.set('outFields','BIN,HEIGHTROOF');
+    arcgis.searchParams.set('resultRecordCount','150');
+    const providers=[['NYC OPEN DATA',socrata],['NYC ARCGIS',arcgis]];
+    const reasons=[];
+    for(const [provider,url] of providers){
+      try {
+        const json=await fetchJson(url.href,8500);
+        if(disposed)return;
+        const parsed=footprintFeatures(json?.features);
+        if(parsed.length<12)throw Error('Valid footprints: '+parsed.length);
+        dataMode=provider;
+        lastGeometryError=null;
+        build(parsed);
+        return;
+      } catch(error) {
+        if(disposed)return;
+        reasons.push(provider+': '+String(error?.message||error).slice(0,90));
+      }
     }
+    dataMode='SIMULATED (NYC data unavailable)';
+    lastGeometryError=reasons.join(' | ');
+    console.warn('NYC footprint services unavailable; simulated city retained:',lastGeometryError);
+    build(fallback);
   }
   async function loadWeather() {
     if(disposed)return;
