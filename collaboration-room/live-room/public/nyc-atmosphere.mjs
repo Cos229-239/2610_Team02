@@ -115,7 +115,13 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   if(globalThis.tfNYCAtmosphere)return globalThis.tfNYCAtmosphere;
   const group=new THREE.Group();
   group.name='TF_NYC_ATMOSPHERE_V1';
-  group.position.set(position.x,0,position.z);
+  // The host's camera far plane is much closer than a real 1:1 city.
+  // Keep the entire optional exterior district inside its view budget,
+  // without changing the live navigation or camera clipping configuration.
+  const cityScale=Math.max(.43,Math.min(.68,(camera.far-25)/170));
+  const cityDepth=Math.min(Math.abs(position.z),Math.max(38,camera.far*.53));
+  group.position.set(position.x,0,-cityDepth);
+  group.scale.setScalar(cityScale);
   scene.add(group);
   const disposables=[], materials=[];
   let enabled=Boolean(autoEnable), disposed=false, weatherTimer=null,weather=null;
@@ -455,7 +461,7 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       grounding:'BUILDINGS at y=0; STREET GROUND at y=-0.22',
       referenceMode:'PHOTO-TRANSCRIBED V3',
       sceneAttached:group.parent===scene,
-      cameraFar:camera.far,lastGeometryError,
+      cameraFar:camera.far,cityScale,cityDepth,lastGeometryError,
       hasOpaqueSkyCard:!!group.getObjectByName('TF_NYC_SKY_BACKGROUND_V1'),
       position:{x:group.position.x,z:group.position.z}};},
     refresh:async()=>{await Promise.all([loadGeometry(),loadWeather()]);return api.diagnostics},
