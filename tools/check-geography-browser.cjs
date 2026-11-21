@@ -82,7 +82,7 @@ async function main(){
   await new Promise((resolve,reject)=>{httpServer.once('error',reject);httpServer.listen(0,'127.0.0.1',resolve)});
   const url='http://127.0.0.1:'+httpServer.address().port+'/';
   const {stdout}=await run(process.env.CHROME_BIN||'google-chrome',
-   ['--headless','--no-sandbox','--disable-gpu','--disable-background-networking','--dump-dom','--virtual-time-budget=11000',url],
+   ['--headless','--no-sandbox','--disable-gpu','--disable-background-networking','--force-prefers-reduced-motion=reduce','--dump-dom','--virtual-time-budget=11000',url],
    {timeout:35000,maxBuffer:5e6});
   const verdict=stdout.match(/data-geo-pilot="([^"]*)"/)?.[1];
   assert.equal(verdict,'passed',verdict||'No browser verdict');
