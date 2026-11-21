@@ -238,7 +238,7 @@ export function installGeography({THREE,scene}){
  let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'manual',manualWeather:'sunny'});
  let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0,loadSerial=0;
  const sceneEffects=installSceneCompositor();
- let effectsEnabled=false,pendingDestination=null;
+ let effectsEnabled=false,pendingDestination=null,selectedPhoto=null;
  let weatherMesh=null,weatherGeometry=null,weatherMaterial=null,weatherAnimation=0;
  const originalBackground=scene.background,originalFogColor=scene.fog?.color?.clone?.();
  function applyExteriorBackground(){
@@ -315,9 +315,9 @@ export function installGeography({THREE,scene}){
   sceneEffects.update({time:state.timeMode,
    weather:state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny',
    name:effectsEnabled?(d?.capital||pendingDestination?.capital||'TOWERFLOW ORIGINAL ROOM'):null,
-   photoURL:active?.report?.photographic?active.report.imageURL:null,
-   photoSource:active?.report?.photographic?active.report.source:null,
-   photoLicense:active?.report?.photographic?active.report.license:null,
+   photoURL:selectedPhoto?.url||null,
+   photoSource:selectedPhoto?.source||null,
+   photoLicense:selectedPhoto?.license||null,
    warning:active?.report?.skyOnly?'ORIGINAL SKYLINE — CITY IMAGE UNAVAILABLE':null});
  }
  function setTime(value){
@@ -353,7 +353,7 @@ export function installGeography({THREE,scene}){
   const d=[...destinations,nycDestination].find(v=>v.id===id);
   if(!d)return false;
   const serial=++loadSerial;
-  effectsEnabled=true;pendingDestination=d;
+  effectsEnabled=true;pendingDestination=d;selectedPhoto=null;
   sceneEffects.update({time:state.timeMode,
    weather:state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny',
    name:d.capital,warning:'LOADING CITY REFERENCE'});
@@ -362,6 +362,11 @@ export function installGeography({THREE,scene}){
   try{
    const photo=await findCapitalPhoto(d,state.timeMode);
    if(serial!==loadSerial)return false;
+   selectedPhoto=photo;
+   // City image is separately composited even if WebGL texture loading fails.
+   sceneEffects.update({name:d.capital,time:state.timeMode,
+    weather:state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny',
+    photoURL:photo.url,photoSource:photo.source,photoLicense:photo.license});
    prepared=await buildPhotoEnvironment(THREE,photo,state.timeMode);
   }catch(error){photoError=String(error.message||error);}
   if(!prepared){
@@ -436,7 +441,7 @@ export function installGeography({THREE,scene}){
   renderWeather();
  });
  function returnToOriginal(){
-  ++loadSerial;++weatherRequest;clearWeatherVisual();effectsEnabled=false;pendingDestination=null;
+  ++loadSerial;++weatherRequest;clearWeatherVisual();effectsEnabled=false;pendingDestination=null;selectedPhoto=null;
   sceneEffects.update({name:null});
   if(active){active.group.parent?.remove(active.group);active.dispose();active=null;}
   if(originalSkyline)originalSkyline.visible=skylineWasVisible;
