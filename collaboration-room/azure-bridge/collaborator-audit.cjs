@@ -5,19 +5,19 @@
 const repo = 'Cos229-239/2610_Team02';
 const base = 'https://api.github.com/repos/' + repo;
 const targets = Object.freeze({
-  'svn-760': {login:'SVN-760',name:'Malik',ref:'dev',expected:[
+  'svn-760': {login:'SVN-760',name:'Malik',ref:'dev',roots:['TowerFlow Files/TowerFlow (Malik modified)/'],expected:[
     'TowerFlow Files/TowerFlow (Malik modified)/CMakeLists.txt',
     'TowerFlow Files/TowerFlow (Malik modified)/TowerFlowGUI.cpp',
     'TowerFlow Files/TowerFlow (Malik modified)/TowerFlowGUI.h',
     'TowerFlow Files/TowerFlow (Malik modified)/tests/OperationsTests.cpp']},
-  hyperrealmend:{login:'HyperRealmEnd',name:'Omarion',ref:'dev',expected:[
+  hyperrealmend:{login:'HyperRealmEnd',name:'Omarion',ref:'dev',roots:['Towerflow_OW/'],expected:[
     'Towerflow_OW/TowerFlow.slnx',
     'Towerflow_OW/TowerFlow/Inventory.cpp',
     'Towerflow_OW/TowerFlow/Report.cpp',
     'Towerflow_OW/TowerFlow/UserInterface.cpp']},
-  daynaperezcolon:{login:'DaynaPerezColon',name:'Dayna',ref:'dev',expected:[
+  daynaperezcolon:{login:'DaynaPerezColon',name:'Dayna',ref:'dev',files:/^(?:DisplayHelper|InputVailidation|InputValidation|InventoryStorage|Item|Logger)\.h$/i,expected:[
     'DisplayHelper.h','InputVailidation.h','InventoryStorage.h','Logger.h']},
-  lopobunnie:{login:'Lopobunnie',name:'William',ref:'WilliamPersonal',expected:[
+  lopobunnie:{login:'Lopobunnie',name:'William',ref:'WilliamPersonal',roots:['TowerFlowWindow/TowerFlowWinForm/'],expected:[
     'TowerFlowWindow/TowerFlowWinForm/TowerFlowWinForm.slnx',
     'TowerFlowWindow/TowerFlowWinForm/Form1.cs',
     'TowerFlowWindow/TowerFlowWinForm/PartData.cs',
