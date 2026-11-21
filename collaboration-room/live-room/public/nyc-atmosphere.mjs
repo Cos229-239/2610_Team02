@@ -127,7 +127,22 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   let enabled=Boolean(autoEnable), disposed=false, weatherTimer=null,weather=null;
   let dataMode='loading',buildings=0,lastWeather='offline',lastGeometry=null,lastGeometryError=null;
   const fallback=proceduralFallback();
-  const previousVisibility=group.visible;
+  // V4 ownership-preserving replacement: the Git-tracked graphics integrator
+  // creates this exact legacy skyline as one dedicated group. Hide it only
+  // while the NYC layer is enabled; never delete, mutate or dispose its parts.
+  const legacySkyline=scene.getObjectByName('TF_CITY_SKYLINE');
+  const legacyWasVisible=legacySkyline?.visible;
+  let legacyVisibilityOwned=false;
+  function syncLegacySkylineVisibility() {
+    if(!legacySkyline)return;
+    if(enabled) {
+      if(!legacyVisibilityOwned){legacyVisibilityOwned=true;}
+      legacySkyline.visible=false;
+    } else if(legacyVisibilityOwned){
+      legacySkyline.visible=legacyWasVisible;
+      legacyVisibilityOwned=false;
+    }
+  }
   const hud=document.createElement('div');
   hud.id='tf-nyc-atmosphere-control';
   hud.setAttribute('role','group');
@@ -430,6 +445,7 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
   }
   const setEnabled=next=>{
     enabled=Boolean(next);group.visible=enabled;
+    syncLegacySkylineVisibility();
     toggle.textContent=enabled?'NYC: ON':'NYC: OFF';
     toggle.setAttribute('aria-pressed',String(enabled));
     return enabled;
@@ -476,12 +492,18 @@ export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62
       sceneAttached:group.parent===scene,
       cameraFar:camera.far,cityScale,cityDepth,lastGeometryError,
       hasOpaqueSkyCard:!!group.getObjectByName('TF_NYC_SKY_BACKGROUND_V1'),
+      legacySkylineDetected:!!legacySkyline,
+      legacySkylineHiddenByNYC:!!legacyVisibilityOwned,
       position:{x:group.position.x,z:group.position.z}};},
     refresh:async()=>{await Promise.all([loadGeometry(),loadWeather()]);return api.diagnostics},
     dispose(){
       if(disposed)return;
       disposed=true;clearInterval(weatherTimer);
-      setEnabled(false);scene.remove(group);clear();hud.remove();
+      setEnabled(false);
+      // Restore legacy exactly to its initial state on disposal.
+      if(legacySkyline)legacySkyline.visible=legacyWasVisible;
+      legacyVisibilityOwned=false;
+      scene.remove(group);clear();hud.remove();
       delete globalThis.tfNYCAtmosphere;
     }
   });
