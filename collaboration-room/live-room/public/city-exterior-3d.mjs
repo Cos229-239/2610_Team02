@@ -91,15 +91,51 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
   // Preserve solid original wall/window and replace wall only with its exact framed aperture.
   // Glass remains hidden while 3D is active. No other existing scene object is changed.
   const prior={wall:wall.visible,glass:glass.visible};
+  // The old 12x5.5 painted aperture and its trims visually divide the exterior into
+  // a square inset. The entire 32x11 room wall now becomes the window.
+  const originalTrims=[];
+  const atrium=scene.getObjectByName('TF_REFERENCE_ATRIUM_V2');
+  for(const object of atrium.children){
+    const p=object.geometry?.parameters;
+    if(!object.isMesh||!p||object===glass)continue;
+    // Exact old mullion/rail meshes: x=-20.58, z near old 12-unit canvas.
+    const isMullion=near(object.position.x,-20.58)&&near(object.position.y,6.6)&&
+      [-6,-3,0,3,6].some(z=>near(object.position.z,z))&&near(p.width,.08)&&near(p.height,5.7);
+    const isRail=near(object.position.x,-20.58)&&near(object.position.z,0)&&
+      [9.4,3.8].some(y=>near(object.position.y,y))&&near(p.width,.08)&&near(p.height,.1);
+    if(isMullion||isRail)originalTrims.push({object,visible:object.visible});
+  }
   try{
-    box(group,.6,11,9.8,-21,5.5,-11.1,wall.material);
-    box(group,.6,11,9.8,-21,5.5,11.1,wall.material);
-    box(group,.6,3.7,12.4,-21,1.85,0,wall.material);
-    box(group,.6,1.6,12.4,-21,10.2,0,wall.material);
-    // Do not duplicate the original atrium window mullions.
-    // Its original frame already exists at x=-20.58, z=[-6,-3,0,3,6].
-    // The extra 3D mullions from V1 produced double-thick/oblique grids.
-    // Near (21–42 units), mid (42–76 units), far (76–118 units).
+    // Full-wall panoramic glazing: 32 wide × 11 high, continuous skyline/sky.
+    // No solid lower wall or side wall sections. This replaces the inset square.
+    // Minimal window framing is aligned to one plane, not offset overlapping bars.
+    for(const z of [-15.82,-10.55,-5.28,0,5.28,10.55,15.82])
+      box(group,.09,10.9,.115,-20.57,5.5,z,palette.frame);
+    for(const y of [.13,10.91])
+      box(group,.09,.11,31.7,-20.57,y,0,palette.frame);
+    originalTrims.forEach(({object})=>{object.visible=false});
+    // Continuous gradient sky closes the camera's old painted background.
+    // Face of sky is ~100 scene units beyond glass, safely within far clip 130.
+    // Multiple broad horizontal strips avoid a distinct square or visible image edges.
+    const skyCanvas=doc.createElement('canvas');
+    skyCanvas.width=8;skyCanvas.height=512;
+    const skyctx=skyCanvas.getContext('2d');
+    if(skyctx){
+      const gradient=skyctx.createLinearGradient(0,0,0,512);
+      gradient.addColorStop(0,'#081326');
+      gradient.addColorStop(.42,'#17203e');
+      gradient.addColorStop(.78,'#4c526c');
+      gradient.addColorStop(1,'#9b7890');
+      skyctx.fillStyle=gradient;skyctx.fillRect(0,0,8,512);
+    }
+    const skyTexture=new THREE.CanvasTexture(skyCanvas);
+    skyTexture.colorSpace=THREE.SRGBColorSpace;
+    const skyMat=new THREE.MeshBasicMaterial({map:skyTexture,side:THREE.DoubleSide,depthWrite:false,fog:false});
+    const skyGeo=new THREE.PlaneGeometry(300,160);geometries.add(skyGeo);
+    const sky=new THREE.Mesh(skyGeo,skyMat);
+    sky.rotation.y=Math.PI/2;sky.position.set(-120,50,0);sky.renderOrder=-1000;
+    group.add(sky);
+    // Street lights and structures run below the continuous open sky.
     box(group,96,.34,146,-70,-.52,0,palette.sidewalk);
     box(group,12,.05,146,-30,-.28,0,palette.road);
     box(group,13,.05,146,-60,-.28,0,palette.road);
@@ -148,6 +184,9 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     const particles=new THREE.Points(particleGeometry,palette.rain);particles.visible=false;group.add(particles);
     const snowfall=new THREE.PointsMaterial({color:'#edf5fa',size:.16,transparent:true,opacity:.82,depthWrite:false});
     const wet=new THREE.MeshStandardMaterial({color:'#17252d',roughness:.19,metalness:.38});
+    const lightning=new THREE.PointLight(0xd5e7ff,0,115,2);
+    lightning.position.set(-65,64,0);group.add(lightning);
+    const chaos={enabled:false,scheme:'normal',events:0};
     const roadMats=[palette.road,wet];
     // Controls don't cover navigation: tiny inspector placed above original HUD.
     const panel=doc.createElement('div');
@@ -162,26 +201,33 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     const rainRoads=[];group.traverse(o=>{if(o.isMesh&&o.material===palette.road)rainRoads.push(o)});
     const particleMaterial=particles.material;
     const setMode=(next)=>{
-      if(!['dusk','rain','snow'].includes(next))throw Error('Unknown city mode');
-      mode=next;particles.visible=next!=='dusk';
+      if(!['dusk','rain','snow','storm','blackout','rush'].includes(next))throw Error('Unknown city mode');
+      mode=next;chaos.enabled=['storm','blackout','rush'].includes(next);
+      chaos.scheme=next;
+      particles.visible=['rain','snow','storm'].includes(next);
       particleMaterial.color.set(next==='snow'?'#e9f2ff':'#a6d7f0');
       particleMaterial.size=next==='snow'?.16:.065;
-      for(const road of rainRoads)road.material=next==='rain'?wet:palette.road;
+      for(const road of rainRoads)road.material=['rain','storm'].includes(next)?wet:palette.road;
+      for(const m of [palette.warm,palette.cool])m.color.set(next==='blackout'?'#26343d':m===palette.warm?'#ffc17a':'#a8d6ee');
       label.textContent='CITY • 3D • '+next.toUpperCase();
     };
     const stop=()=>{
       if(!active)return;
       active=false;win.cancelAnimationFrame(raf);
       wall.visible=prior.wall;glass.visible=prior.glass;
+      originalTrims.forEach(({object,visible})=>{object.visible=visible});
       scene.remove(group);panel.remove();
       for(const g of geometries)g.dispose();
-      const used=new Set(Object.values(palette));used.add(snowfall);used.add(wet);
+      const used=new Set(Object.values(palette));used.add(snowfall);used.add(wet);used.add(skyMat);
+      skyTexture.dispose();
       for(const m of used)m.dispose();
       if(win.tfCityExterior3D===api)delete win.tfCityExterior3D;
     };
     button('Dusk',()=>setMode('dusk'));
     button('Rain',()=>setMode('rain'));
     button('Snow',()=>setMode('snow'));
+    const chaosButton=button('Chaos Schemes',()=>{const options=['storm','blackout','rush'];const next=options[(options.indexOf(mode)+1)%options.length];setMode(next)});
+    chaosButton.title='Storm / Blackout / Rush Hour — new experimental scenarios, not a recovered preset';
     button('Restore',stop);
     const api=Object.freeze({
       get state(){return {active,mode,frames:frameCount,drawCalls,originalFloorUntouched:true}},
@@ -192,15 +238,19 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       if(!active)return;raf=win.requestAnimationFrame(tick);
       const delta=Math.min(.05,Math.max(0,(time-last)/1000));last=time;
       for(const car of cars){
-        car.vehicle.position.z+=car.velocity*delta;
+        car.vehicle.position.z+=car.velocity*delta*(mode==='rush'?2.5:1);
         if(car.vehicle.position.z>75)car.vehicle.position.z=-75;
         if(car.vehicle.position.z< -75)car.vehicle.position.z=75;
       }
+      if(mode==='storm'){
+        lightning.intensity=Math.sin(time*.0013)> .998?150:Math.sin(time*.0013)>.995?28:0;
+        if(lightning.intensity>0)chaos.events++;
+      }else{lightning.intensity=0}
       if(particles.visible){
         const p=particleGeometry.attributes.position.array;
         for(let i=0;i<p.length;i+=3){
-          p[i+1]-=(mode==='rain'?13:2.1)*delta;
-          p[i]+=mode==='rain'?-1.5*delta:.3*delta;
+          p[i+1]-=(mode==='rain'||mode==='storm'?13:2.1)*delta;
+          p[i]+=(mode==='rain'||mode==='storm')?-1.5*delta:.3*delta;
           if(p[i+1]<-.1)p[i+1]=24+(i%17);
           if(p[i]<-115)p[i]=-23;
         }
@@ -213,6 +263,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     return api;
   }catch(error){
     wall.visible=prior.wall;glass.visible=prior.glass;
+    originalTrims.forEach(({object,visible})=>{object.visible=visible});
     scene.remove(group);
     for(const g of geometries)g.dispose();
     for(const m of Object.values(palette))m.dispose();
