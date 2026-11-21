@@ -123,12 +123,20 @@ try{
  Write-Host 'Time: MORNING / DAY / SUNSET / NIGHT.'
  Write-Host 'Manual sky: SUNNY / PARTLY CLOUDY / OVERCAST / FOG / RAIN / HEAVY RAIN / THUNDERSTORM / SNOW.'
  try{
-  $url='http://127.0.0.1:4173/geo-capital-photo.mjs'
-  $result=Invoke-WebRequest $url -TimeoutSec 5
-  if($result.StatusCode -eq 200 -and $result.Content.Contains('environmentPalette')){
-   Write-Host 'SERVER HTTP MODULE: PASS' -ForegroundColor Green
-  }else{Write-Warning 'Module was installed but HTTP delivery is not verified.'}
- }catch{Write-Warning 'TowerFlow port 4173 is not responding; start existing server and hard refresh.'}
+  $origin='http://127.0.0.1:4173'
+  foreach($pair in @(
+   @('geo-environments.mjs','installSceneCompositor'),
+   @('geo-scene-compositor.mjs','tf-geo-scene-effects'),
+   @('geo-capital-photo.mjs','environmentPalette')
+  )){
+   $url=$origin+'/'+$pair[0]
+   $result=Invoke-WebRequest $url -TimeoutSec 5
+   if($result.StatusCode -ne 200 -or !$result.Content.Contains($pair[1])){
+    throw "HTTP content mismatch: $url"
+   }
+   Write-Host "HTTP VERIFIED: $($pair[0])" -ForegroundColor Green
+  }
+ }catch{Write-Warning 'HTTP scene module verification failed; confirm the room server is running and serves the current public folder.'}
 }finally{
  foreach($temp in $tempFiles){
   Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
