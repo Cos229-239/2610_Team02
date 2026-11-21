@@ -6,6 +6,8 @@
 - **Decision type:** Operations / preservation
 - **Baseline:** Team 02 repository `Cos229-239/2610_Team02`, shared integration branch `dev`
 
+> **Operational keyword / invocation:** `boot towerflow` — use this ADR as the recovery reference for launching the established TowerFlow collaboration room. Before Funnel activation, verify the Tailscale desktop client (`tailscale-ipn.exe`) is running and the backend is `Running`. Preserve the original network identity, existing launcher, Git state, and OAuth settings.
+
 ## Context and verified observations
 
 The existing collaboration room runs from `%USERPROFILE%\Desktop\Towerflow_Team02_Private_Invite_Room\Towerflow_Collaboration_Room`, with Node.js listening on `127.0.0.1:4173`. The host reported HTTP 200 for `/api/config`, `/api/health`, and `/room/team02`. Its configured repo was `Cos229-239/2610_Team02`, branch `dev`; the previously checked local checkout at `%USERPROFILE%\Documents\GitHub\2610_Team02` was at `4875b3939fb799003bcd924c28c91154deb29252`, matching the then-observed GitHub `dev` tip. A matching Git commit does **not** prove the standalone live room matches source control.
