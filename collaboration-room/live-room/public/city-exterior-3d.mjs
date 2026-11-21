@@ -320,7 +320,8 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         const outage=['purge','zombie'].includes(next);
         m.color.set(outage?'#26343d':m===palette.warm?'#ffc17a':'#a8d6ee');
       }
-      vortex.visible=next==='severe'||next==='cataclysm';
+      // Dedicated storm system owns the tornado; avoid duplicate generic funnels.
+      vortex.visible=next==='cataclysm';
       fireGroup.visible=['fire','cataclysm','purge'].includes(next);
       emergencyGroup.visible=['fire','cataclysm','airborne','purge'].includes(next);
       peopleGroup.visible=['zombie','airborne','purge','rapture'].includes(next);
