@@ -82,7 +82,7 @@ async function fetchJson(url,timeout=8000) {
 function boundedText(root,label,status){
   root.textContent=label+' · '+status;
 }
-export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62,z:-63},
+export function installNYCAtmosphere({THREE,scene,renderer,camera,position={x:62,z:-83},
    autoEnable=true,fetchData=true}={}) {
   if(!THREE||!scene||!renderer||!camera)throw Error('Three.js scene, camera and renderer required');
   if(globalThis.tfNYCAtmosphere)return globalThis.tfNYCAtmosphere;
