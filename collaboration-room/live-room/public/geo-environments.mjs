@@ -1,5 +1,6 @@
 import {capitalCoordinates} from './geo-capitals-coordinates.mjs';
 import {fetchCapitalTile,buildCapitalScene} from './geo-capital-mesh.mjs';
+import {findCapitalPhoto,buildPhotoEnvironment,environmentPalette} from './geo-capital-photo.mjs';
 // TowerFlow geographic foundation: one scene owner, no generic fake capital cities.
 const capitals=[
 'Alabama|Montgomery|America/Chicago','Alaska|Juneau|America/Juneau',
@@ -34,7 +35,7 @@ export const destinations=Object.freeze([...capitals.map(line=>{
 }),Object.freeze({id:'washington-dc',state:'Washington, D.C.',capital:'Federal District',
  timeZone:'America/New_York',kind:'district',status:'architectural-study',
  latitude:38.8893,longitude:-77.0502})]);
-export const modes=Object.freeze(['morning','day','night']);
+export const modes=Object.freeze(['morning','day','sunset','night']);
 export function validateDestinations(list=destinations){
  return list.length===51&&list.filter(d=>d.kind==='state').length===50&&
   list.filter(d=>d.kind==='district').length===1&&new Set(list.map(d=>d.id)).size===51&&
@@ -187,15 +188,19 @@ export function installGeography({THREE,scene}){
  if(window.tfGeography)return window.tfGeography;
  const wrap=document.createElement('div');
  wrap.id='tf-geography-controls';
- wrap.style.cssText='position:fixed;right:12px;top:100px;z-index:910;background:#081624ed;color:#e9f8ff;padding:10px;border:1px solid #487b93;border-radius:9px;max-width:min(320px,82vw);font:12px system-ui';
+ wrap.style.cssText='position:fixed;right:12px;top:74px;z-index:910;background:#081624ed;color:#e9f8ff;padding:10px;border:1px solid #487b93;border-radius:9px;width:min(300px,78vw);max-height:75vh;overflow:auto;font:12px system-ui';
  const heading=document.createElement('button');
- heading.type='button';heading.textContent='STATES · CAPITALS ▾';
+ heading.type='button';heading.textContent='STATES · CITIES ▾';heading.setAttribute('aria-expanded','false');
+ heading.style.cssText='width:100%;background:#183a56;color:white;border:1px solid #6d94aa;border-radius:6px;padding:7px;text-align:left';
+ const close=document.createElement('button');close.type='button';close.textContent='✕';close.title='Close city selector (Esc)';
+ close.style.cssText='position:absolute;right:15px;top:14px;background:transparent;border:0;color:white;font-size:18px';
+ close.addEventListener('click',()=>{body.hidden=true;heading.setAttribute('aria-expanded','false');});
  const body=document.createElement('div');body.hidden=true;
  const search=document.createElement('input');search.type='search';
  search.placeholder='Search state or capital';search.setAttribute('aria-label','Search capitals');
  search.style.cssText='display:block;width:95%;margin:8px 0;background:#132b3c;color:white';
  const mode=document.createElement('div');mode.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin:9px 0';
- const list=document.createElement('div');list.style.cssText='max-height:42vh;overflow-y:auto';
+ const list=document.createElement('div');list.style.cssText='max-height:35vh;overflow-y:auto';
  const status=document.createElement('p');status.setAttribute('role','status');
  status.textContent='Select a capital. Source-backed geometry is loaded only on demand.';
  const weatherControls=document.createElement('div');
@@ -207,10 +212,10 @@ export function installGeography({THREE,scene}){
  for(const [value,label] of [['live','LIVE NWS'],['manual','MANUAL']]){
   const op=document.createElement('option');op.value=value;op.textContent=label;weatherModeSelect.append(op);
  }
- for(const value of ['sun','clouds','rain','thunderstorm']){
+ for(const value of ['sunny','partly cloudy','overcast','fog','rain','heavy rain','thunderstorm','snow']){
   const op=document.createElement('option');op.value=value;op.textContent=value.toUpperCase();manualSelect.append(op);
  }
- manualSelect.hidden=true;
+ manualSelect.hidden=true;weatherModeSelect.value='manual';manualSelect.value='sunny';
  weatherControls.append(weatherModeSelect,manualSelect);
  const restore=document.createElement('button');
  restore.textContent='RETURN TO ORIGINAL ROOM';restore.type='button';
@@ -221,13 +226,28 @@ export function installGeography({THREE,scene}){
  attribution.textContent='Geography © OpenStreetMap contributors (ODbL).';
  attribution.style.color='#8fe5ff';
  sourceAttribution.append(attribution);
- body.append(search,mode,weatherControls,status,restore,list,sourceAttribution);wrap.append(heading,body);document.body.append(wrap);
+ body.append(search,mode,weatherControls,status,restore,list,sourceAttribution);wrap.append(heading,close,body);document.body.append(wrap);
+ const timeInfo=document.createElement('p');timeInfo.textContent='TIME OF DAY';mode.before(timeInfo);
+ const weatherInfo=document.createElement('p');weatherInfo.textContent='SKY & WEATHER';weatherControls.before(weatherInfo);
  const weather=document.createElement('div');weather.id='tf-geography-weather';
  weather.style.cssText='position:fixed;left:22px;top:68px;z-index:910;color:#ecf8ff;background:#081624ed;padding:4px 9px;font:12px system-ui';
  weather.textContent='☀️ · WEATHER UNVERIFIED';document.body.append(weather);
- let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'live',manualWeather:'sun'});
+ const nycDestination=Object.freeze({id:'new-york-city',state:'New York',capital:'New York City',kind:'city',latitude:40.7128,longitude:-74.006,timeZone:'America/New_York'});
+ let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'manual',manualWeather:'sunny'});
  let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0,loadSerial=0;
  let weatherMesh=null,weatherGeometry=null,weatherMaterial=null,weatherAnimation=0;
+ const originalBackground=scene.background,originalFogColor=scene.fog?.color?.clone?.();
+ function applyExteriorBackground(){
+  if(!state.destination)return;
+  const condition=state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny';
+  const palette=environmentPalette(state.timeMode,condition);
+  scene.background=new THREE.Color(palette.top);
+  if(scene.fog?.color)scene.fog.color.set(palette.horizon);
+ }
+ function restoreExteriorBackground(){
+  scene.background=originalBackground;
+  if(originalFogColor&&scene.fog?.color)scene.fog.color.copy(originalFogColor);
+ }
 
  function clearWeatherVisual(){
   if(weatherAnimation)cancelAnimationFrame(weatherAnimation);
@@ -241,6 +261,7 @@ export function installGeography({THREE,scene}){
   if(!active)return;
   const condition=state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'';
   const rain=/rain|storm|shower|drizzle/i.test(condition);
+  applyExteriorBackground();
   active.setWeather?.(condition);
   if(!rain)return;
   const points=new Float32Array(180*3);
@@ -271,18 +292,18 @@ export function installGeography({THREE,scene}){
  function render(){
   list.replaceChildren();
   const query=search.value.trim().toLowerCase();
-  for(const d of destinations){
+  for(const d of [...destinations,nycDestination]){
    if(!(d.state+' '+d.capital).toLowerCase().includes(query))continue;
    const b=document.createElement('button');b.type='button';
-   b.textContent=d.state+' — '+d.capital+(d.kind==='district'?' · MEMORIAL STUDY':' · REAL OSM DATA');
+   b.textContent=d.state+' — '+d.capital+(d.kind==='district'?' · LANDMARK STUDY':d.kind==='city'?' · CITY, NOT CAPITAL':' · PHOTO / OSM');
    b.setAttribute('aria-current',String(state.destination===d.id));
    b.style.cssText='display:block;width:100%;text-align:left;margin:4px 0;background:#122b3e;color:#eaf5ff;border:1px solid #4b7892;padding:7px';
-   b.title='Load geographic geometry only when its source is available';
+   b.title='Load a verified-license photograph, or OSM geometry where available';
    b.addEventListener('click',()=>activate(d.id));list.append(b);
   }
  }
  function renderWeather(){
-  const d=destinations.find(v=>v.id===state.destination);
+  const d=[...destinations,nycDestination].find(v=>v.id===state.destination);
   const label=state.weatherMode==='manual'?state.manualWeather+' · SIMULATED':
    weatherForecast?weatherForecast.condition+' · NWS HOURLY FORECAST':
    'NWS WEATHER UNAVAILABLE';
@@ -292,11 +313,12 @@ export function installGeography({THREE,scene}){
  function setTime(value){
   state=selectMode(state,value);
   if(active)active.setTime(value);
+  applyExteriorBackground();
   for(const radio of mode.querySelectorAll('input'))radio.checked=radio.value===value;
   renderWeather();
  }
  async function updateWeather(){
-  const d=destinations.find(v=>v.id===state.destination);
+  const d=[...destinations,nycDestination].find(v=>v.id===state.destination);
   if(!d||state.weatherMode!=='live')return;
   const serial=++weatherRequest,current=state.destination;
   try{
@@ -317,23 +339,31 @@ export function installGeography({THREE,scene}){
   label.append(input,document.createTextNode(' '+value.toUpperCase()));mode.append(label);
  }
  async function activate(id){
-  const d=destinations.find(v=>v.id===id);
+  const d=[...destinations,nycDestination].find(v=>v.id===id);
   if(!d)return false;
   const serial=++loadSerial;
-  status.textContent='Loading '+d.capital+' real geographic geometry…';
-  let prepared;
+  status.textContent='Loading '+d.capital+' real photographic city reference…';
+  let prepared,photoError='';
   try{
-   if(d.kind==='district')prepared=createDCLandmarkStudy(THREE,state.timeMode);
-   else{
-    const tile=await fetchCapitalTile(d);
-    if(serial!==loadSerial)return false;
-    prepared=buildCapitalScene(THREE,tile,state.timeMode);
-    prepared.report={buildings:tile.buildings.length,roads:tile.roads.length,
+   const photo=await findCapitalPhoto(d,state.timeMode);
+   if(serial!==loadSerial)return false;
+   prepared=await buildPhotoEnvironment(THREE,photo,state.timeMode);
+  }catch(error){photoError=String(error.message||error);}
+  if(!prepared){
+   try{
+    if(d.kind==='district')prepared=createDCLandmarkStudy(THREE,state.timeMode);
+    else{
+     const tile=await fetchCapitalTile(d);
+     if(serial!==loadSerial)return false;
+     prepared=buildCapitalScene(THREE,tile,state.timeMode);
+     prepared.report={buildings:tile.buildings.length,roads:tile.roads.length,
       estimated:tile.buildings.filter(v=>v.estimation!=='OSM height tag').length};
-   }
-  }catch(error){
-    if(serial===loadSerial)status.textContent='Unavailable: '+d.capital+' — '+String(error.message||error)+'; prior scene retained.';
+    }
+   }catch(error){
+    if(serial===loadSerial)status.textContent='Source unavailable: '+d.capital+
+     ' · photo: '+photoError+' · OSM: '+String(error.message||error)+'; previous scene retained.';
     return false;
+   }
   }
   if(serial!==loadSerial){prepared.dispose();return false;}
   if(nycWasEnabled===null && window.tfNYCAtmosphere)nycWasEnabled=window.tfNYCAtmosphere.enabled;
@@ -342,16 +372,28 @@ export function installGeography({THREE,scene}){
   if(active){active.group.parent?.remove(active.group);active.dispose();}
   active=prepared;
   const placement=capitalWorldPlacement(d.kind);
-  prepared.group.position.set(placement.x,placement.y,placement.z);
-  prepared.group.rotation.y=placement.rotationY;
-  prepared.group.scale.setScalar(placement.scale);
+  if(!prepared.report?.photographic){
+   prepared.group.position.set(placement.x,placement.y,placement.z);
+   prepared.group.rotation.y=placement.rotationY;
+   prepared.group.scale.setScalar(placement.scale);
+  }
   // Attach inside the actual city-interior renderer, not as an unrelated
   // freestanding scene object. The old skyline group is reversibly hidden.
   const cityRoom=scene.getObjectByName('TF_NIGHT_CITY_INTERIOR');
   (cityRoom||scene).add(prepared.group);
   state=Object.freeze({...state,destination:id});
-  status.textContent=d.kind==='district'?'WASHINGTON, D.C. · Architectural study, not verified high-fidelity reconstruction':d.capital+' · '+prepared.report.buildings+' verified OSM footprint records, '+prepared.report.estimated+' estimated heights';
-  render();weatherForecast=null;
+  status.textContent=prepared.report?.photographic?
+   d.capital+' · PHOTOGRAPHIC REFERENCE (not 3D) · '+prepared.report.license:
+   d.kind==='district'?'WASHINGTON, D.C. · Architectural study, not photoreal':
+   d.capital+' · '+prepared.report.buildings+' OSM building records; '+prepared.report.estimated+' estimated heights';
+  if(prepared.report?.photographic){
+   attribution.href=prepared.report.source;attribution.textContent='City photo: '+prepared.report.license+' · Wikimedia Commons';
+  }else{
+   attribution.href='https://www.openstreetmap.org/copyright';
+   attribution.textContent='Geography © OpenStreetMap contributors (ODbL)';
+  }
+  render();body.hidden=true;heading.setAttribute('aria-expanded','false');weatherForecast=null;
+  applyExteriorBackground();
   ++weatherRequest;
   if(state.weatherMode==='live')void updateWeather();
   renderWeather();
@@ -374,11 +416,19 @@ export function installGeography({THREE,scene}){
   if(originalSkyline)originalSkyline.visible=skylineWasVisible;
   if(nycWasEnabled!==null){window.tfNYCAtmosphere?.setEnabled(nycWasEnabled);nycWasEnabled=null;}
   state=Object.freeze({...state,destination:null});weatherForecast=null;
+  restoreExteriorBackground();
   status.textContent='Original TowerFlow skyline restored.';render();renderWeather();
  }
  restore.addEventListener('click',returnToOriginal);
  weatherTimer=setInterval(()=>{if(state.weatherMode==='live')void updateWeather();},15*60*1000);
  heading.addEventListener('click',()=>{body.hidden=!body.hidden;heading.setAttribute('aria-expanded',String(!body.hidden));});
+ const onEscape=event=>{
+  if(event.key==='Escape'&&!body.hidden){
+   body.hidden=true;heading.setAttribute('aria-expanded','false');
+   event.stopPropagation();event.preventDefault();
+  }
+ };
+ window.addEventListener('keydown',onEscape,true);
  search.addEventListener('input',render);render();
  const api=Object.freeze({activate,setTime,get state(){return state;},
   get diagnostics(){return{destinations:destinations.length,sceneActive:!!active,
@@ -386,6 +436,7 @@ export function installGeography({THREE,scene}){
   returnToOriginal,
   dispose(){returnToOriginal();
    if(weatherTimer)clearInterval(weatherTimer);weatherRequest++;
+   window.removeEventListener('keydown',onEscape,true);restoreExteriorBackground();
    wrap.remove();weather.remove();delete window.tfGeography;}});
  window.tfGeography=api;return api;
 }
