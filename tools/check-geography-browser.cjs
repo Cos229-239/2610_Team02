@@ -15,10 +15,11 @@ const page=[
  "class Shape {moveTo(){}lineTo(){}}",
  "class Geometry {dispose(){}rotateX(){return this}setAttribute(){this.attributes={position:{needsUpdate:false}}}}",
  "class Material {constructor(o){Object.assign(this,o);this.color={setHex(){}}}dispose(){}}",
+ "class Color {constructor(c){this.value=c}set(v){this.value=v;return this}setHex(v){this.value=v;return this}clone(){return new Color(this.value)}copy(v){this.value=v.value;return this}}",
  "class Mesh extends Obj {constructor(g,m){super();this.geometry=g;this.material=m}}",
  "class BufferAttribute {constructor(a,n){this.array=a;this.itemSize=n;this.needsUpdate=false}}",
  "class Light extends Obj {constructor(){super();this.color={setHex(){}};this.intensity=1}}",
- "const THREE={Group:Obj,Mesh,Shape,MeshStandardMaterial:Material,PointsMaterial:Material,Points:Mesh,",
+ "const THREE={Color,Group:Obj,Mesh,Shape,MeshStandardMaterial:Material,PointsMaterial:Material,Points:Mesh,",
  "BoxGeometry:Geometry,PlaneGeometry:Geometry,ExtrudeGeometry:Geometry,ConeGeometry:Geometry,",
  "SphereGeometry:Geometry,IcosahedronGeometry:Geometry,CylinderGeometry:Geometry,",
  "BufferGeometry:Geometry,BufferAttribute,DirectionalLight:Light,HemisphereLight:Light,PointLight:Light};",
@@ -36,12 +37,16 @@ const page=[
  "if(destinations.length!==51)throw Error('Destination count');",
  "const sh=document; // Geography controls currently live in document DOM; no shadow root.",
  "const head=sh.querySelector('button');head.click();",
+ "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));",
+ "if(document.querySelector('#tf-geography-controls button').getAttribute('aria-expanded')!=='false')throw Error('Escape failed to dismiss panel');",
+ "head.click();",
  "if(![...sh.querySelectorAll('button')].some(b=>b.textContent.includes('South Carolina')))throw Error('Missing state button');",
  "if(!await api.activate('south-carolina'))throw Error('OSM activation failed');",
  "if(api.state.destination!=='south-carolina'||legacy.visible)throw Error('Wrong scene transition');",
  "if(api.diagnostics.sceneActive!==true)throw Error('City inactive');",
  "sh.querySelector('input[value=night]').click();",
  "if(api.state.timeMode!=='night')throw Error('Exclusive time broken');",
+ "api.setTime('sunset');if(api.state.timeMode!=='sunset')throw Error('Sunset mode broken');",
  "const selects=sh.querySelectorAll('select');selects[0].value='manual';selects[0].dispatchEvent(new Event('change'));",
  "selects[1].value='rain';selects[1].dispatchEvent(new Event('change'));",
  "if(api.state.weatherMode!=='manual'||!sh.querySelector('#tf-geography-weather')){",
@@ -60,7 +65,7 @@ async function main(){
   const pathname=new URL(req.url,'http://localhost').pathname;
   if(pathname==='/')return res.writeHead(200,{'Content-Type':'text/html'}).end('<!doctype html><html><head></head><body><script type="module" src="/pilot.mjs"></script></body></html>');
   if(pathname==='/pilot.mjs')return res.writeHead(200,{'Content-Type':'text/javascript'}).end(page);
-  const allowed=new Set(['geo-environments.mjs','geo-capital-mesh.mjs','geo-capitals-coordinates.mjs']);
+  const allowed=new Set(['geo-environments.mjs','geo-capital-mesh.mjs','geo-capitals-coordinates.mjs','geo-capital-photo.mjs']);
   const filename=pathname.slice(1);
   if(!allowed.has(filename))return res.writeHead(404).end();
   return res.writeHead(200,{'Content-Type':'text/javascript'}).end(fs.readFileSync(path.join(root,filename)));
