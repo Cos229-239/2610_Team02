@@ -175,6 +175,30 @@ for (const item of tfIDEs) {
     tfRegister(screen, item.id);
 }
 
+// TF_TEAM02_MEMBER_DESKS_V1_BEGIN
+// Four additive, walk-up workbenches in the EXISTING development room.
+// Do not move the existing IDEs, return portal, room shell or camera bounds.
+// Member-specific source is viewed from GitHub; a visitor never inherits
+// another member's write permissions or workspace.
+const tfTeam02Desks = Object.freeze([
+  {id:'team-desk-malik',label:'MALIK',name:'Malik Brown',login:'SVN-760',
+    project:'Inventory operations / Windows GUI',ref:'dev',
+    path:'TowerFlow Files/TowerFlow (Malik modified)/TowerFlowGUI.cpp',x:49},
+  {id:'team-desk-omarion',label:'OMARION',name:'Omarion Walter',login:'HyperRealmEnd',
+    project:'Inventory, barcode, sales and reporting',ref:'dev',
+    path:'Towerflow_OW/TowerFlow/UserInterface.cpp',x:58},
+  {id:'team-desk-dayna',label:'DAYNA',name:'Dayna Perez Colon',login:'DaynaPerezColon',
+    project:'Shared input, storage and console components',ref:'dev',
+    path:'DisplayHelper.h',x:67},
+  {id:'team-desk-william',label:'WILLIAM',name:'William Jones',login:'Lopobunnie',
+    project:'Windows Forms / inventory grid',ref:'WilliamPersonal',
+    path:'TowerFlowWindow/TowerFlowWinForm/TowerFlowWinForm.slnx',x:76}
+]);
+for(const member of tfTeam02Desks){
+  station(member.id,member.label,member.project,member.x,2.8,violet);
+}
+// TF_TEAM02_MEMBER_DESKS_V1_END
+
 // Return portal on the opposite wall.
 const tfReturn = sign(
     'RETURN TO ATRIUM',
@@ -268,6 +292,62 @@ function activateTFStation(id) {
         tfTeleport(false);
         return;
     }
+
+    // TF_TEAM02_MEMBER_DESKS_V1_HANDLER_BEGIN
+    const memberDesk = tfTeam02Desks.find(member => member.id === id);
+    if (memberDesk) {
+        // Use the existing authenticated room panel, without new backend
+        // endpoints or another desktop/debugger implementation.
+        openPanel('links');
+        $('panelTag').textContent = 'TEAM 02 • CONTRIBUTOR WORKSTATION';
+        $('panelTitle').textContent = memberDesk.name;
+        const content = $('panelContent');
+        content.replaceChildren();
+        const info = document.createElement('div');
+        info.className = 'callout';
+        const title = document.createElement('strong');
+        title.textContent = memberDesk.project;
+        const detail = document.createElement('p');
+        detail.textContent = 'Source reference: ' + memberDesk.ref +
+            '. This is a source/review desk, not another member\'s running desktop or debugger.';
+        info.append(title,detail);
+        const actions = document.createElement('div');
+        actions.className = 'row wrap';
+        const base = 'https://github.com/Cos229-239/2610_Team02';
+        const makeLink = (label,url) => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = label;
+            a.append(button);
+            actions.append(a);
+        };
+        makeLink('View source',base+'/blob/'+encodeURIComponent(memberDesk.ref)+'/'+
+            memberDesk.path.split('/').map(encodeURIComponent).join('/'));
+        makeLink('Member history',base+'/commits/'+encodeURIComponent(memberDesk.ref)+'/?author='+
+            encodeURIComponent(memberDesk.login));
+        makeLink('Review contributions',base+'/pulls?q=is%3Apr+author%3A'+
+            encodeURIComponent(memberDesk.login));
+        const work = document.createElement('button');
+        work.type = 'button';
+        work.textContent = 'Open my contribution workspace';
+        work.onclick = () => {
+            if (typeof window.tfOpenMemberDesk === 'function') window.tfOpenMemberDesk();
+            else showToast('Contribution desk is unavailable in this hosted build.');
+        };
+        actions.append(work);
+        const note = document.createElement('p');
+        note.className = 'muted';
+        note.textContent = memberDesk.ref === 'dev'
+            ? 'Reviewed source in team dev. Runtime integration into the room is separately verified.'
+            : 'Personal branch source; not represented as merged into team dev.';
+        content.append(info,actions,note);
+        return;
+    }
+    // TF_TEAM02_MEMBER_DESKS_V1_HANDLER_END
 
     if (id.startsWith('dev-ide-')) {
         openPanel('ide');
