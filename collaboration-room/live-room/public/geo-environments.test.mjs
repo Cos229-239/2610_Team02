@@ -1,4 +1,4 @@
-import {environmentPalette,findCapitalPhoto} from './geo-capital-photo.mjs';
+import {environmentPalette,findCapitalPhoto,buildPhotoEnvironment} from './geo-capital-photo.mjs';
 import {visualPreset} from './geo-scene-compositor.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -104,4 +104,38 @@ test('viewport compositor has distinct proven rain, snow, fog, storm, night and 
  assert.equal(fog.fog,true);assert.equal(sunset.sunset,true);
  assert.notEqual(sunny.tint,sunset.tint);
  assert.notEqual(sunset.tint,storm.tint);
+});
+
+test('selected city replaces towers with a true world-space photographic exterior, with animated aircraft',async()=>{
+ const prior=globalThis.document;
+ const ctx={clearRect(){},fillRect(){},beginPath(){},ellipse(){},fill(){},moveTo(){},lineTo(){},stroke(){},
+  createLinearGradient(){return {addColorStop(){}};},createRadialGradient(){return{addColorStop(){}};}};
+ globalThis.document={createElement:()=>({width:1024,height:512,getContext:()=>ctx})};
+ class Obj {constructor(){this.children=[];this.position={x:0,set:(x,y,z)=>{this.position.x=x;this.position.y=y;this.position.z=z;}};this.rotation={};}
+  add(...items){this.children.push(...items);}
+  getObjectByName(name){return this.children.find(item=>item.name===name);}
+ }
+ class Geo {constructor(...size){this.parameters=size;}dispose(){}}
+ class Material {constructor(){this.color={setHex(){}};}dispose(){}}
+ class Mesh extends Obj{constructor(geometry,material){super();this.geometry=geometry;this.material=material;}}
+ class Texture{constructor(){this.offset={x:0};}dispose(){}}
+ const THREE={Group:Obj,Mesh,BoxGeometry:Geo,SphereGeometry:Geo,PlaneGeometry:Geo,
+  MeshBasicMaterial:Material,CanvasTexture:Texture,DoubleSide:2,SRGBColorSpace:'srgb',
+  TextureLoader:class{setCrossOrigin(){}load(url,done){done(new Texture());}}};
+ try{
+  const city=await buildPhotoEnvironment(THREE,{url:'https://upload.wikimedia.org/test.jpg',
+   source:'https://commons.wikimedia.org/wiki/File:Test',license:'CC BY-SA 4.0'},'day');
+  const photo=city.group.getObjectByName('TF_CAPITAL_REAL_CITY_PHOTO');
+  const weather=city.group.getObjectByName('TF_CAPITAL_WEATHER_GLASS_OVERLAY');
+  const aircraft=city.group.getObjectByName('TF_CAPITAL_EXTERIOR_AIRCRAFT');
+  assert.ok(photo&&weather&&aircraft);
+  assert.ok(photo.position.x<-21&&weather.position.x<-21);
+  assert.ok(weather.position.x>photo.position.x);
+  assert.equal(photo.geometry.parameters[0],84);
+  assert.equal(photo.material.fog,false);
+  assert.equal(typeof photo.onBeforeRender,'function');
+  photo.onBeforeRender();
+  city.setWeather('rain');city.setTime('sunset');
+  city.dispose();
+ }finally{globalThis.document=prior;}
 });
