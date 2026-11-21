@@ -267,20 +267,21 @@ export function installGeography({THREE,scene}){
   if(!rain&&!snow)return;
   const points=new Float32Array(180*3);
   for(let i=0;i<180;i++){
-   points[i*3]=(Math.random()-.5)*52;
-   points[i*3+1]=Math.random()*22+1;
-   points[i*3+2]=(Math.random()-.5)*42;
+   points[i*3]=-24-Math.random()*7;
+   points[i*3+1]=Math.random()*12;
+   points[i*3+2]=(Math.random()-.5)*32;
   }
   weatherGeometry=new THREE.BufferGeometry();
   weatherGeometry.setAttribute('position',new THREE.BufferAttribute(points,3));
   weatherMaterial=new THREE.PointsMaterial({color:snow?0xf8fcff:0xaed7f4,size:snow?.34:.17,opacity:.7,transparent:true});
   weatherMesh=new THREE.Points(weatherGeometry,weatherMaterial);
   weatherMesh.name='TF_CAPITAL_WEATHER_RAIN';
-  active.group.add(weatherMesh);
+  // Rain stays OUTSIDE the glass at x=-21, never in the workstation.
+  scene.add(weatherMesh);
   const tick=()=>{
    if(!weatherMesh||!active)return;
    for(let i=1;i<points.length;i+=3){
-    points[i]-=snow?.08:.27;if(points[i]<0)points[i]=22;
+    points[i]-=snow?.08:.27;if(points[i]<0)points[i]=12;
    }
    weatherGeometry.attributes.position.needsUpdate=true;
    weatherAnimation=requestAnimationFrame(tick);
