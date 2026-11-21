@@ -79,6 +79,51 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         batches[index].setMatrixAt(counts[index]++,obj.matrix);
       }
       batches.forEach((mesh,i)=>{mesh.count=counts[i];mesh.instanceMatrix.needsUpdate=true});
+      // Apartment/hotel detail: recessed blinds, side curtains and people.
+      // Place all details just above the illuminated facade to retain real depth.
+      // Instancing avoids one draw call per window.
+      const blindsMat=new THREE.MeshBasicMaterial({color:'#8d9394',side:THREE.DoubleSide});
+      const curtainMat=new THREE.MeshBasicMaterial({color:'#76697c',side:THREE.DoubleSide});
+      const silhouetteMat=new THREE.MeshBasicMaterial({color:'#101823',side:THREE.DoubleSide});
+      const blindShape=new THREE.PlaneGeometry(.76,.13),curtainShape=new THREE.PlaneGeometry(.23,1.12);
+      const personShape=new THREE.PlaneGeometry(.25,.62);
+      geometries.add(blindShape);geometries.add(curtainShape);geometries.add(personShape);
+      const max=litCount,blinds=new THREE.InstancedMesh(blindShape,blindsMat,max);
+      const curtains=new THREE.InstancedMesh(curtainShape,curtainMat,max*2);
+      const people=new THREE.InstancedMesh(personShape,silhouetteMat,max);
+      blinds.count=0;curtains.count=0;people.count=0;
+      b.add(blinds,curtains,people);
+      const blindObj=new THREE.Object3D(),curtainObj=new THREE.Object3D(),personObj=new THREE.Object3D();
+      let bc=0,cc=0,pc=0;
+      const personStates=[];
+      for(const side of [-1,1])for(let level=0;level<levels;level++)for(let col=0;col<columns;col++){
+        const x=side*(w/2+.034);
+        const y=1.55+level*2.15;
+        const z=-d/2+.9+col*(d-1.8)/Math.max(1,columns-1);
+        const orientation=side*Math.PI/2;
+        const fate=rand();
+        if(fate<.27){
+          blindObj.rotation.set(0,orientation,0);
+          blindObj.position.set(x,y+.31,z);
+          blindObj.updateMatrix();blinds.setMatrixAt(bc++,blindObj.matrix);
+        }else if(fate<.49){
+          for(const sign of [-1,1]){
+            curtainObj.rotation.set(0,orientation,0);
+            curtainObj.position.set(x,y,z+sign*.31);
+            curtainObj.updateMatrix();curtains.setMatrixAt(cc++,curtainObj.matrix);
+          }
+        }else if(fate>.954 && pc<max){
+          // A shadowed tenant slowly peeks/moves behind a hotel/apartment window.
+          personObj.rotation.set(0,orientation,0);
+          personObj.position.set(x,y-.22,z);
+          personObj.updateMatrix();people.setMatrixAt(pc++,personObj.matrix);
+          personStates.push({x,y:y-.22,z,rotation:orientation,seed:rand()*6.28});
+        }
+      }
+      for(const [mesh,count] of [[blinds,bc],[curtains,cc],[people,pc]]){
+        mesh.count=count;mesh.instanceMatrix.needsUpdate=true;
+      }
+      animation.push({people,personStates,personObj,blindsMat,curtainMat,silhouetteMat});
     }
     // Cornices and darker glazing bands give realistic architectural rhythm.
     if(style===0){
@@ -219,6 +264,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       scene.remove(group);panel.remove();
       for(const g of geometries)g.dispose();
       const used=new Set(Object.values(palette));used.add(snowfall);used.add(wet);used.add(skyMat);
+      for(const a of animation)for(const key of ['blindsMat','curtainMat','silhouetteMat'])used.add(a[key]);
       skyTexture.dispose();
       for(const m of used)m.dispose();
       if(win.tfCityExterior3D===api)delete win.tfCityExterior3D;
@@ -241,6 +287,19 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         car.vehicle.position.z+=car.velocity*delta*(mode==='rush'?2.5:1);
         if(car.vehicle.position.z>75)car.vehicle.position.z=-75;
         if(car.vehicle.position.z< -75)car.vehicle.position.z=75;
+      }
+      // Update only existing tenant instances; no new meshes per animation frame.
+      if((frameCount%5)===0){
+        for(const resident of animation){
+          const {people,personStates,personObj}=resident;
+          for(let i=0;i<personStates.length;i++){
+            const p=personStates[i];
+            personObj.rotation.set(0,p.rotation,0);
+            personObj.position.set(p.x,p.y+Math.sin(time*.00035+p.seed)*.16,p.z);
+            personObj.updateMatrix();people.setMatrixAt(i,personObj.matrix);
+          }
+          if(personStates.length)people.instanceMatrix.needsUpdate=true;
+        }
       }
       if(mode==='storm'){
         lightning.intensity=Math.sin(time*.0013)> .998?150:Math.sin(time*.0013)>.995?28:0;
@@ -267,6 +326,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     scene.remove(group);
     for(const g of geometries)g.dispose();
     for(const m of Object.values(palette))m.dispose();
+    for(const a of animation)for(const key of ['blindsMat','curtainMat','silhouetteMat'])a[key].dispose();
     throw error;
   }
 }
