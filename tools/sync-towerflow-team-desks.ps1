@@ -28,7 +28,7 @@ $server = [IO.File]::ReadAllText((Join-Path $room 'server.js'))
 if ($server -notmatch 'azure-bridge/server\.cjs') {
     throw 'Existing Azure Bridge mount not confirmed. No changes installed.'
 }
-& git -C $repo fetch --no-tags $remote "refs/heads/$feature"
+& git -C $repo fetch --no-tags $remote "refs/heads/dev:refs/remotes/origin/dev" "refs/heads/$feature"
 if ($LASTEXITCODE -ne 0) { throw 'Feature fetch failed' }
 $revision = (@(& git -C $repo rev-parse FETCH_HEAD) -join '').Trim()
 if ($revision -notmatch '^[a-f0-9]{40}$') { throw 'Unexpected Git commit' }
