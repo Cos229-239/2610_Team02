@@ -46,3 +46,18 @@ Baseline tests must be explicit, repeatable, and independently evidenced. Let `a
 ## Operational warning
 
 Previous `feature/capital-window-world-emulation-20261121` had functional weather/state prototypes but failed visible fidelity. Its `tools/deploy-capital-world-live.ps1` is **not an approved release installer**. Do not run or auto-repair live graphics with it. Preserve the exact original verified source as authoritative while gathering measurements. GitHub `dev` and live `public/room.js` are separate; never infer that fetching or merging deploys a live asset.
+
+
+## 2026-11-21 forensic ownership update (from exact live source, hash checked)
+
+The live `room.js` is 6,575 lines and has materially different floor/window ownership from the GitHub `dev` file. User-supplied line excerpts show:
+- `TF_REFERENCE_ATRIUM_V2` at lines 12–64 owns **ceramic overlay tiles** (`2.47 × .012 × 2.47`, grid spaced 2.5 units) and **one textured window plane**, `PlaneGeometry(12,5.5)`, `x=-20.66,y=6.6,z=0`, rotation `Math.PI/2`. The skyline is drawn on a **1024 × 512 CanvasTexture**. There is an opaque wall mesh at `x=-21`. This is **not a physical transparent window** and there is no verified open geometric portal; pushing external 3D towers behind/through it will not necessarily render correctly.
+- A later material upgrade at lines 4140–4179 alters the tile material maps and uses a `THREE.PMREMGenerator` to produce an environment map from a `reflectionStage` scene; this stage is not a second competing room renderer.
+- A **separate planar floor reflection** at lines 5026–5079 uses a `640 × 360 HalfFloatType` render target, an offscreen mirror camera, and a mesh named `TF_POLISHED_MARBLE_REFLECTION`. A second planar resin reflection for the development room begins near 6085, using `TF_DEVELOPMENT_PLANAR_RESIN`. No floor/material edits are allowed for exterior integration.
+- Projector `wallLayout` at lines 2373–2377 includes `left` and `wallTargets` at 2378. Removing that target could alter controls; defer until separately tested. Current prototype does not alter it.
+
+**Decision:** The safe first experimental interface is the **already existing window CanvasTexture**, with **no extra 3D geometry**, no wall cuts and no scene/module replacement. Implemented `public/exterior-window-adapter.mjs` is a separately imported, **explicitly opt-in**, disposable 2D texture overlay. It identifies the exact original window by geometry/position/rotation/canvas dimensions; snapshots the bitmap, draws a bounded rain/snow visual probe only on that window, retains material/mesh identity and restores exact pixels on `dispose()`. It does **not** auto-mount and is not imported by the live `room.js`. It is intentionally not advertised as realistic 3D weather.
+
+**Evaluation:** `public/exterior-window-adapter.test.mjs` contains five Node test groups covering unique targeting, autostart rejection, preservation, weather input validation and bit-for-bit bitmap restoration. Node tests are available on this feature branch, but full browser rendering/visual fidelity is **NOT VERIFIED**. Source-level mock tests do not authorize release.
+
+**Next:** Run the exact branch's Node tests, measure real loaded window texture ownership in browser, capture same-pose original screenshots, then consider a controlled preview-only loader and screenshot comparisons with a dedicated explicit opt-in UI. No live file changes have been made as part of this stage.
