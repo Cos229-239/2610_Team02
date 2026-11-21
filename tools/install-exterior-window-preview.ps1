@@ -97,6 +97,7 @@ try{
  Say 'RESULT: EXPERIMENT INSTALLED; REAL 3D VISUAL QUALITY NOT YET ACCEPTED'
  Say 'PRESS CTRL + SHIFT + R IN YOUR BROWSER'
  $success=$true
+ try {Start-Process 'http://127.0.0.1:4173/room/team02?tfExteriorPreview=1'} catch {Say ('BROWSER LAUNCH: '+$_.Exception.Message)}
 } catch {
  Say ('DEPLOYMENT BLOCKED / ERROR: '+$_.Exception.Message)
  if($mutated -and $recoveryReady){
