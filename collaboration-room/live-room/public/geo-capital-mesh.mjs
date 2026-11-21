@@ -100,13 +100,19 @@ export function buildCapitalScene(THREE,tile,mode){
  const sunlight=new THREE.DirectionalLight(0xffdfb4,1.4);
  sunlight.position.set(-35,60,18);group.add(sunlight);
  const ambient=new THREE.HemisphereLight(0xb7c9d9,0x35453d,.72);group.add(ambient);
- function setTime(next){
-  sunlight.intensity=next==='night'?.18:next==='morning'?.95:1.6;
-  sunlight.color.setHex(next==='morning'?0xffb779:next==='night'?0x8ca3c8:0xffe9cb);
-  ambient.intensity=next==='night'?.25:next==='morning'?.56:.83;
+ let time=mode,condition='sun';
+ function applyLighting(){
+  const cloudy=/cloud|overcast|rain|storm/i.test(condition);
+  sunlight.intensity=(time==='night'?.18:time==='morning'?.95:1.6)*(cloudy?.6:1);
+  sunlight.color.setHex(time==='morning'?0xffb779:time==='night'?0x8ca3c8:0xffe9cb);
+  ambient.intensity=time==='night'?.25:time==='morning'?.56:.83;
+  groundMat.color.setHex(/rain|storm/i.test(condition)?0x3d5d4e:0x52785e);
+  roadMat.color.setHex(/rain|storm/i.test(condition)?0x2b414b:0x505c62);
  }
- setTime(mode);
- return {group,setTime,dispose(){
+ function setTime(next){time=next;applyLighting();}
+ function setWeather(next){condition=next;applyLighting();}
+ applyLighting();
+ return {group,setTime,setWeather,dispose(){
   for(const g of new Set(geometries))g.dispose();
   for(const m of new Set(materials))m.dispose();
  }};
