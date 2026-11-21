@@ -58,7 +58,7 @@ export function environmentPalette(time='day',weather='sun'){
 export function buildPhotoEnvironment(THREE,photo,mode,scene=null){
  const group=new THREE.Group();group.name='TF_CAPITAL_PHOTOGRAPHIC_WINDOW';
  let texture=null,material=null,geometry=null,overlayTexture=null,overlayMaterial=null,overlayGeometry=null;
- let current=mode,condition='sun';
+ let current=mode,condition='sun',rainPhase=0,lastAtmosphereRefresh=0;
  const extraGeometries=[];
  let visibilityTimer=0;
  const canvas=document.createElement('canvas');
@@ -101,7 +101,7 @@ export function buildPhotoEnvironment(THREE,photo,mode,scene=null){
    const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
    ctx.strokeStyle=p.snow?'rgba(245,249,255,.76)':'rgba(208,229,255,.35)';ctx.lineWidth=p.snow?2:1.3;
    for(let i=0;i<210;i++){
-    const x=random()*w,y=random()*h,length=p.snow?1:8+random()*19;
+    const x=random()*w,y=(random()*h+rainPhase)%h,length=p.snow?1:8+random()*19;
     ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-(p.snow?0:3),y+length);ctx.stroke();
    }
   }
@@ -179,7 +179,12 @@ export function buildPhotoEnvironment(THREE,photo,mode,scene=null){
    businessFlight.position.set(103,12+Math.sin(seconds*.12),-41+(seconds*1.3)%82);
    // Shared weather texture is updated by the real world renderer rather
    // than a separate viewport overlay.
-   if(environmentPalette(current,condition).cloud)overlayTexture.offset.x=(seconds*.0006)%1;
+   const weather=environmentPalette(current,condition);
+   if(weather.cloud)overlayTexture.offset.x=(seconds*.0006)%1;
+   if((weather.rain||weather.snow)&&seconds-lastAtmosphereRefresh>.12){
+    lastAtmosphereRefresh=seconds;rainPhase=(rainPhase+(weather.snow?4:19))%512;
+    updateCanvas();
+   }
   }
   surface.onBeforeRender=animateExterior;
   // The business view is independent: its exterior continues moving when
