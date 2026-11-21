@@ -8,7 +8,7 @@ $public=Join-Path $room 'public'
 $liveRoom=Join-Path $public 'room.js'
 $enc=[Text.UTF8Encoding]::new($false)
 $modules=@('geo-capitals-coordinates.mjs','geo-capital-mesh.mjs','geo-capital-photo.mjs','geo-scene-compositor.mjs','geo-environments.mjs')
-$baselines=@('23fd8195b2f4ad0c0eca36d68872ac3976e349c1','f3988e01f13499ee482a69c4afbf003f40a08839')
+$baselines=@('23fd8195b2f4ad0c0eca36d68872ac3976e349c1','f3988e01f13499ee482a69c4afbf003f40a08839','eb34710130c48075033700b95bc0eb912694f24c')
 if($Revision -notmatch '^[0-9a-f]{40}$'){throw 'Invalid reviewed commit.'}
 if(!(Test-Path (Join-Path $repo '.git'))){throw "Repository missing: $repo"}
 if(!(Test-Path $liveRoom)){throw 'Original room renderer missing.'}
