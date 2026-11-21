@@ -14,7 +14,7 @@ export function locateOriginalWindow({scene,THREE}){
   const group=scene.getObjectByName?.(WINDOW_CONTRACT.group);
   if(!group)throw Error('Original atrium group not found; no changes made');
   const candidates=[];
-  group.traverse?.(mesh)=>{
+  group.traverse?.((mesh)=>{
     const geometry=mesh.geometry?.parameters,map=mesh.material?.map;
     if(!mesh.isMesh||!geometry||!map?.image)return;
     if(!close(geometry.width,12)||!close(geometry.height,5.5))return;
