@@ -56,9 +56,6 @@ try{
  Remove-Item -LiteralPath $stageRoom,$stageCity -Force -ErrorAction SilentlyContinue
 }
 # Prevent changing the host after it was checked; restore original bytes on any failed write.
-if(!([IO.File]::ReadAllBytes($roomFile) -ceq $before)){
- # PowerShell array reference equality is not bytewise; use SHA-256 instead below.
-}
 $hashBefore=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($before))
 $hashCurrent=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([IO.File]::ReadAllBytes($roomFile)))
 if($hashBefore -cne $hashCurrent){throw 'Room was edited during validation. Nothing installed.'}
