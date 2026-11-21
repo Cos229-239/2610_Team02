@@ -63,6 +63,12 @@ try{
   Require-Tf ((Repo-Git @('hash-object',(Join-Path $staging $name))) -eq $blob) ('Blob hash mismatch: '+$name)
  }
  Say '[2] EXACT GITHUB MODULE EXPORTS: PASS'
+ $testPath=Join-Path $staging 'exterior-window-adapter.test.mjs'
+ Export-GitBlob ($sourceDir+'exterior-window-adapter.test.mjs') $testPath
+ $node=(Get-Command node.exe -ErrorAction Stop).Source
+ $testOutput=@(& $node --test $testPath 2>&1)
+ Require-Tf ($LASTEXITCODE -eq 0) ('Window-adapter unit tests failed: '+($testOutput -join '; '))
+ Say ('[2A] WINDOW ADAPTER UNIT TESTS: PASS ('+$testOutput.Count+' output lines)')
  $original=[System.IO.File]::ReadAllText($room)
  $needle="import * as THREE from 'three';"
  Require-Tf ($original.StartsWith($needle)) 'Original import anchor differs'
