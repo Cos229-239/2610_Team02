@@ -43,6 +43,36 @@ export function selectMode(previous,mode){
  if(!modes.includes(mode))throw Error('Invalid time mode');
  return Object.freeze({...previous,timeMode:mode});
 }
+export function weatherGlyph(description,timeMode='day') {
+ const text=String(description||'').toLowerCase();
+ if(/thunder|storm/.test(text))return '⛈️';
+ if(/rain|showers|drizzle/.test(text))return '🌧️';
+ if(/cloud|overcast|fog/.test(text))return '☁️';
+ return timeMode==='night'?'🌙':'☀️';
+}
+export async function fetchNWSHourlyForecast(latitude,longitude,request=fetch) {
+ if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||
+    latitude<18||latitude>72||longitude< -180||longitude> -60)
+   throw Error('Invalid U.S. forecast coordinates');
+ const opts={headers:{Accept:'application/geo+json'},signal:AbortSignal.timeout(8000)};
+ const first=await request('https://api.weather.gov/points/'+latitude+','+longitude,opts);
+ if(!first.ok)throw Error('NWS point lookup HTTP '+first.status);
+ const metadata=await first.json();
+ const href=metadata?.properties?.forecastHourly;
+ if(typeof href!=='string')throw Error('NWS hourly forecast unavailable');
+ const url=new URL(href);
+ if(url.protocol!=='https:'||url.hostname!=='api.weather.gov')
+   throw Error('Unexpected forecast destination');
+ const second=await request(url.href,opts);
+ if(!second.ok)throw Error('NWS forecast HTTP '+second.status);
+ const periods=(await second.json())?.properties?.periods;
+ if(!Array.isArray(periods)||!periods[0]||typeof periods[0].shortForecast!=='string')
+  throw Error('NWS forecast missing weather condition');
+ const item=periods[0];
+ return {condition:item.shortForecast,temperature:item.temperature,
+  temperatureUnit:item.temperatureUnit,asOf:new Date().toISOString(),
+  source:'NWS HOURLY FORECAST — NOT OBSERVED CURRENT WEATHER'};
+}
 export function createDCLandmarkStudy(THREE,mode){
  const group=new THREE.Group();group.name='TF_DC_LINCOLN_REFERENCE_STUDY';
  const geo=[],mats=[];
@@ -107,7 +137,7 @@ export function installGeography({THREE,scene}){
  weather.style.cssText='position:fixed;left:22px;top:68px;z-index:910;color:#ecf8ff;background:#081624ed;padding:4px 9px;font:12px system-ui';
  weather.textContent='☀️ · WEATHER UNVERIFIED';document.body.append(weather);
  let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'live'});
- let active=null;
+ let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0;
  const originalSkyline=scene.getObjectByName('TF_CITY_SKYLINE');
  const skylineWasVisible=originalSkyline?.visible;
  let nycWasEnabled=null;
@@ -128,7 +158,7 @@ export function installGeography({THREE,scene}){
   state=selectMode(state,value);
   if(active)active.setTime(value);
   for(const radio of mode.querySelectorAll('input'))radio.checked=radio.value===value;
-  weather.textContent=(value==='night'?'🌙':'☀️')+' · WEATHER UNVERIFIED';
+  weather.textContent=weatherForecast?weatherGlyph(weatherForecast.condition,value)+' · D.C. '+weatherForecast.condition+' · NWS forecast':(value==='night'?'🌙':'☀️')+' · WEATHER UNVERIFIED';
  }
  for(const value of modes){
   const label=document.createElement('label');label.style.marginRight='5px';
@@ -149,6 +179,21 @@ export function installGeography({THREE,scene}){
   prepared.group.scale.setScalar(.40);
   scene.add(prepared.group);state=Object.freeze({...state,destination:id});
   status.textContent='WASHINGTON, D.C. · Architectural study, not verified high-fidelity reconstruction';
+  if(!weatherTimer){
+   const update=async()=>{
+     const serial=++weatherRequest;
+     try{
+       const result=await fetchNWSHourlyForecast(38.8893,-77.0502);
+       if(serial!==weatherRequest)return;
+       weatherForecast=result;setTime(state.timeMode);
+     }catch{
+       if(serial!==weatherRequest)return;
+       if(weatherForecast)weather.textContent+=' · CACHED';
+       else weather.textContent='⚠️ · NWS FORECAST UNAVAILABLE';
+     }
+   };
+   void update();weatherTimer=setInterval(()=>void update(),15*60*1000);
+  }
   return true;
  }
  heading.addEventListener('click',()=>{body.hidden=!body.hidden;heading.setAttribute('aria-expanded',String(!body.hidden));});
@@ -159,6 +204,7 @@ export function installGeography({THREE,scene}){
   dispose(){if(active){scene.remove(active.group);active.dispose();}
    if(originalSkyline)originalSkyline.visible=skylineWasVisible;
    if(nycWasEnabled!==null)window.tfNYCAtmosphere?.setEnabled(nycWasEnabled);
+   if(weatherTimer)clearInterval(weatherTimer);weatherRequest++;
    wrap.remove();weather.remove();delete window.tfGeography;}});
  window.tfGeography=api;return api;
 }
