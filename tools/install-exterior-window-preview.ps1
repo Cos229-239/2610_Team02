@@ -66,9 +66,15 @@ try{
  $testPath=Join-Path $staging 'exterior-window-adapter.test.mjs'
  Export-GitBlob ($sourceDir+'exterior-window-adapter.test.mjs') $testPath
  $node=(Get-Command node.exe -ErrorAction Stop).Source
+ foreach($name in $assets){
+  $checked=Join-Path $staging $name
+  $checkOutput=@(& $node --check $checked 2>&1)
+  Require-Tf ($LASTEXITCODE -eq 0) ('Node ESM syntax check failed: '+$name+': '+($checkOutput -join '; '))
+ }
+ Say '[2A] NODE.JS MODULE SYNTAX: PASS'
  $testOutput=@(& $node --test $testPath 2>&1)
  Require-Tf ($LASTEXITCODE -eq 0) ('Window-adapter unit tests failed: '+($testOutput -join '; '))
- Say ('[2A] WINDOW ADAPTER UNIT TESTS: PASS ('+$testOutput.Count+' output lines)')
+ Say ('[2B] WINDOW ADAPTER UNIT TESTS: PASS ('+$testOutput.Count+' output lines)')
  $original=[System.IO.File]::ReadAllText($room)
  $needle="import * as THREE from 'three';"
  Require-Tf ($original.StartsWith($needle)) 'Original import anchor differs'
