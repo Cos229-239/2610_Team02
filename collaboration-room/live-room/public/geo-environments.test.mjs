@@ -1,4 +1,5 @@
-import {environmentPalette,findCapitalPhoto,buildPhotoEnvironment} from './geo-capital-photo.mjs';
+import {environmentPalette,findCapitalPhoto,buildPhotoEnvironment,verifiedCapitalPhotoTitles} from './geo-capital-photo.mjs';
+import {juneauDNA,referenceLevel,validationReport} from './geo-reference-dna.mjs';
 import {visualPreset} from './geo-scene-compositor.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -153,4 +154,36 @@ test('selected city replaces towers with a true world-space photographic exterio
   city.setWeather('rain');city.setTime('sunset');
   city.dispose();
  }finally{globalThis.document=prior;}
+});
+
+test('Alaska Juneau is preserved in state registry with measured reference GPS and no invented dimensions',()=>{
+ const alaska=destinations.find(d=>d.id==='alaska');
+ assert.equal(alaska.state,'Alaska');assert.equal(alaska.capital,'Juneau');
+ assert.equal(juneauDNA.capital,'Juneau');
+ assert.equal(juneauDNA.referenceCamera.headingDegrees,315);
+ assert.ok(Math.abs(juneauDNA.referenceCamera.latitude-58.289373)<1e-6);
+ assert.equal(juneauDNA.referenceCamera.focalLengthMm,null);
+ assert.equal(juneauDNA.realElements.find(x=>x.name==='Alaska State Capitol').hasDome,false);
+ assert.equal(juneauDNA.realElements.find(x=>x.name==='Alaska State Capitol').measuredHeightMeters,null);
+ assert.equal(referenceLevel({cameraHeightMeters:null,groundElevationMeters:null}).certainty,'unknown');
+ assert.equal(referenceLevel({cameraHeightMeters:30,groundElevationMeters:10}).storiesAboveGround,null);
+ assert.equal(validationReport(juneauDNA).photorealVerified,false);
+});
+test('Alaska photo uses fixed geotagged Commons source and refuses incompatible licensing',async()=>{
+ const title=verifiedCapitalPhotoTitles.alaska;
+ assert.match(title,/Downtown Juneau and Mount Juneau/);
+ const alaska=destinations.find(d=>d.id==='alaska');
+ const requests=[];
+ const request=async url=>{
+  requests.push(String(url));
+  return {ok:true,json:async()=>({query:{pages:[{title,imageinfo:[{
+   thumburl:'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Juneau.jpg/1400px-Juneau.jpg',
+   extmetadata:{LicenseShortName:{value:'CC BY-SA 3.0'},Artist:{value:'Wknight94'}}
+  }]}]}})};
+ };
+ const picture=await findCapitalPhoto(alaska,'day',request);
+ assert.equal(picture.license,'CC BY-SA 3.0');
+ assert.equal(picture.title,title);
+ assert.match(requests[0],/titles=File%3A/);
+ assert.doesNotMatch(requests[0],/generator=search/);
 });
