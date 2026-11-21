@@ -63,18 +63,92 @@ try{
     Write-Host "CURRENT: $name" -ForegroundColor Green
     continue
    }
-   # Only a verified earlier geography module may be upgraded.
-   # Permit old Git content whose non-ASCII punctuation was mojibaked on install.
+   # Verify the existing module against ANY version of this specific file
+   # in the reviewed branch ancestry. Do not assume a three-commit shortlist:
+   # users may have installed intermediate updates from this conversation.
+   # The file history is read-only and bounded to 120 commits.
+   $relative='collaboration-room/live-room/public/'+$name
+   $history=@(git -C $repo log '--format=%H' '-n' '120' $Revision -- $relative)
+   if($LASTEXITCODE -ne 0){throw "Cannot inspect reviewed history: $name. No files written."}
    $matched=$false
-   foreach($baseline in $baselines){
+   foreach($baseline in $history){
+    if($baseline -notmatch '^[0-9a-f]{40}
+   $updates.Add([pscustomobject]@{Path=$target;Text=$new;Before=$oldBytes;Hash=(ByteHash $oldBytes)})
+   Write-Host "STAGED UPGRADE: $name" -ForegroundColor Cyan
+  }else{
+   $updates.Add([pscustomobject]@{Path=$target;Text=$new;Before=$null;Hash=$null})
+   Write-Host "STAGED MODULE: $name" -ForegroundColor Cyan
+  }
+ }
+ foreach($item in $updates){
+  $temp=Join-Path ([IO.Path]::GetTempPath()) ('tf-geography-'+[guid]::NewGuid().ToString('N')+'.mjs')
+  $tempFiles.Add($temp)
+  [IO.File]::WriteAllText($temp,$item.Text,$enc)
+  & node --check $temp
+  if($LASTEXITCODE -ne 0){throw "JavaScript syntax failed: $($item.Path). Nothing installed."}
+ }
+ if((ByteHash ([IO.File]::ReadAllBytes($liveRoom))) -cne (ByteHash $originalRoom)){
+  throw 'Original room changed during validation. No files written.'
+ }
+ foreach($item in $updates){
+  if($null -ne $item.Hash){
+   if((ByteHash ([IO.File]::ReadAllBytes($item.Path))) -cne $item.Hash){
+    throw "Concurrent change detected: $($item.Path). No files written."
+   }
+  }elseif(Test-Path $item.Path){
+   throw "Module appeared during staging: $($item.Path). No files written."
+  }
+ }
+ $installed=[Collections.Generic.List[object]]::new()
+ try{
+  foreach($item in $updates){
+   $installed.Add($item)
+   [IO.File]::WriteAllText($item.Path,$item.Text,$enc)
+   Write-Host "INSTALLED: $(Split-Path $item.Path -Leaf)" -ForegroundColor Green
+  }
+ }catch{
+  foreach($item in $installed){
+   if($null -eq $item.Before){Remove-Item -LiteralPath $item.Path -Force -ErrorAction SilentlyContinue}
+   else{[IO.File]::WriteAllBytes($item.Path,$item.Before)}
+  }
+  throw
+ }
+ Write-Host "DEPLOYED SOURCE: $Revision" -ForegroundColor Green
+ Write-Host 'Original room.js and customized Visual Studio integration untouched.'
+ Write-Host 'Scene compositor connects all selected weather and city changes to the visible viewport.'
+ Write-Host 'Browser: Ctrl+Shift+R, then STATES / CITIES; Esc dismisses the list.'
+ Write-Host 'Time: MORNING / DAY / SUNSET / NIGHT.'
+ Write-Host 'Manual sky: SUNNY / PARTLY CLOUDY / OVERCAST / FOG / RAIN / HEAVY RAIN / THUNDERSTORM / SNOW.'
+ try{
+  $origin='http://127.0.0.1:4173'
+  foreach($pair in @(
+   @('geo-environments.mjs','installSceneCompositor'),
+   @('geo-scene-compositor.mjs','tf-geo-scene-effects'),
+   @('geo-capital-photo.mjs','environmentPalette')
+  )){
+   $url=$origin+'/'+$pair[0]
+   $result=Invoke-WebRequest $url -TimeoutSec 5
+   if($result.StatusCode -ne 200 -or !$result.Content.Contains($pair[1])){
+    throw "HTTP content mismatch: $url"
+   }
+   Write-Host "HTTP VERIFIED: $($pair[0])" -ForegroundColor Green
+  }
+ }catch{Write-Warning 'HTTP scene module verification failed; confirm the room server is running and serves the current public folder.'}
+}finally{
+ foreach($temp in $tempFiles){
+  Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
+ }
+}
+){continue}
     try{$earlier=GitBlob $baseline $name}catch{continue}
-    if((Normalize $old) -ceq (Normalize $earlier) -or
-       (AsciiProjection $old) -ceq (AsciiProjection $earlier)){
-      $matched=$true;break
+    if((Normalize $old) -ceq (Normalize $earlier)){
+     $matched=$true
+     Write-Host "REVIEWED ANCESTOR MATCH: $name at $($baseline.Substring(0,12))" -ForegroundColor Green
+     break
     }
    }
    if(!$matched){
-    throw "PRESERVATION STOP: $name differs from reviewed baselines. No files written."
+    throw "PRESERVATION STOP: $name contains changes not identical to reviewed Git history. No files written."
    }
    $updates.Add([pscustomobject]@{Path=$target;Text=$new;Before=$oldBytes;Hash=(ByteHash $oldBytes)})
    Write-Host "STAGED UPGRADE: $name" -ForegroundColor Cyan
