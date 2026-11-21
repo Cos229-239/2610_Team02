@@ -3,7 +3,7 @@
 **Input 1:** user's live screenshot on 2026-11-20, 2048×837 pixels, showing close blue cylindrical legacy towers, large plain dark rectangular buildings apparently suspended behind them, no connected ground/street and daylight sky.
 
 **Input 2:** location-verified photographic exemplars of Midtown Manhattan:
--  [Bryant Park street canyon / Art Deco Midtown](https://streeteasy.com/building/the-bryant/phn): central pale limestone tower with setbacks and crown; dark glass slab to one side; roofs and roads visible below.
+- [Bryant Park street canyon / Art Deco Midtown](https://streeteasy.com/building/the-bryant/phn): central pale limestone tower with setbacks and crown; dark glass slab to one side; roofs and roads visible below.
 - [Andaz Fifth Avenue skyline photograph](https://www.hyatt.com/andaz/en-US/nycam-andaz-5th-avenue/gallery): New York Public Library foreground with substantial rooftop profile, glass commercial skyline behind, cool twilight with warm office windows.
 - [Bryant Park and Manhattan aerial skyline](https://www.costar.com/article/533560839/near-and-long-term-outlook-for-new-york-office-sector-is-bearish-poll-finds): glass and masonry high-rises frame a real tree-lined park and street network; strong near/mid/far perspective.
 - [Manhattan Midtown canyon](https://thebrokerlist.com/properties/4-west-43rd-street-new-york-ny-10036-151905): individual brick and stone façades, repetitive but non-identical apertures, genuine intersection of skyline and street perspective.
