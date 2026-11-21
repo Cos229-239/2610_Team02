@@ -292,8 +292,13 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     button('Dusk',()=>setMode('dusk'));
     button('Rain',()=>setMode('rain'));
     button('Snow',()=>setMode('snow'));
-    const chaosButton=button('Chaos Schemes',()=>{const options=['storm','blackout','rush'];const next=options[(options.indexOf(mode)+1)%options.length];setMode(next)});
-    chaosButton.title='Storm / Blackout / Rush Hour — new experimental scenarios, not a recovered preset';
+    // These are only experimental effects, NOT the owner's previously specified Chaos Schemes.
+    // Do not mislabel or promote them as the complete chaos implementation.
+    const weatherButton=button('Storm / Blackout / Rush',()=>{
+      const options=['storm','blackout','rush'];
+      const next=options[(options.indexOf(mode)+1)%options.length];setMode(next);
+    });
+    weatherButton.title='Provisional effects only; original Chaos Schemes are not implemented here';
     button('Restore',stop);
     const api=Object.freeze({
       get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,leftWindowClickable:false,originalFloorUntouched:true}},
