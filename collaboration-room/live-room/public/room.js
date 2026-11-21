@@ -466,8 +466,36 @@ function activateTFStation(id) {
                             file.path.split('/').map(encodeURIComponent).join('/');
                         a.target = '_blank';
                         a.rel = 'noopener noreferrer';
-                        a.textContent = 'Read original source';
-                        row.append(a);
+                        a.textContent = 'Open on GitHub';
+                        const viewCode = document.createElement('button');
+                        viewCode.type = 'button';
+                        viewCode.textContent = 'Pull code';
+                        viewCode.onclick = async () => {
+                            viewCode.disabled = true;
+                            const code = document.createElement('pre');
+                            code.className = 'code';
+                            code.textContent = 'Retrieving original source…';
+                            row.append(code);
+                            try {
+                                const query = new URLSearchParams({
+                                    member:memberDesk.login,path:file.path,ref
+                                });
+                                const source = await fetch('/api/azure-bridge/collaborator-source?'+query,{
+                                    credentials:'same-origin',cache:'no-store'
+                                });
+                                if (!source.ok) throw Error('HTTP '+source.status);
+                                const data = await source.json();
+                                if (data.path !== file.path || data.ref !== ref ||
+                                    typeof data.content !== 'string') throw Error('Source mismatch');
+                                code.textContent = data.content;
+                            } catch (error) {
+                                code.textContent = 'Source unavailable: '+error.message;
+                            } finally {
+                                viewCode.disabled = false;
+                                viewCode.textContent = 'Pull code again';
+                            }
+                        };
+                        row.append(a,viewCode);
                     }
                     list.append(row);
                 }
