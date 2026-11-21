@@ -155,17 +155,20 @@ foreach ($file in $files) {
         $updates += [pscustomobject]@{Path=$destination;Text=$current}
     }
 }
+# Parse staged files by extension; never execute piped CommonJS source.
 $node = (Get-Command node -ErrorAction Stop).Source
+$encoding = [Text.UTF8Encoding]::new($false)
 foreach ($update in $updates) {
-    $isModule = $update.Path.EndsWith('room.js')
-    $check = if ($isModule) { @('--input-type=module','--check') } else { @('--check') }
-    if ($isModule) {
-        $update.Text | & $node @check 2>&1 | Out-Host
-    } else {
-        # node --check requires a filename for CommonJS; use stdin in CommonJS mode.
-        $update.Text | & $node --check 2>&1 | Out-Host
+    $extension = if ($update.Path.EndsWith('room.js')) { '.mjs' } else { '.cjs' }
+    $staged = Join-Path ([IO.Path]::GetTempPath()) ('tf-syntax-' + [Guid]::NewGuid().ToString('N') + $extension)
+    try {
+        [IO.File]::WriteAllText($staged, $update.Text, $encoding)
+        & $node --check $staged
+        if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax check failed: $($update.Path). No files installed." }
+        Write-Host "SYNTAX PASS: $($update.Path)" -ForegroundColor Green
+    } finally {
+        if (Test-Path -LiteralPath $staged) { Remove-Item -LiteralPath $staged -Force }
     }
-    if ($LASTEXITCODE -ne 0) { throw "JavaScript syntax check failed: $($update.Path). No files installed." }
 }
 Write-Host "Ready to update $($updates.Count) scoped file(s)."
 $original = @{}
