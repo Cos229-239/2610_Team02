@@ -19,6 +19,8 @@ jobs:
         run: node --test collaboration-room/live-room/public/nyc-atmosphere.test.mjs
       - name: Validate 51 capitals, exclusive time state, and D.C. reference geometry
         run: node --test collaboration-room/live-room/public/geo-environments.test.mjs collaboration-room/live-room/public/geo-capital-mesh.test.mjs
+      - name: Exercise 51-destination UI and environment switching in Chrome
+        run: node tools/check-geography-browser.cjs
       - name: Exercise William and Omarion desks in Chrome
         run: node tools/check-azure-desk.cjs
       - name: Exercise the interactive app, breakpoint and shared demo
