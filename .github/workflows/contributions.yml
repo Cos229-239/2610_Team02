@@ -15,6 +15,8 @@ jobs:
         with:
           node-version: '24'
       - run: node tools/check-contributions.cjs
+      - name: Test NYC atmosphere data and geometry contract
+        run: node --test collaboration-room/live-room/public/nyc-atmosphere.test.mjs
       - name: Exercise William and Omarion desks in Chrome
         run: node tools/check-azure-desk.cjs
       - name: Exercise the interactive app, breakpoint and shared demo
