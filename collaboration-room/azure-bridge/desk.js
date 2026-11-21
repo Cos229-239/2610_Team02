@@ -35,11 +35,46 @@
         const section = document.createElement('section');
         section.className = 'tf-azure-loadout tf-team-updates';
         section.innerHTML = `<h3>What changed on dev?</h3><p>Everyone in the room sees the same team history. Open a change to see the exact files.</p>
-            <div class="row wrap"><button data-try-dev>Try merged web app</button><button data-demo>Live debug demo</button><button data-saved>Saved demos</button><a href="${repo}/commits/dev/" target="_blank" rel="noopener noreferrer">Full dev history</a>
+            <div class="row wrap"><button data-integration>Review integration</button><button data-try-dev>Try merged web app</button><button data-demo>Live debug demo</button><button data-saved>Saved demos</button><a href="${repo}/commits/dev/" target="_blank" rel="noopener noreferrer">Full dev history</a>
             <a href="${repo}/pulls?q=is%3Apr+is%3Amerged+base%3Adev" target="_blank" rel="noopener noreferrer">Merged pull requests and test notes</a>
             <button type="button" data-my-desk>My workspace</button></div>
             <p data-update-status role="status">Loading team changes…</p><ol data-updates-list></ol>`;
         content.replaceChildren(section);
+        section.querySelector('[data-integration]').onclick = async () => {
+            const status = section.querySelector('[data-update-status]');
+            status.textContent = 'Checking exact dev integration revisions…';
+            try {
+                const manifest = await api('/integration-intake');
+                const details = document.createElement('details');
+                details.open = true;
+                const title = document.createElement('summary');
+                title.textContent = 'Integration evidence · '+String(manifest.revision||'').slice(0,7);
+                const items = document.createElement('ol');
+                for (const entry of manifest.entries||[]) {
+                    const item = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = repo+'/commit/'+entry.sha;
+                    link.rel = 'noopener noreferrer';
+                    link.target = '_blank';
+                    link.textContent = entry.title || entry.sha.slice(0,7);
+                    const description = document.createElement('p');
+                    description.textContent = [entry.author,
+                        (entry.languages||[]).join(', ')||'Unclassified source',
+                        'Build: '+entry.build,
+                        'Runtime: '+entry.runtime,
+                        'Integration: '+entry.integration].join(' · ');
+                    item.append(link,description);
+                    items.append(item);
+                }
+                details.append(title,items);
+                section.querySelector('[data-integration-results]')?.remove();
+                details.dataset.integrationResults = '';
+                section.append(details);
+                status.textContent = 'Actual integration is pending evidence; this feed never executes unreviewed code.';
+            } catch {
+                status.textContent = 'Integration report unavailable; no changes to running room.';
+            }
+        };
         section.querySelector('[data-try-dev]').onclick=studio.openPreview;
         section.querySelector('[data-demo]').onclick=studio.openDemo;
         section.querySelector('[data-saved]').onclick=()=>studio.openPreview(true);
@@ -87,7 +122,8 @@
         const section = document.createElement('section');
         section.dataset.teammateWorkspace = 'true';
         section.innerHTML = `<details><summary>Team contributions and shared tools</summary>
-            <div class="row wrap"><a href="https://codespaces.new/Cos229-239/2610_Team02?ref=dev" target="_blank" rel="noopener noreferrer">Contribute · Open VS Code</a>
+            <p><strong>Preferred desktop IDE: Visual Studio Community (free).</strong> Select <strong>Contribute</strong> on the toolbar, choose <strong>Visual Studio Community</strong> under Editor, and use <strong>Open on Windows</strong>. VS Code remains optional.</p>
+            <div class="row wrap"><a href="https://codespaces.new/Cos229-239/2610_Team02?ref=dev" target="_blank" rel="noopener noreferrer">Contribute · Open VS Code / Codespaces</a>
             <a href="${repo}/compare/dev...dev" target="_blank" rel="noopener noreferrer">Submit feature</a>
             <a href="${repo}/pulls?q=is%3Apr+is%3Aopen+base%3Adev" target="_blank" rel="noopener noreferrer">Review features</a></div>
             <p>Already pushed? Choose <strong>Submit feature</strong> and select your branch under <strong>compare</strong>. The base is <strong>dev</strong>.</p>

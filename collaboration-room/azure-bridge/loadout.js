@@ -68,7 +68,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
     }
     const escapePS = value => "'" + value.replaceAll("'", "''") + "'";
     const encodePath = value => value.split('/').map(encodeURIComponent).join('/');
-    function windowsCommand(repo, ref, project, key, editBranch) {
+    function windowsCommand(repo, ref, project, key, editBranch, editor = 'auto') {
         const file = key === 'interface' ? 'tools/header-preview' : key === 'operations' || key === 'integration' ? project.path : [project.path,project.file].filter(Boolean).join('/');
         const workspace = 'TowerFlow-' + key + '-' + ref.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0,60);
 
@@ -115,11 +115,20 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
                 '  }'
             ] : []),
             '  if (!(Test-Path -LiteralPath $project)) { throw "Project missing on $branch at $project." }',
-            ...(['integration','shared'].includes(key) ? ['  & code $dir'] : [
+            ...(editor === 'vscode' || (editor === 'auto' && ['integration','shared'].includes(key)) ? [
+                "  $code = Get-Command code -ErrorAction SilentlyContinue",
+                "  if (!$code) { throw 'VS Code command not found. Select Visual Studio Community or install VS Code.' }",
+                "  & $code.Source $dir"
+            ] : [
                 "  $finder = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'",
-                "  $vs = & $finder -latest -products '*' -requires Microsoft.VisualStudio.Component.CoreEditor -property productPath",
-                "  if (!$vs) { throw 'Install Visual Studio Community with the workload for this project.' }",
-                '  & $vs $project'
+                "  if (!(Test-Path $finder)) { throw 'Visual Studio Installer missing. Install free Visual Studio Community first.' }",
+                "  $vs = & $finder -latest -products Microsoft.VisualStudio.Product.Community -requires Microsoft.VisualStudio.Component.CoreEditor -property productPath",
+                "  if ($LASTEXITCODE -ne 0 -or !$vs -or !(Test-Path $vs)) { throw 'Visual Studio Community IDE not installed. Build Tools is not the IDE.' }",
+                "  $solution = Get-ChildItem -LiteralPath $dir -File -Include '*.sln','*.slnx' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1",
+                "  if ($solution) { & $vs $solution.FullName }",
+                "  elseif ($project -match '\.(sln|slnx|vcxproj|csproj)$') { & $vs $project }",
+                "  else { & $vs $dir }",
+                "  Write-Output 'Visual Studio Community opened. Native F5 needs a C++/C# solution and relevant workload. JavaScript opens as source, not as a native build.'"
             ]),
             '  Write-Output "Workspace: $dir on $branch"', '}'
         ].join('\r\n');
@@ -143,7 +152,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
             <div class="tf-repo-tabs" role="group" aria-label="Repository views"><button type="button" data-changes aria-pressed="true">Changes</button><button type="button" data-history aria-pressed="false">History</button></div>
             <section data-history-pane hidden><p data-history-status role="status"></p><ol data-history-list></ol><a data-history-web>Full branch history</a></section>
             <div data-changes-pane><h3 data-title></h3><p data-context></p><ol class="tf-contribute-guide">
-            <li><strong>Open your IDE and debug</strong><p data-debug-help></p><button type="button" data-windows></button> <a data-cloud hidden>Browser debugger</a></li>
+            <li><strong>Open your IDE and debug</strong><p data-debug-help></p><label>Editor <select data-editor aria-label="Choose desktop editor"><option value="community">Visual Studio Community (free)</option><option value="vscode">VS Code</option></select></label> <button type="button" data-windows></button> <a data-cloud hidden>Browser debugger</a></li>
             <li><strong>Share your change</strong><p data-submit-help></p><a data-review></a> <button type="button" data-new>Prepare feature notes</button></li>
             <li><strong>Try it together</strong><p>Show your running window during development, or try the latest merged web app here.</p>
             <button type="button" data-demo>Live debug demo</button> <button type="button" data-try-dev>Try merged web app</button> <button type="button" data-see-updates>Team updates</button></li></ol><ul data-remote-files hidden></ul>
@@ -167,19 +176,26 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
         $('[data-see-updates]').onclick = openUpdates;
         $('[data-try-dev]').onclick=studio.openPreview;
         $('[data-demo]').onclick=studio.openDemo;
-        const vsCode=['integration','shared'].includes(key);
+        const editorPicker=$('[data-editor]');
+        const savedEditor=(()=>{try{return localStorage.getItem('tf:editor:'+model.login.toLowerCase());}catch{return null;}})();
+        editorPicker.value=['community','vscode'].includes(savedEditor)?savedEditor:'community';
         const roomCode=work?.file?.startsWith('collaboration-room/');
-        $('[data-windows]').textContent=vsCode?'Open VS Code on Windows…':'Open Visual Studio on Windows…';
-        $('[data-debug-help]').textContent=vsCode
-            ? roomCode ? 'Paste the command into PowerShell. In VS Code choose TowerFlow — Debug room checks and press F5 to step through the room tests.' : 'Paste the copied command into PowerShell. In VS Code choose TowerFlow — Run with F5, then press F5. You can set breakpoints in TowerFlow/app.js.'
-            : key==='interface' ? 'Open the header demo in Visual Studio, set a breakpoint in PrintHeader and press F5.'
-            : 'Paste the copied command into PowerShell to open your project in Visual Studio. Set a breakpoint and press F5.';
-        if (vsCode) {
-            const cloud=$('[data-cloud]');cloud.hidden=false;link(cloud,'https://codespaces.new/'+repoName+'?'+new URLSearchParams({ref}));
-            cloud.title='Uses your GitHub Codespaces quota. In Run and Debug choose the TowerFlow server profile and press F5.';
+        function updateEditorUi(){
+            const community=editorPicker.value==='community';
+            $('[data-windows]').textContent=community?'Open Visual Studio Community on Windows…':'Open VS Code on Windows…';
+            $('[data-debug-help]').textContent=community
+                ? 'Open the real local checkout in Visual Studio Community. Use F5 on a supported C++/C# project; JavaScript requires a separately configured debugger.'
+                : roomCode?'Run and Debug room checks in VS Code with a suitable launch configuration.'
+                : 'Edit your checkout in VS Code. Debugging requires an appropriate launch configuration.';
+            const cloud=$('[data-cloud]');cloud.hidden=community;
+            if(!community){link(cloud,'https://codespaces.new/'+repoName+'?'+new URLSearchParams({ref}));cloud.title='Uses available GitHub Codespaces quota.';}
+            $('[data-submit-help]').textContent=(community?'In Visual Studio Community, open Git Changes':'In VS Code, open Source Control')+', commit and push your own branch, then submit a PR targeting dev.';
         }
-        $('[data-submit-help]').textContent=(vsCode?'In VS Code, open Source Control':'In Visual Studio, open Git Changes')+
-            ', review your files, commit and push your branch. Then open your pull request here with dev as the destination.';
+        editorPicker.onchange=()=>{
+            try{localStorage.setItem('tf:editor:'+model.login.toLowerCase(),editorPicker.value);}catch{}
+            updateEditorUi();
+        };
+        updateEditorUi();
 
         $('[data-local]').textContent = ownBranch
             ? 'Open in GitHub Desktop as @'+model.login+' and select '+editBranch+' under Current branch. Open the project in your editor.'
@@ -274,7 +290,7 @@ window.tfAzureLoadout = function mountLoadout(openDesk, openUpdates, studio) {
         $('[data-check]').textContent = 'Try it · ' + project.steps;
         $('[data-launch]').textContent = project.launch + ' Browse source opens the browser editor. The Windows command opens a separate local workspace on first use and reuses it on your next visit.';
         $('[data-windows]').onclick = async () => {
-            const box = $('[data-command]'); box.value = windowsCommand(repoName,ref,project,key,editBranch);
+            const box = $('[data-command]'); box.value = windowsCommand(repoName,ref,project,key,editBranch,editorPicker.value);
             try { await navigator.clipboard.writeText(box.value); $('[data-command-status]').textContent = 'Copied. Paste into Windows PowerShell to open your workspace.'; }
             catch { box.hidden = false; box.select(); $('[data-command-status]').textContent = 'Copy the selected command, then paste into Windows PowerShell.'; }
         };

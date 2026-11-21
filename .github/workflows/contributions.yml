@@ -15,6 +15,16 @@ jobs:
         with:
           node-version: '24'
       - run: node tools/check-contributions.cjs
+      - name: Test NYC atmosphere data and geometry contract
+        run: node --test collaboration-room/live-room/public/nyc-atmosphere.test.mjs
+      - name: Validate 51 capitals, exclusive time state, and D.C. reference geometry
+        run: node --test collaboration-room/live-room/public/geo-environments.test.mjs collaboration-room/live-room/public/geo-capital-mesh.test.mjs
+      - name: Test metric geodesy, floor measurement and screen-space LOD
+        run: node --test collaboration-room/live-room/public/geo-world-frame.test.mjs
+      - name: Test icon-to-3D silhouette extrusion without modifying live character mesh
+        run: node --test collaboration-room/live-room/public/geo-icon-avatar.test.mjs
+      - name: Exercise 51-destination UI and environment switching in Chrome
+        run: node tools/check-geography-browser.cjs
       - name: Exercise William and Omarion desks in Chrome
         run: node tools/check-azure-desk.cjs
       - name: Exercise the interactive app, breakpoint and shared demo
@@ -25,6 +35,18 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Parse geographic installer using PowerShell AST (no installation)
+        shell: pwsh
+        run: |
+          $script = Join-Path $PWD 'tools/sync-geography-weather.ps1'
+          $tokens = $null
+          $parseErrors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($script, [ref]$tokens, [ref]$parseErrors)
+          if ($parseErrors.Count -gt 0) {
+            $parseErrors | ForEach-Object { Write-Error $_.Message }
+            throw "Installer PowerShell parse failed"
+          }
+          Write-Host 'Geographic installer PowerShell AST: PASS'
       - name: Build and run the shared header with debug symbols
         shell: pwsh
         run: |

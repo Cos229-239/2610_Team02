@@ -175,6 +175,30 @@ for (const item of tfIDEs) {
     tfRegister(screen, item.id);
 }
 
+// TF_TEAM02_MEMBER_DESKS_V1_BEGIN
+// Four additive, walk-up workbenches in the EXISTING development room.
+// Do not move the existing IDEs, return portal, room shell or camera bounds.
+// Member-specific source is viewed from GitHub; a visitor never inherits
+// another member's write permissions or workspace.
+const tfTeam02Desks = Object.freeze([
+  {id:'team-desk-malik',label:'MALIK',name:'Malik Brown',login:'SVN-760',
+    project:'Inventory operations / Windows GUI',ref:'dev',
+    path:'TowerFlow Files/TowerFlow (Malik modified)/TowerFlowGUI.cpp',x:49},
+  {id:'team-desk-omarion',label:'OMARION',name:'Omarion Walter',login:'HyperRealmEnd',
+    project:'Inventory, barcode, sales and reporting',ref:'dev',
+    path:'Towerflow_OW/TowerFlow/UserInterface.cpp',x:58},
+  {id:'team-desk-dayna',label:'DAYNA',name:'Dayna Perez Colon',login:'DaynaPerezColon',
+    project:'Shared input, storage and console components',ref:'dev',
+    path:'DisplayHelper.h',x:67},
+  {id:'team-desk-william',label:'WILLIAM',name:'William Jones',login:'Lopobunnie',
+    project:'Windows Forms / inventory grid',ref:'WilliamPersonal',
+    path:'TowerFlowWindow/TowerFlowWinForm/TowerFlowWinForm.slnx',x:76}
+]);
+for(const member of tfTeam02Desks){
+  station(member.id,member.label,member.project,member.x,2.8,violet);
+}
+// TF_TEAM02_MEMBER_DESKS_V1_END
+
 // Return portal on the opposite wall.
 const tfReturn = sign(
     'RETURN TO ATRIUM',
@@ -268,6 +292,253 @@ function activateTFStation(id) {
         tfTeleport(false);
         return;
     }
+
+    // TF_TEAM02_MEMBER_DESKS_V1_HANDLER_BEGIN
+    const memberDesk = tfTeam02Desks.find(member => member.id === id);
+    if (memberDesk) {
+        // Use the existing authenticated room panel, without new backend
+        // endpoints or another desktop/debugger implementation.
+        openPanel('links');
+        $('panelTag').textContent = 'TEAM 02 • CONTRIBUTOR WORKSTATION';
+        $('panelTitle').textContent = memberDesk.name;
+        const content = $('panelContent');
+        content.replaceChildren();
+        const info = document.createElement('div');
+        info.className = 'callout';
+        const title = document.createElement('strong');
+        title.textContent = memberDesk.project;
+        const detail = document.createElement('p');
+        detail.textContent = 'Source reference: ' + memberDesk.ref +
+            '. This is a source/review desk, not another member\'s running desktop or debugger.';
+        info.append(title,detail);
+        const actions = document.createElement('div');
+        actions.className = 'row wrap';
+        const base = 'https://github.com/Cos229-239/2610_Team02';
+        const makeLink = (label,url) => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = label;
+            a.append(button);
+            actions.append(a);
+        };
+        makeLink('View source',base+'/blob/'+encodeURIComponent(memberDesk.ref)+'/'+
+            memberDesk.path.split('/').map(encodeURIComponent).join('/'));
+        makeLink('Member history',base+'/commits/'+encodeURIComponent(memberDesk.ref)+'/?author='+
+            encodeURIComponent(memberDesk.login));
+        makeLink('Review contributions',base+'/pulls?q=is%3Apr+author%3A'+
+            encodeURIComponent(memberDesk.login));
+        // GitHub account ownership is resolved by the existing authenticated
+        // Azure Bridge /loadout endpoint, never by the desk being viewed.
+        const account = document.createElement('p');
+        account.className = 'muted';
+        account.textContent = 'Checking your signed-in GitHub account…';
+        const work = document.createElement('button');
+        work.type = 'button';
+        work.textContent = 'Open MY workspace (my GitHub account)';
+        work.disabled = true;
+        work.onclick = () => {
+            if (typeof window.tfOpenMemberDesk === 'function') window.tfOpenMemberDesk();
+            else showToast('Contribution desk is unavailable in this hosted build.');
+        };
+        actions.append(work);
+        content.append(account);
+        api('/api/me').then(me => {
+            if (!account.isConnected) return;
+            const login = me && me.login;
+            if (!login) {
+                account.textContent = 'Sign in with your own GitHub account to open your workspace.';
+                return;
+            }
+            account.textContent = 'Signed in as @' + login +
+                (login.toLowerCase() === memberDesk.login.toLowerCase()
+                    ? ' · This is your assigned desk.'
+                    : ' · This is ' + memberDesk.name + '\'s display; your workspace remains yours.');
+            work.disabled = false;
+        }).catch(() => {
+            if (account.isConnected) account.textContent =
+                'Could not verify your GitHub account. Sign in again before opening a workspace.';
+        });
+        const note = document.createElement('p');
+        note.className = 'muted';
+        note.textContent = memberDesk.ref === 'dev'
+            ? 'Reviewed source in team dev. Runtime integration into the room is separately verified.'
+            : 'Personal branch source; not represented as merged into team dev.';
+        // Live read-only view of that teammate's commits merged into dev.
+        // Source links use dev, so new merged changes appear without deploying
+        // a new TowerFlow room or changing the viewer's GitHub account.
+        const sync = document.createElement('section');
+        sync.className = 'callout';
+        const syncTitle = document.createElement('strong');
+        syncTitle.textContent = 'Shared dev · automatic updates';
+        const syncState = document.createElement('p');
+        syncState.textContent = 'Checking GitHub dev…';
+        const changes = document.createElement('ol');
+        sync.append(syncTitle,syncState,changes);
+        content.append(info,actions,note,sync);
+        let lastSignature = '';
+        async function refreshDesk() {
+            if (!sync.isConnected || $('panel').hidden) return;
+            try {
+                const response = await fetch('/api/azure-bridge/member-dev?member='+
+                    encodeURIComponent(memberDesk.login),{cache:'no-store',credentials:'same-origin'});
+                if (!response.ok) throw Error('Dev update request failed');
+                const feed = await response.json();
+                if (!Array.isArray(feed.commits) || feed.member.toLowerCase() !== memberDesk.login.toLowerCase())
+                    throw Error('Invalid dev update response');
+                const signature = feed.commits.map(c=>c.sha).join(',');
+                if (signature !== lastSignature) {
+                    changes.replaceChildren();
+                    for (const item of feed.commits) {
+                        if (typeof item.sha !== 'string' || !/^[a-f0-9]{40}$/.test(item.sha)) continue;
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.href = base+'/commit/'+item.sha;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.textContent = item.title || item.sha.slice(0,7);
+                        li.append(a);
+                        changes.append(li);
+                    }
+                    lastSignature = signature;
+                }
+                syncState.textContent = feed.commits.length
+                    ? 'Showing recent @'+feed.member+' commits in shared dev. Refreshes every 60 seconds while open.'
+                    : 'No commits by @'+feed.member+' found on dev. Personal-branch work is not published.';
+            } catch {
+                syncState.textContent = 'Could not check dev. Source links remain available.';
+            }
+            if (sync.isConnected && !$('panel').hidden) setTimeout(refreshDesk,60000);
+        }
+        // Read-only, on-demand project-file audit for this collaborator's desk.
+        // States reflect GitHub evidence; no code executes in the room.
+        const auditButton = document.createElement('button');
+        auditButton.type = 'button';
+        auditButton.textContent = 'Inspect project files';
+        const auditView = document.createElement('section');
+        auditView.className = 'callout';
+        auditView.hidden = true;
+        auditButton.onclick = async () => {
+            auditButton.disabled = true;
+            auditView.hidden = false;
+            auditView.replaceChildren();
+            const status = document.createElement('p');
+            status.textContent = 'Reading source coverage from GitHub dev…';
+            auditView.append(status);
+            try {
+                const reply = await fetch('/api/azure-bridge/collaborator-audit?member='+
+                    encodeURIComponent(memberDesk.login),{credentials:'same-origin',cache:'no-store'});
+                if (!reply.ok) throw Error('Audit endpoint unavailable (HTTP '+reply.status+')');
+                const report = await reply.json();
+                if (report.member.toLowerCase() !== memberDesk.login.toLowerCase() ||
+                    !Array.isArray(report.files)) throw Error('Invalid audit response');
+                status.textContent = 'dev @ '+String(report.revision||'').slice(0,7)+
+                    ' · '+report.counts.dev+' expected files present · '+
+                    report.counts.missing+' missing from dev';
+                const legend = document.createElement('p');
+                legend.className = 'muted';
+                legend.textContent = 'GREEN: source + contributor history verified (not runtime). '+
+                    'AMBER: attribution unverified or personal-branch only. '+
+                    'RED: file missing from both refs or no matched author contribution. '+'CI proves only its named checks; desktop runtime may still be unverified.';
+                auditView.append(legend);
+                const sections = [
+                    ['WORKING — verified test evidence', report.working, '#46d39b'],
+                    ['NOT WORKING — failed checks', report.notWorking, '#f05b67'],
+                    ['MISSING — expected source not on dev', report.missing, '#f05b67'],
+                    ['UNKNOWN — additional validation required', report.unknown, '#eab95d']
+                ];
+                for (const [heading,entries,color] of sections) {
+                    const header = document.createElement('strong');
+                    header.textContent = heading+' ('+entries.length+')';
+                    header.style.color = color;
+                    const summary = document.createElement('p');
+                    summary.textContent = entries.length ? entries.join(' · ') : 'No findings in this category.';
+                    auditView.append(header,summary);
+                }
+                if (report.checks?.url) {
+                    const proof = document.createElement('a');
+                    proof.href = report.checks.url;
+                    proof.rel = 'noopener noreferrer';
+                    proof.target = '_blank';
+                    proof.textContent = 'View CI evidence for this dev revision';
+                    auditView.append(proof);
+                }
+                const list = document.createElement('ol');
+                for (const file of report.files) {
+                    const row = document.createElement('li');
+                    row.style.borderLeft = '4px solid '+
+                        ({green:'#46d39b',amber:'#eab95d',red:'#f05b67'}[file.color]||'#eab95d');
+                    row.style.padding = '8px 12px';
+                    row.style.marginBottom = '8px';
+                    row.style.background = 'rgba(8,18,29,.68)';
+                    const title = document.createElement('strong');
+                    title.textContent = file.path.split('/').pop();
+                    title.style.color = ({green:'#46d39b',amber:'#eab95d',red:'#f05b67'}[file.color]||'#eab95d');
+                    const reason = document.createElement('p');
+                    reason.textContent = file.finding+' · Build: '+file.build+
+                        ' · Runtime: '+file.runtime;
+                    row.append(title,reason);
+                    if (file.inDev || file.inPersonal) {
+                        const a = document.createElement('a');
+                        const ref = file.inDev?'dev':report.personalBranch;
+                        a.href = base+'/blob/'+encodeURIComponent(ref)+'/'+
+                            file.path.split('/').map(encodeURIComponent).join('/');
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.textContent = 'Open on GitHub';
+                        const viewCode = document.createElement('button');
+                        viewCode.type = 'button';
+                        viewCode.textContent = 'Pull code';
+                        viewCode.onclick = async () => {
+                            viewCode.disabled = true;
+                            const code = document.createElement('pre');
+                            code.className = 'code';
+                            code.textContent = 'Retrieving original source…';
+                            row.append(code);
+                            try {
+                                const query = new URLSearchParams({
+                                    member:memberDesk.login,path:file.path,ref
+                                });
+                                const source = await fetch('/api/azure-bridge/collaborator-source?'+query,{
+                                    credentials:'same-origin',cache:'no-store'
+                                });
+                                if (!source.ok) throw Error('HTTP '+source.status);
+                                const data = await source.json();
+                                if (data.path !== file.path || data.ref !== ref ||
+                                    typeof data.content !== 'string') throw Error('Source mismatch');
+                                code.textContent = data.content;
+                            } catch (error) {
+                                code.textContent = 'Source unavailable: '+error.message;
+                            } finally {
+                                viewCode.disabled = false;
+                                viewCode.textContent = 'Pull code again';
+                            }
+                        };
+                        row.append(a,viewCode);
+                    }
+                    list.append(row);
+                }
+                auditView.append(list);
+                const gap = document.createElement('p');
+                gap.className = 'muted';
+                gap.textContent = 'Works / broken: unknown until actual builds and runtime tests are supplied. '+
+                    'Missing-file flags are coverage findings, not proof the code is defective.';
+                auditView.append(gap);
+            } catch (error) {
+                status.textContent = 'Unable to verify collaborator files: '+error.message;
+            } finally {
+                auditButton.disabled = false;
+            }
+        };
+        actions.append(auditButton);
+        content.append(auditView);
+        refreshDesk();
+        return;
+    }
+    // TF_TEAM02_MEMBER_DESKS_V1_HANDLER_END
 
     if (id.startsWith('dev-ide-')) {
         openPanel('ide');
@@ -3502,3 +3773,12 @@ scene.add(group);
 window.tfReferenceStudio=Object.freeze({dispose(){scene.remove(group);group.traverse(o=>{if(o.geometry)o.geometry.dispose();});materials.forEach(m=>m.dispose());delete window.tfReferenceStudio;}});
 }());
 // TF_REFERENCE_STUDIO_V1_END
+
+// TF_51_DESTINATIONS_FOUNDATION_V1_BEGIN
+// Deliberately additive: existing world, development desks, controls and
+// renderer keep their original ownership. Reference-only cities are disabled.
+import {installGeography} from './geo-environments.mjs';
+try { installGeography({THREE,scene}); }
+catch(error) { console.warn('TowerFlow geography UI disabled safely:',error); }
+// TF_51_DESTINATIONS_FOUNDATION_V1_END
+
