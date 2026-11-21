@@ -18,7 +18,7 @@ const STATES = Object.freeze([
 ]);
 const EVENTS = Object.freeze([
 ["normal","Normal city activity"],["sunny","Sunny"],["cloudy","Cloudy"],
-["rain","Rain"],["thunder","Thunderstorm"],["severe","Severe thunderstorm / tornado / wind"],
+["rain","Rain"],["snow","Snow"],["blizzard","Blizzard / strong winds"],["thunder","Thunderstorm"],["severe","Severe thunderstorm / tornado / wind"],
 ["fire","Urban fire"],["cataclysm","Cataclysm"],["typhoon","Typhoon (fictional location override)"],
 ["hurricane","Hurricane (fictional location override)"],["zombie","Zombie apocalypse (fiction)"],
 ["airborne","Airborne illness / emergency response (fiction)"],
@@ -45,9 +45,16 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     lit=m(0xffc66b,.88,0xffa640,.7),dark=m(0x263e51,.9),
     warning=m(0xff5437,.75,0xff2300,1),sickness=m(0x83dafa,.8,0x247aff,.7);
   const iconMat=m(0xa4b0b6,.9);
+  const white=m(0xe7f2f7,.94),umbrella=m(0x315d83,.77),alternateUmbrella=m(0x8e304d,.79);
+  const puddleMaterial=new THREE.MeshPhysicalMaterial({color:0x294e69,roughness:.14,metalness:.2,
+    transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide});
+  const rainGlass=new THREE.MeshBasicMaterial({color:0xb9e5ff,transparent:true,opacity:.23,depthWrite:false});
+  materials.push(puddleMaterial,rainGlass);
   const personGeom=new THREE.CylinderGeometry(.12,.14,.85,5);geometries.push(personGeom);
   const craftGeom=geom(1,.18,2.6),smokeGeom=geom(1,1,1);
   const windowGeom=geom(.48,.62,.05),buildingGeom=geom(1,1,1),carGeom=geom(.9,.4,1.8);
+  const puddleGeo=new THREE.CircleGeometry(1,12);puddleGeo.rotateX(-Math.PI/2);geometries.push(puddleGeo);
+  const umbrellaGeo=new THREE.ConeGeometry(.65,.25,8);geometries.push(umbrellaGeo);
   const meshes=[{base:facade},{base:facade2},{base:facade3}];
   const dummy=new THREE.Object3D();
   const horizons=[
@@ -83,15 +90,22 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     const fire=instanced(buildingGeom,warning,60,city);
     const rain=instanced(buildingGeom,sickness,170,city);
     const clouds=instanced(buildingGeom,cloud,22,city);
-    const world={...w,group,city,buildings,bright,off,traffic,emergency,pedestrians,aircraft,smoke,fire,rain,clouds,
-      carList:[],pedList:[],weatherList:[],fireList:[],cloudList:[],lightList:[],sourceSeed:0};
+    const puddles=instanced(puddleGeo,puddleMaterial,60,city);
+    const umbrellas=instanced(umbrellaGeo,umbrella,28,city);
+    const umbrellasAlt=instanced(umbrellaGeo,alternateUmbrella,28,city);
+    const snowflakes=instanced(buildingGeom,white,170,city);
+    const snowRooftops=instanced(buildingGeom,white,90,city);
+    const windowDrops=instanced(buildingGeom,rainGlass,80,city);
+    const snowGround=instanced(buildingGeom,white,60,city);
+    const world={...w,group,city,buildings,bright,off,traffic,emergency,pedestrians,aircraft,smoke,fire,rain,clouds,puddles,umbrellas,umbrellasAlt,snowflakes,snowRooftops,windowDrops,snowGround,
+      carList:[],pedList:[],weatherList:[],fireList:[],cloudList:[],lightList:[],roofList:[],puddleList:[],dropList:[],sourceSeed:0};
     worlds.push(world);
     return world;
   }
   for(const w of horizons)createWorld(w);
   function clearInstanced(w){
-    for(const obj of [...w.buildings,w.bright,w.off,w.traffic,w.emergency,w.pedestrians,w.aircraft,w.smoke,w.fire,w.rain,w.clouds])obj.count=0;
-    w.carList.length=0;w.pedList.length=0;w.weatherList.length=0;w.fireList.length=0;w.cloudList.length=0;w.lightList.length=0;
+    for(const obj of [...w.buildings,w.bright,w.off,w.traffic,w.emergency,w.pedestrians,w.aircraft,w.smoke,w.fire,w.rain,w.clouds,w.puddles,w.umbrellas,w.umbrellasAlt,w.snowflakes,w.snowRooftops,w.windowDrops,w.snowGround])obj.count=0;
+    w.carList.length=0;w.pedList.length=0;w.weatherList.length=0;w.fireList.length=0;w.cloudList.length=0;w.lightList.length=0;w.roofList.length=0;w.puddleList.length=0;w.dropList.length=0;
   }
   function rebuildWorld(w){
     clearInstanced(w);
@@ -109,6 +123,7 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
       const z=-53+col*4.5+(rand()-.5)*1.7;
       const h=(2.8+rand()*heights)*(1+row*.16),width=2.8+rand()*1.5;
       buildingsByType[Math.floor(rand()*3)].push({x,z,h,width});
+      w.roofList.push({x,z,h,width});
       if(Math.abs(z)>53)continue;
       const levels=Math.min(23,Math.floor(h/1.3));
       for(let j=0;j<levels;j++)for(let k=0;k<3;k++){
@@ -137,12 +152,16 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     for(let i=0;i<170;i++)w.weatherList.push({x:w.edge+w.dir*(3+rand()*38),z:-46+rand()*92,y:2+rand()*30});
     for(let i=0;i<60;i++)w.fireList.push({x:w.edge+w.dir*(8+rand()*43),z:-45+rand()*90,y:2+rand()*10});
     for(let i=0;i<22;i++)w.cloudList.push({x:w.edge+w.dir*(12+rand()*65),z:-54+rand()*108,y:21+rand()*15});
+    for(let i=0;i<60;i++)w.puddleList.push({x:w.edge+w.dir*(5+(i%3)*16+(rand()-.5)*2),z:-45+rand()*90,r:.5+rand()});
+    for(let i=0;i<80;i++)w.dropList.push({y:3.4+rand()*5,z:-8.7+rand()*17.4,offset:rand()*8});
     w.traffic.count=24;w.emergency.count=0;w.pedestrians.count=72;
     w.rain.count=0;w.fire.count=0;w.clouds.count=0;w.aircraft.count=3;w.smoke.count=0;
+    w.puddles.count=0;w.umbrellas.count=0;w.umbrellasAlt.count=0;
+    w.snowflakes.count=0;w.snowRooftops.count=0;w.windowDrops.count=0;w.snowGround.count=0;
     // Ground and roads are part of the same exterior world.
     if(!w.terrain){
       w.terrain=new THREE.Group();w.group.add(w.terrain);
-      const terrainColor=m(coastal?0x223b3d:0x2b3431,.97);
+      const terrainColor=m(coastal?0x223b3d:0x2b3431,.97);w.terrainMaterial=terrainColor;
       solid(w.terrain,80,.12,120,w.edge+w.dir*40,-.14,0,terrainColor);
       for(let i=0;i<3;i++){
         const x=w.edge+w.dir*(5+i*16);
@@ -164,12 +183,28 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     const event=state.event;
     const ambulanceCount=event==="airborne"?12:event==="sept11"||event==="fire"||event==="cataclysm"?8:2;
     const showRain=["rain","thunder","severe","hurricane","typhoon"].includes(event);
-    const showCloud=["cloudy","rain","thunder","severe","hurricane","typhoon","cataclysm","sept11"].includes(event);
+    const showSnow=event==="snow"||event==="blizzard";
+    const precipitation=showRain||showSnow;
+    const heavy=["severe","hurricane","typhoon","blizzard"].includes(event);
+    // Physical weather state: surfaces react, not only precipitation sprites.
+    for(const material of [facade,facade2,facade3]){
+      material.roughness=showRain?.28:.91;
+      material.metalness=showRain?.13:.04;
+    }
+    road.roughness=showRain?.15:.99;road.metalness=showRain?.18:.04;
+    w.terrainMaterial.roughness=showRain?.63:.97;
+    const showCloud=["cloudy","rain","snow","blizzard","thunder","severe","hurricane","typhoon","cataclysm","sept11"].includes(event);
     const rapturePhase=event==="rapture"?Math.min(3,Math.floor((t%120)/30)):0;
     const showFire=["fire","cataclysm","purge","sept11"].includes(event)||(event==="rapture"&&rapturePhase===3);
     const showPeople=!["zombie","sept11"].includes(event);
     w.traffic.count=24;w.emergency.count=ambulanceCount;w.pedestrians.count=showPeople?72:18;
     w.rain.count=showRain?170:0;w.clouds.count=showCloud?22:0;w.fire.count=showFire?60:0;
+    w.puddles.count=showRain?60:0;w.windowDrops.count=showRain?80:0;
+    w.snowflakes.count=showSnow?(heavy?170:105):0;
+    w.snowRooftops.count=showSnow?Math.min(90,w.roofList.length):0;
+    w.snowGround.count=showSnow?60:0;
+    const sheltered=precipitation?Math.min(56,w.pedestrians.count):0;
+    w.umbrellas.count=Math.ceil(sheltered/2);w.umbrellasAlt.count=Math.floor(sheltered/2);
     w.aircraft.count=event==="hurricane"||event==="typhoon"||event==="severe"?0:3;
     w.smoke.count=event==="sept11"?36:(event==="fire"||event==="cataclysm"?18:0);
     for(let i=0;i<w.aircraft.count;i++){
@@ -200,7 +235,30 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
         if(stage===3&&i%3!==0)y=-10; // ascended silhouettes no longer visible
       }
       matrix(w.pedestrians,i,p.x,y,z,1,1,1);
+      if(i<sheltered){
+        const mesh=i%2===0?w.umbrellas:w.umbrellasAlt;
+        matrix(mesh,Math.floor(i/2),p.x,y+1.01,z,.95,.95,.95);
+      }
     } w.pedestrians.instanceMatrix.needsUpdate=true;
+    if(w.umbrellas.count)w.umbrellas.instanceMatrix.needsUpdate=true;
+    if(w.umbrellasAlt.count)w.umbrellasAlt.instanceMatrix.needsUpdate=true;
+    for(let i=0;i<w.puddles.count;i++){
+      const p=w.puddleList[i];matrix(w.puddles,i,p.x,.015,p.z,p.r,1,p.r*.75);
+    }if(w.puddles.count)w.puddles.instanceMatrix.needsUpdate=true;
+    for(let i=0;i<w.snowRooftops.count;i++){
+      const p=w.roofList[i];matrix(w.snowRooftops,i,p.x,p.h+.06,p.z,p.width,.09,p.width);
+    }if(w.snowRooftops.count)w.snowRooftops.instanceMatrix.needsUpdate=true;
+    for(let i=0;i<w.snowGround.count;i++){
+      matrix(w.snowGround,i,w.edge+w.dir*(4+(i%3)*16),.025,-44+(i%20)*4.5,1,.04,2);
+    }if(w.snowGround.count)w.snowGround.instanceMatrix.needsUpdate=true;
+    for(let i=0;i<w.snowflakes.count;i++){
+      const p=w.weatherList[i],y=1+((p.y-t*(heavy?9:4))%28+28)%28;
+      matrix(w.snowflakes,i,p.x+Math.sin(t*.6+i)*(heavy?3:.5),y,p.z,.1,.1,.1);
+    }if(w.snowflakes.count)w.snowflakes.instanceMatrix.needsUpdate=true;
+    for(let i=0;i<w.windowDrops.count;i++){
+      const p=w.dropList[i],down=((p.offset+t*.85)%4.7);
+      matrix(w.windowDrops,i,w.edge+w.dir*.24,p.y-down,p.z,.025,.58,.03);
+    }if(w.windowDrops.count)w.windowDrops.instanceMatrix.needsUpdate=true;
     for(let i=0;i<w.rain.count;i++){
       const p=w.weatherList[i],y=2+((p.y-t*(event==="severe"?34:22))%27+27)%27;
       const sway=(event==="hurricane"||event==="typhoon"||event==="severe")?Math.sin(t*2+i)*2:0;
@@ -295,6 +353,11 @@ export function installCapitalWorld({THREE,scene,renderer,document,windowObject=
     states:Object.freeze(STATES.map(x=>Object.freeze([...x]))),
     events:Object.freeze(EVENTS.map(x=>Object.freeze([...x]))),
     getCurrent:()=>Object.freeze({state:STATES[state.index][0],capital:STATES[state.index][1],event:state.event,representation:"illustrative"}),
+    getWeatherState:()=>Object.freeze({
+      wet:["rain","thunder","severe","hurricane","typhoon"].includes(state.event),
+      snowy:["snow","blizzard"].includes(state.event),
+      event:state.event
+    }),
     select:(region,event)=>{
       const idx=STATES.findIndex(x=>x[0]===region);if(idx<0)throw Error("Unknown state");
       if(event!==undefined&&!EVENTS.some(x=>x[0]===event))throw Error("Unknown event");
