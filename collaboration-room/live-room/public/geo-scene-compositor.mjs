@@ -34,6 +34,7 @@ export function installSceneCompositor({mount=document.body}={}){
  if(!ctx)throw Error('2D canvas unavailable');
  let preset=visualPreset(),destination=null,source=null,raf=0,lastTick=0,frame=0;
  let serial=0,photoLoad=0,disposed=false;
+ const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false;
  const width=()=>effects.width;
  const height=()=>effects.height;
  function resize(){
@@ -44,8 +45,8 @@ export function installSceneCompositor({mount=document.body}={}){
  resize();window.addEventListener('resize',resize);
  function draw(t){
   if(disposed)return;
-  raf=requestAnimationFrame(draw);
-  if(t-lastTick<45)return;
+  if(!reducedMotion)raf=requestAnimationFrame(draw);
+  if(!reducedMotion&&t-lastTick<45)return;
   lastTick=t;frame++;
   const w=width(),h=height();
   ctx.clearRect(0,0,w,h);
@@ -94,12 +95,13 @@ export function installSceneCompositor({mount=document.body}={}){
    ctx.fillStyle='rgba(210,229,255,.24)';ctx.fillRect(0,0,w,h);
   }
  }
- raf=requestAnimationFrame(draw);
+ if(!reducedMotion)raf=requestAnimationFrame(draw);
  function update({time='day',weather='sunny',name=null,photoURL=null,photoSource=null,photoLicense=null,warning=null}={}){
   preset=visualPreset(time,weather);
   destination=name;
   source=photoSource;
   const current=++serial;
+  if(reducedMotion)draw(performance.now());
   // A selection changes the live atmosphere immediately, without waiting
   // for the NWS, Wikimedia Commons or Overpass network calls.
   if(!name){
