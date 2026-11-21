@@ -21,7 +21,8 @@ export async function findCapitalPhoto(destination,mode='day',request=fetch){
  if(cache.has(key))return cache.get(key);
  const night=mode==='night';
  const city=destination.id==='new-york-city'?'New York City':destination.capital==='Federal District'?'Washington D.C.':destination.capital;
- const query=city+' skyline'+(night?' night':'');
+ const district=destination.kind==='district';
+ const query=district?'Lincoln Memorial Reflecting Pool Washington D.C.':city+' skyline'+(night?' night':'');
  const data=await json(params({generator:'search',gsrnamespace:'6',gsrsearch:query,gsrlimit:'12',
    prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'1400'}),request);
  let pages=data?.query?.pages||[];
