@@ -3773,3 +3773,12 @@ scene.add(group);
 window.tfReferenceStudio=Object.freeze({dispose(){scene.remove(group);group.traverse(o=>{if(o.geometry)o.geometry.dispose();});materials.forEach(m=>m.dispose());delete window.tfReferenceStudio;}});
 }());
 // TF_REFERENCE_STUDIO_V1_END
+
+// TF_51_DESTINATIONS_FOUNDATION_V1_BEGIN
+// Deliberately additive: existing world, development desks, controls and
+// renderer keep their original ownership. Reference-only cities are disabled.
+import {installGeography} from './geo-environments.mjs';
+try { installGeography({THREE,scene}); }
+catch(error) { console.warn('TowerFlow geography UI disabled safely:',error); }
+// TF_51_DESTINATIONS_FOUNDATION_V1_END
+
