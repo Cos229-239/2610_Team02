@@ -1,6 +1,7 @@
 import {capitalCoordinates} from './geo-capitals-coordinates.mjs';
 import {fetchCapitalTile,buildCapitalScene} from './geo-capital-mesh.mjs';
 import {findCapitalPhoto,buildPhotoEnvironment,environmentPalette,buildSkyFallback} from './geo-capital-photo.mjs';
+import {installSceneCompositor} from './geo-scene-compositor.mjs';
 // TowerFlow geographic foundation: one scene owner, no generic fake capital cities.
 const capitals=[
 'Alabama|Montgomery|America/Chicago','Alaska|Juneau|America/Juneau',
@@ -236,6 +237,8 @@ export function installGeography({THREE,scene}){
  const nycDestination=Object.freeze({id:'new-york-city',state:'New York',capital:'New York City',kind:'city',latitude:40.7128,longitude:-74.006,timeZone:'America/New_York'});
  let state=Object.freeze({destination:null,timeMode:'day',weatherMode:'manual',manualWeather:'sunny'});
  let active=null,weatherForecast=null,weatherTimer=null,weatherRequest=0,loadSerial=0;
+ const sceneEffects=installSceneCompositor();
+ let effectsEnabled=false,pendingDestination=null;
  let weatherMesh=null,weatherGeometry=null,weatherMaterial=null,weatherAnimation=0;
  const originalBackground=scene.background,originalFogColor=scene.fog?.color?.clone?.();
  function applyExteriorBackground(){
@@ -309,10 +312,18 @@ export function installGeography({THREE,scene}){
   const label=state.weatherMode==='manual'?state.manualWeather+' · SIMULATED':
    weatherForecast?weatherForecast.condition+' · NWS HOURLY FORECAST':
    'NWS WEATHER UNAVAILABLE';
-  weather.textContent=weatherGlyph(label,state.timeMode)+' · '+(d?.capital||'CAPITAL')+' · '+label;
+  weather.textContent=weatherGlyph(label,state.timeMode)+' · '+(d?.capital||pendingDestination?.capital||'TOWERFLOW')+' · '+label;
   applyWeatherVisual();
+  sceneEffects.update({time:state.timeMode,
+   weather:state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny',
+   name:effectsEnabled?(d?.capital||pendingDestination?.capital||'TOWERFLOW ORIGINAL ROOM'):null,
+   photoURL:active?.report?.photographic?active.report.imageURL:null,
+   photoSource:active?.report?.photographic?active.report.source:null,
+   photoLicense:active?.report?.photographic?active.report.license:null,
+   warning:active?.report?.skyOnly?'ORIGINAL SKYLINE — CITY IMAGE UNAVAILABLE':null});
  }
  function setTime(value){
+  effectsEnabled=true;
   state=selectMode(state,value);
   if(active)active.setTime(value);
   applyExteriorBackground();
@@ -344,6 +355,10 @@ export function installGeography({THREE,scene}){
   const d=[...destinations,nycDestination].find(v=>v.id===id);
   if(!d)return false;
   const serial=++loadSerial;
+  effectsEnabled=true;pendingDestination=d;
+  sceneEffects.update({time:state.timeMode,
+   weather:state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny',
+   name:d.capital,warning:'LOADING CITY REFERENCE'});
   status.textContent='Loading '+d.capital+' real photographic city reference…';
   let prepared,photoError='';
   try{
@@ -389,7 +404,7 @@ export function installGeography({THREE,scene}){
   // freestanding scene object. The old skyline group is reversibly hidden.
   const cityRoom=scene.getObjectByName('TF_NIGHT_CITY_INTERIOR');
   (cityRoom||scene).add(prepared.group);
-  state=Object.freeze({...state,destination:id});
+  state=Object.freeze({...state,destination:id});pendingDestination=null;
   status.textContent=prepared.report?.skyOnly?
    d.capital+' · CITY PHOTO / OSM UNAVAILABLE — GENERIC ORIGINAL SKYLINE + LIVE SKY EFFECTS':
    prepared.report?.photographic?
@@ -410,6 +425,7 @@ export function installGeography({THREE,scene}){
   return true;
  }
  weatherModeSelect.addEventListener('change',()=>{
+  effectsEnabled=true;
   state=Object.freeze({...state,weatherMode:weatherModeSelect.value});
   manualSelect.hidden=state.weatherMode!=='manual';
   ++weatherRequest;
@@ -417,11 +433,13 @@ export function installGeography({THREE,scene}){
   renderWeather();
  });
  manualSelect.addEventListener('change',()=>{
+  effectsEnabled=true;
   state=Object.freeze({...state,manualWeather:manualSelect.value});
   renderWeather();
  });
  function returnToOriginal(){
-  ++loadSerial;++weatherRequest;clearWeatherVisual();
+  ++loadSerial;++weatherRequest;clearWeatherVisual();effectsEnabled=false;pendingDestination=null;
+  sceneEffects.update({name:null});
   if(active){active.group.parent?.remove(active.group);active.dispose();active=null;}
   if(originalSkyline)originalSkyline.visible=skylineWasVisible;
   if(nycWasEnabled!==null){window.tfNYCAtmosphere?.setEnabled(nycWasEnabled);nycWasEnabled=null;}
@@ -442,11 +460,12 @@ export function installGeography({THREE,scene}){
  search.addEventListener('input',render);render();
  const api=Object.freeze({activate,setTime,get state(){return state;},
   get diagnostics(){return{destinations:destinations.length,sceneActive:!!active,
+   viewportCompositor:sceneEffects.diagnostics,
    validatedHighFidelityScenes:0,knownArchitecturalStudies:1};},
   returnToOriginal,
   dispose(){returnToOriginal();
    if(weatherTimer)clearInterval(weatherTimer);weatherRequest++;
-   window.removeEventListener('keydown',onEscape,true);restoreExteriorBackground();
+   window.removeEventListener('keydown',onEscape,true);sceneEffects.dispose();restoreExteriorBackground();
    wrap.remove();weather.remove();delete window.tfGeography;}});
  window.tfGeography=api;return api;
 }
