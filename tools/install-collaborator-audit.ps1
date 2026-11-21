@@ -11,7 +11,7 @@ function ExactlyOnce([string]$text,[string]$anchor) {
 }
 function ReviewedBlock([string]$text,[string]$start,[string]$end){
  $a=$text.IndexOf($start,[StringComparison]::Ordinal)
- $b=$text.IndexOf($end,[StringComparison]::Ordinal)
+ $b=$text.IndexOf($end,$a+[Math]::Max(0,$start.Length),[StringComparison]::Ordinal)
  if($a -lt 0 -or $b -le $a){throw "Missing reviewed snippet $start"}
  return $text.Substring($a,$b+$end.Length-$a)
 }
