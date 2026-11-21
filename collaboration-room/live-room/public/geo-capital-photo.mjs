@@ -67,10 +67,10 @@ export function buildPhotoEnvironment(THREE,photo,mode){
  overlayTexture.colorSpace=THREE.SRGBColorSpace;
  overlayMaterial=new THREE.MeshBasicMaterial({map:overlayTexture,transparent:true,opacity:1,
   toneMapped:false,depthWrite:false,side:THREE.DoubleSide});
- overlayGeometry=new THREE.PlaneGeometry(62,31);
+ overlayGeometry=new THREE.PlaneGeometry(120,58);
  const overlay=new THREE.Mesh(overlayGeometry,overlayMaterial);
  overlay.name='TF_CAPITAL_WEATHER_GLASS_OVERLAY';
- overlay.position.set(-30.94,9,0);overlay.rotation.y=Math.PI/2;overlay.renderOrder=5;overlay.raycast=()=>{};
+ overlay.position.set(-42.93,7,0);overlay.rotation.y=Math.PI/2;overlay.renderOrder=5;overlay.raycast=()=>{};
  group.add(overlay);
  function updateCanvas(){
   const p=environmentPalette(current,condition),w=canvas.width,h=canvas.height;
@@ -114,16 +114,39 @@ export function buildPhotoEnvironment(THREE,photo,mode){
   });
   texture.colorSpace=THREE.SRGBColorSpace;
   material=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false,depthWrite:false});
-  geometry=new THREE.PlaneGeometry(62,31);
+  geometry=new THREE.PlaneGeometry(120,58);
   const surface=new THREE.Mesh(geometry,material);
   surface.name='TF_CAPITAL_REAL_CITY_PHOTO';
-  surface.position.set(-31,9,0);surface.rotation.y=Math.PI/2;surface.renderOrder=4;surface.raycast=()=>{};
+  // Far outside the glazing at x=-21. This replaces city towers in the
+  // actual Three.js world; never duplicate the photo as a fixed UI overlay.
+  surface.position.set(-43,7,0);surface.rotation.y=Math.PI/2;surface.renderOrder=4;surface.raycast=()=>{};
   group.add(surface);
+  // Preserve exterior liveliness independently of the hidden legacy towers.
+  // One low-cost distant aircraft traverses the selected city panorama.
+  const flight=new THREE.Group();flight.name='TF_CAPITAL_EXTERIOR_AIRCRAFT';
+  const wing=new THREE.Mesh(new THREE.BoxGeometry(.08,.025,.90),
+   new THREE.MeshBasicMaterial({color:0xc9d5e8,fog:false}));
+  const hull=new THREE.Mesh(new THREE.BoxGeometry(.09,.05,.38),
+   new THREE.MeshBasicMaterial({color:0xa3bed6,fog:false}));
+  flight.add(wing,hull);
+  const beacon=new THREE.Mesh(new THREE.SphereGeometry(.09,6,4),
+   new THREE.MeshBasicMaterial({color:0xff555b,fog:false}));
+  beacon.position.z=.47;flight.add(beacon);group.add(flight);
+  const flightEpoch=performance.now();
+  // This callback executes only while the exterior photo is actually rendered.
+  surface.onBeforeRender=()=>{
+   const seconds=(performance.now()-flightEpoch)/1000;
+   flight.position.set(-41,11+Math.sin(seconds*.09)*1.1,
+    -46+(seconds*1.35)%92);
+   beacon.visible=(Math.floor(seconds*2)%2)===0;
+  };
   updateCanvas();
   return {group,setTime(next){current=next;updateCanvas();},
    setWeather(next){condition=next;updateCanvas();},
    dispose(){group.parent?.remove(group);geometry?.dispose();material?.dispose();texture?.dispose();
-    overlayGeometry?.dispose();overlayMaterial?.dispose();overlayTexture?.dispose();},
+    overlayGeometry?.dispose();overlayMaterial?.dispose();overlayTexture?.dispose();
+    wing.geometry.dispose();wing.material.dispose();hull.geometry.dispose();hull.material.dispose();
+    beacon.geometry.dispose();beacon.material.dispose();},
    report:{photographic:true,source:photo.source,license:photo.license,imageURL:photo.url}};
  }
  return initialize();
