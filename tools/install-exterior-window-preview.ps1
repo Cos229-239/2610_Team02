@@ -47,11 +47,11 @@ try{
  $origin=Repo-Git @('remote','get-url','origin')
  Require-Tf ($origin -match 'Cos229-239[/\\]2610_Team02(\.git)?$') 'Unexpected Git origin'
  Require-Tf ((Digest $room) -eq $known) 'Original live hash differs. No deployment.'
+ New-Item -ItemType Directory -Path $staging | Out-Null
  Require-Tf (Check-HttpParity 'http://127.0.0.1:4173/room.js?baseline=1' $room) 'Local server not serving exact original'
  $config=Invoke-RestMethod -Uri 'http://127.0.0.1:4173/api/config' -TimeoutSec 7
  Require-Tf ($config.owner -eq 'Cos229-239' -and $config.repo -eq '2610_Team02') 'Wrong server on 4173'
  Say '[1] EXACT ORIGINAL + LOCAL SERVER: PASS'
- New-Item -ItemType Directory -Path $staging | Out-Null
  $prior=Join-Path $staging 'original-room.js'
  [System.IO.File]::Copy($room,$prior)
  $recoveryReady=$true
