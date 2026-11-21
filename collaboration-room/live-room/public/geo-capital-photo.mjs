@@ -41,13 +41,14 @@ export async function findCapitalPhoto(destination,mode='day',request=fetch){
 // Procedural weather rendering independent of photographs / network services.
 export function environmentPalette(time='day',weather='sun'){
  const wet=/rain|storm|shower|drizzle/i.test(weather);
- const cloud=wet||/cloud|overcast|fog/i.test(weather);
+ const snow=/snow|flurries|sleet/i.test(weather);
+ const cloud=wet||snow||/cloud|overcast|fog/i.test(weather);
  const sunset=time==='sunset';
  const night=time==='night';
  return Object.freeze({
   top:night?'#09142f':sunset?'#292447':cloud?'#47596c':'#286bb3',
   horizon:night?'#253653':sunset?'#f5a568':wet?'#626f85':cloud?'#a3a9b2':'#c6e5ff',
-  haze:wet?.42:cloud?.31:.08, rain:wet, cloud, night, sunset,
+  haze:wet?.42:cloud?.31:.08, rain:wet, snow, cloud, night, sunset,
   brightness:night?.31:sunset?.77:time==='morning'?.86:1
  });
 }
@@ -90,13 +91,13 @@ export function buildPhotoEnvironment(THREE,photo,mode){
     ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,r,r*.31,0,0,Math.PI*2);ctx.fill();
    }
   }
-  if(p.rain){
+  if(p.rain||p.snow){
    let seed=1247;
    const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
-   ctx.strokeStyle='rgba(208,229,255,.35)';ctx.lineWidth=1.3;
+   ctx.strokeStyle=p.snow?'rgba(245,249,255,.76)':'rgba(208,229,255,.35)';ctx.lineWidth=p.snow?2:1.3;
    for(let i=0;i<210;i++){
-    const x=random()*w,y=random()*h,length=8+random()*19;
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3,y+length);ctx.stroke();
+    const x=random()*w,y=random()*h,length=p.snow?1:8+random()*19;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-(p.snow?0:3),y+length);ctx.stroke();
    }
   }
   overlayTexture.needsUpdate=true;
@@ -151,11 +152,11 @@ export function buildSkyFallback(THREE,mode='day'){
     ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(x,y,radius,radius*.3,0,0,Math.PI*2);ctx.fill();
    }
   }
-  if(p.rain){
-   ctx.strokeStyle='rgba(219,232,248,.4)';ctx.lineWidth=1;
+  if(p.rain||p.snow){
+   ctx.strokeStyle=p.snow?'rgba(248,251,255,.85)':'rgba(219,232,248,.4)';ctx.lineWidth=p.snow?2:1;
    for(let i=0;i<120;i++){
     const x=(i*131)%w,y=(i*97)%h;
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3,y+13);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-(p.snow?0:3),y+(p.snow?2:13));ctx.stroke();
    }
   }
   texture.needsUpdate=true;
