@@ -2,7 +2,8 @@
    Opt-in; exact existing atrium window only. No floor, renderer, camera, or auth changes.
    City is procedural fiction, not geographically surveyed architecture.
 */
-export const CITY_VERSION='tf-exterior-3d-v2-events';
+import {createCinematicDisaster} from './cinematic-disaster-scenario.mjs';
+export const CITY_VERSION='tf-exterior-3d-v3-cinematic';
 export const CITY_EVENTS=Object.freeze([["normal","Normal city activity"],["sunny","Sunny"],["cloudy","Cloudy"],["rain","Rain"],["snow","Snow"],["blizzard","Blizzard / strong winds"],["thunder","Thunderstorm"],["severe","Severe thunderstorm / tornado / wind"],["fire","Urban fire"],["cataclysm","Cataclysm"],["typhoon","Typhoon (fictional)"],["hurricane","Hurricane (fictional)"],["zombie","Zombie apocalypse (fiction)"],["airborne","Airborne illness / emergency response (fiction)"],["purge","12-hour lawless-night (fiction)"],["rapture","Rapture: 3 phases (fictional interpretation)"],["sept11","September 11 remembrance (non-graphic NYC)"]].map(row=>Object.freeze(row)));
 
 const near=(a,b,e=.04)=>Math.abs(a-b)<e;
@@ -283,6 +284,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     const wet=new THREE.MeshStandardMaterial({color:'#17252d',roughness:.19,metalness:.38});
     const lightning=new THREE.PointLight(0xd5e7ff,0,115,2);
     lightning.position.set(-65,64,0);group.add(lightning);
+    const disaster=createCinematicDisaster({THREE,urban});
     const chaos={enabled:false,scheme:'normal',events:0};
     const roadMats=[palette.road,wet];
     // Controls don't cover navigation: tiny inspector placed above original HUD.
@@ -321,11 +323,17 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       emergencyGroup.visible=['fire','cataclysm','airborne','purge'].includes(next);
       peopleGroup.visible=['zombie','airborne','purge','rapture'].includes(next);
       raptureGroup.visible=next==='rapture';
+      if(next==='sept11')disaster.start();else disaster.stop();
+      // Controls can be created after the first normal-mode call.
+      if(typeof seek!=='undefined'&&seek){seek.style.display=next==='sept11'?'inline-block':'none';seek.value='0';}
+      if(typeof phaseStatus!=='undefined'&&phaseStatus)phaseStatus.textContent=next==='sept11'?'Aircraft approach · fictionalized':'';
+
       label.textContent='CITY • '+CITY_EVENTS.find(([id])=>id===next)[1];
     };
     const stop=()=>{
       if(!active)return;
       active=false;win.cancelAnimationFrame(raf);
+      disaster.dispose();
       wall.visible=prior.wall;glass.visible=prior.glass;
       originalTrims.forEach(({object,visible})=>{object.visible=visible});
       leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
@@ -337,6 +345,21 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       for(const m of used)m.dispose();
       if(win.tfCityExterior3D===api)delete win.tfCityExterior3D;
     };
+    const phaseStatus=doc.createElement('output');
+    phaseStatus.style.cssText='font:11px ui-monospace,monospace;color:#ffcfa1';
+    phaseStatus.setAttribute('aria-live','off');
+    phaseStatus.textContent='';
+    panel.appendChild(phaseStatus);
+    const seek=doc.createElement('input');seek.type='range';seek.min='0';seek.max='120';seek.step='1';
+    seek.value='0';seek.title='Cinematic fictional disaster timeline (0–120 seconds)';
+    seek.setAttribute('aria-label','Disaster timeline scrub');
+    seek.style.cssText='width:110px;display:none;accent-color:#e8a765';
+    seek.addEventListener('input',()=>{
+      if(mode!=='sept11')return;
+      const p=disaster.seek(Number(seek.value));
+      phaseStatus.textContent=p.phaseLabel;
+    });
+    panel.appendChild(seek);
     const schemeSelect=doc.createElement('select');
     schemeSelect.id='tfCityChaosSchemes';
     schemeSelect.setAttribute('aria-label','City activity and Chaos Schemes');
@@ -360,6 +383,11 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       // appears as a rectangular photograph when looking up or sideways.
       sky.position.copy(camera.position);
       const delta=Math.min(.05,Math.max(0,(time-last)/1000));last=time;
+      if(mode==='sept11'){
+        const p=disaster.update(delta);
+        seek.value=String(Math.floor(p.elapsed));
+        phaseStatus.textContent=p.phaseLabel+' · '+Math.floor(p.elapsed)+'s';
+      }
       if(vortex.visible)vortex.rotation.y=time*.00065;
       for(let i=0;i<12;i++){
         effects.fire[i].scale.y=.6+Math.abs(Math.sin(time*.009+i));
@@ -413,6 +441,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     wall.visible=prior.wall;glass.visible=prior.glass;
     originalTrims.forEach(({object,visible})=>{object.visible=visible});
       leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
+    disaster.dispose();
     scene.remove(group);
     for(const g of geometries)g.dispose();
     for(const m of [...Object.values(palette),...effectMats])m.dispose();
