@@ -29,7 +29,8 @@ export async function findCapitalPhoto(destination,mode='day',request=fetch){
  const cityWords=city.toLowerCase().split(/\s+/).filter(w=>w.length>3);
  pages=pages.filter(p=>{
   const title=String(p.title||'').toLowerCase();
-  return cityWords.some(w=>title.includes(w))&&/skyline|panorama|downtown|cityscape|view/.test(title)&&
+  return (district?/lincoln memorial|reflecting pool|washington monument/.test(title):
+    cityWords.some(w=>title.includes(w))&&/skyline|panorama|downtown|cityscape|view/.test(title))&&
    !/map|flag|logo|drawing|diagram|historic|painting|illustration/.test(title);
  });
 
