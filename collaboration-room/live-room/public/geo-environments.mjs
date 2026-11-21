@@ -242,11 +242,9 @@ export function installGeography({THREE,scene}){
  let weatherMesh=null,weatherGeometry=null,weatherMaterial=null,weatherAnimation=0;
  const originalBackground=scene.background,originalFogColor=scene.fog?.color?.clone?.();
  function applyExteriorBackground(){
-  if(!state.destination)return;
-  const condition=state.weatherMode==='manual'?state.manualWeather:weatherForecast?.condition||'sunny';
-  const palette=environmentPalette(state.timeMode,condition);
-  scene.background=new THREE.Color(palette.top);
-  if(scene.fog?.color)scene.fog.color.set(palette.horizon);
+  // Preserve the user's proven cinematic scene background and fog.
+  // A sky-color-only change would be hidden by the room's opaque walls.
+  // The additive viewport compositor owns visible sunlight/cloud/rain effects.
  }
  function restoreExteriorBackground(){
   scene.background=originalBackground;
