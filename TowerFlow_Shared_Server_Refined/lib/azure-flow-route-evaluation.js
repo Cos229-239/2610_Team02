@@ -49,9 +49,20 @@ function grade(selected,item){
 }
 function assess(results,{minimum=.8}={}){
   const checked=results.map(({item,selected,modelStatus,ms})=>{
-    const verdict=grade(selected,item);
+    const graded=grade(selected,item);
+    const modelValid=modelStatus==='MODEL_PLAN_VALIDATED';
+    const verdict={
+      ...graded,
+      pass:graded.pass&&modelValid,
+      reason:!modelValid?'MODEL_NOT_VERIFIED':graded.reason
+    };
     return {id:item.id,tier:item.tier,selected,modelStatus,ms,...verdict};
   });
+  const expectedIds=new Set(CASES.map(c=>c.id));
+  const observedIds=checked.map(c=>c.id);
+  const exactCaseSet=checked.length===expectedIds.size &&
+    new Set(observedIds).size===expectedIds.size &&
+    observedIds.every(id=>expectedIds.has(id));
   const coverage=checked.length;
   const passed=checked.filter(x=>x.pass).length;
   const failures=checked.filter(x=>!x.pass);
@@ -63,8 +74,8 @@ function assess(results,{minimum=.8}={}){
   return {passed,total:coverage,routeAccuracy:coverage?passed/coverage:0,
     falseGreenCandidates:failures.filter(x=>x.requiredFound&&x.irrelevantFound?.length).map(x=>x.id),
     criticalPasses:critical.filter(x=>x.pass).length,criticalTotal:critical.length,
-    failures,byTier,
-    verdict:coverage===CASES.length&&passed/coverage>=minimum&&!failures.some(x=>['primary','abstain','knowledge'].includes(x.tier))?
+    failures,byTier,exactCaseSet,
+    verdict:exactCaseSet&&passed/coverage>=minimum&&!failures.some(x=>['primary','abstain','knowledge'].includes(x.tier))?
       'SMALL_SCREEN_PASS':'NOT_QUALIFIED',
     note:'Known case set for regression/diagnosis, not a blind holdout, source factual validation or verified AI reliability.'};
 }
