@@ -28,6 +28,24 @@ function reportMarkdown(result){
       '- Retrieved: '+line(s.retrievedAt||result.provenance.retrievedAt),'',
       '> '+line(s.excerpt),'');
   }
+  markdown.push('## Intelligence process and verified limitations','',
+    '- Planning status: '+line(result.plan?.status||'UNKNOWN'),
+    '- Authorized capabilities: '+line((result.plan?.capabilities||[]).join(', ')),
+    '- Retrieval passes: '+line(result.retrievalPasses??1),
+    '- Evidence quality: '+line(result.evidenceAudit?.evidenceStatus||'NOT_ASSESSED'),
+    '- Verified financial facts from this pipeline: **NO** (source metadata or excerpts are not financial audits)',
+    '- Model weights updated: **NO**','');
+  if(result.synthesis?.state==='MODEL_HYPOTHESIS_SOURCE_MATCHED'){
+    markdown.push('## Provisional model interpretation','',
+      '> '+line(result.synthesis.hypothesis),'',
+      'Suggested follow-up: '+line(result.synthesis.nextStep),'',
+      '**Model-stated unknowns:**','',
+      ...(result.synthesis.unknowns||[]).map(x=>'- '+line(x)),'');
+  } else {
+    markdown.push('## Model synthesis limitations','',
+      '- State: '+line(result.synthesis?.state||'NOT_AVAILABLE'),
+      '- No model-derived conclusion has been validated.','');
+  }
   markdown.push('## ADR — Decision about this investigation','',
     '- Decision status: **PROPOSED; requires human review**',
     '### Context','',
