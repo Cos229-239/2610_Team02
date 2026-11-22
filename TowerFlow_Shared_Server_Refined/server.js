@@ -45,7 +45,7 @@ function sessionCookie(token, secure = false) {
   return `${cookieName}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_AGE}${secure ? '; Secure' : ''}`;
 }
 
-function createApp({ directory = path.join(ROOT, 'data') } = {}) {
+function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researchAzure } = {}) {
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
   const accounts = new Accounts(directory);
   const storeFile = path.join(directory, 'inventory.json');
@@ -224,7 +224,7 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
         // Explicit user source selection is a bounded, user-authorized choice.
         // It never grants mutation rights and does not certify factual correctness.
         const userSelected=sourceMode==='official-sec';
-        const output = await researchAzure(body.question,{state,revision:revisionOf(fingerprint),
+        const output = await researchImpl(body.question,{state,revision:revisionOf(fingerprint),
           allowPublic:body.allowPublic,priorCases:precedents,isOwner:user.role==='admin',
           ...(userSelected?{planner:async question=>({
             status:'USER_SELECTED_OFFICIAL_SOURCE',model:null,question,
