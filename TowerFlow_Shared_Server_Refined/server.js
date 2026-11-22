@@ -24,6 +24,7 @@ const MIME = { '/': ['index.html', 'text/html; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
   '/azure-flow.js': ['azure-flow.js', 'text/javascript; charset=utf-8'],
+  '/azure-flow-motion.js': ['azure-flow-motion.js', 'text/javascript; charset=utf-8'],
   '/azure-flow.css': ['azure-flow.css', 'text/css; charset=utf-8'] };
 const UUID = '[a-f0-9-]{36}';
 const cookieName = 'towerflow_session';
