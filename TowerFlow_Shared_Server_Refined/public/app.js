@@ -96,6 +96,7 @@ function render() {
   renderProducts();
   renderMovements();
   renderOrders();
+  renderOperations();
   for (const id of ['workProduct', 'purchaseProduct']) {
     const select = $(`#${id}`), selected = select.value;
     select.replaceChildren();
@@ -242,6 +243,52 @@ function parseMoney(value) {
   if (!Number.isSafeInteger(cents) || cents > 100_000_000_000) throw new Error('Price is too large.');
   return cents;
 }
+// MODIFIED BY MALIK BROWN: Open the team's existing forms from one operations
+// panel. These shortcuts never write inventory or create a second stock store.
+function renderOperations() {
+  const products = state.products.filter(product => !product.archived);
+  const select = $('#operationsProduct'), selected = select.value;
+  select.replaceChildren();
+  const rows = $('#operationsRows'); rows.replaceChildren();
+  for (const product of products) {
+    select.add(new Option(`#${product.id} — ${product.name} — ${product.barcode} (${units(product)} units)`, product.id));
+    const row = el('tr');
+    [product.id, product.name, product.barcode, units(product)].forEach(value => row.append(el('td', '', value)));
+    rows.append(row);
+  }
+  if (products.some(product => String(product.id) === selected)) select.value = selected;
+  $('#operationsEmpty').hidden = products.length !== 0;
+  $$('[data-operation]').forEach(button => {
+    button.disabled = !products.length && !['inventory', 'orders'].includes(button.dataset.operation);
+  });
+  describeOperationsStock();
+}
+function describeOperationsStock() {
+  const product = state.products.find(item => String(item.id) === $('#operationsProduct').value);
+  $('#operationsStock').textContent = product
+    ? (product.stock.length ? product.stock.map(item => `${item.location}: ${item.quantity} units`).join(' · ') : 'No stock at any location yet.')
+    : 'Add a product in Inventory to enable stock and job actions.';
+}
+$('#operationsProduct').addEventListener('change', describeOperationsStock);
+$$('[data-operation]').forEach(button => button.addEventListener('click', () => {
+  const action = button.dataset.operation;
+  if (action === 'inventory' || action === 'orders') return navigate(action);
+  const id = Number($('#operationsProduct').value);
+  if (!state.products.some(product => product.id === id && !product.archived)) return notice('Choose an active product first.', true);
+  if (action === 'stock') return openStock(id);
+  if (action === 'work' || action === 'purchaseOrder') {
+    navigate('orders');
+    if (action === 'work') resetWorkForm();
+    const form = action === 'work' ? $('#workForm') : $('#purchaseForm');
+    form.elements.productId.value = String(id);
+    form.scrollIntoView({ block: 'center' });
+    form.querySelector('input').focus({ preventScroll: true });
+    return;
+  }
+  openMovement(id);
+  $('#movementType').value = action;
+  updateMovementFields();
+}));
 function optionalInteger(value) { return value === '' ? null : Number(value); }
 function openProduct(id = null) {
   editingId = id;
@@ -380,12 +427,13 @@ $('#workForm').addEventListener('submit', async event => {
 });
 $('#purchaseForm').addEventListener('submit', async event => {
   event.preventDefault();
-  const f = event.currentTarget.elements;
+  const form = event.currentTarget;
+  const f = form.elements;
   try {
     await request('/api/purchase-orders', 'POST', { productId: Number(f.productId.value),
       supplier: f.supplier.value, quantity: Number(f.quantity.value),
       unitPriceCents: parseMoney(f.unitPrice.value) });
-    event.currentTarget.reset(); await refresh(); notice('Supplier request recorded; stock unchanged.');
+    form.reset(); await refresh(); notice('Supplier request recorded; stock unchanged.');
   } catch (error) { notice(error.message, true); }
 });
 function clearAzurePreview() {
