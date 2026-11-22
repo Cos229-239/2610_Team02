@@ -111,6 +111,7 @@ async function investigate(question,{state,revision='unknown',allowPublic=false,
   const evidenceId=fingerprint(receipt);
   return {schema:'azure-flow-investigation/v1',original,mode:'EVIDENCE_FIRST_READ_ONLY',
     answer:conclusion,synthesis,evidenceAudit,retrievalPasses,plan:{status:proposed.status,model:proposed.model,
+      semanticFit:'NOT_INDEPENDENTLY_VERIFIED',
       capabilities,modelInterpretation:proposed.modelInterpretation||null},
     stages:['PRESERVE','DISCOVER_CAPABILITIES','AUTHORIZE','PLAN','RETRIEVE','VERIFY_SOURCES','SYNTHESIZE_HYPOTHESES','RECORD_DECISION_PENDING'],
     harnesses:runs.map(({evidence,claims,...other})=>({...other,evidenceCount:evidence.length})),
