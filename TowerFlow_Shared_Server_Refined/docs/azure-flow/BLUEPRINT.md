@@ -85,3 +85,22 @@ Only the owner can manually trigger local Ollama screening; editor-level users r
 - Ollama local API and structured outputs: https://docs.ollama.com/api
 - Stooq daily CSV interface and common denial modes: https://stooq.com/ and https://github.com/HKUDS/Vibe-Trading/blob/main/agent/backtest/loaders/stooq_loader.py
 - Private source consulted for design only: AscendenceAgent007 / projects/towerflow-collaboration-room / branch-preservation / azure-harness / collaboration-room / azure-bridge / azure-local-reasoner.cjs. This path documents the source relationship; its private implementation is **not copied** into Team 02.
+
+## 14. Observed user-acceptance feedback and corrective integration
+Observed screenshot (2026-11-22): the original Azure Flow tab rendered, but it showed **zero active products and no recorded sales**, treated a typed `Sony` as invalid five-field CSV in the advanced holdings form, and reported that local LLM analysis was unavailable or unvalidated. An HTTP 200 and a CSS-rendered dashboard are not proof of an operational business AI system.
+
+Corrections built on the feature branch:
+1. A first-class **Ask Azure Flow** input routes exact known company aliases (including `Sony` → `SONY`) and explicit ticker requests to the bounded free, dated market-observation harness; sale and stock questions route to recorded TowerFlow data. Unknown requests receive honest follow-up suggestions instead of fabricated company profiles.
+2. The LLM can classify previously unresolved requests into only `inventory`, `sales`, or `unresolved`; a structured response schema and independent validator prevent it from inventing executable tools, security symbols, or raw numerical business facts.
+3. The model-health panel provides actionable `MODEL_INSTALLED`, `MODEL_NOT_INSTALLED` and `OLLAMA_UNREACHABLE` diagnostics against the existing 127.0.0.1:11434 Ollama installation. No network model downloads or API keys.
+4. Corrected an identified performance flaw: the previous adapter set `keep_alive:0` and 9-second model deadlines, which could unload and reload a cold 8B model for every calibration case. Current adapter allows up to 45 seconds for initial inference, retains weights for 60 seconds between calls and limits context to 1024 tokens. This is a reasoned optimization, **not measured Windows performance**.
+5. Source-aware business results link back to native Inventory and Movements tabs; no cross-tab mutation. There is no synthetic sample business data.
+6. Manual holdings CSV remains available as an **advanced** tool. Company inquiries do not require holdings CSV.
+
+### Verification requirements before merging
+- Run all Node regression tests on the user's actual Windows checkout and capture pass/fail evidence.
+- Confirm browser sign-in, tab navigation, query text examples, actual data, market unavailable behavior and all legacy tab flows.
+- Check `GET /api/azure-flow/model-health`, verify installed model name and perform one actual bounded model call. A model being installed is not proof that it can answer correctly.
+- Owner-triggered calibration must report real answers/latency; the five visible cases cannot establish 80% reliability on unseen tasks. Add a blind and varied scenario suite before any model is considered production-qualified.
+- Confirm no paid API keys, unapproved downloads, external model calls, inventory writes, securities trades or private code copied from AscendenceAgent007.
+- Retain draft PR #47 until all acceptance evidence is available. Existing TowerFlow data cannot be replenished from invented values.
