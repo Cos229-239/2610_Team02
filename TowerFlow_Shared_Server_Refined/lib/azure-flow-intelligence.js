@@ -63,7 +63,7 @@ function sourcePresentation(chunks){
 function responseSummary(plan,records){
   const evidence=sourcePresentation(records);
   if(!evidence.length)return 'No verified matching evidence was retrieved. Azure Flow cannot justify an answer yet.';
-  const valid=records.filter(r=>r.status==='EVIDENCE_FOUND'||r.status==='SOURCES_FOUND');
+  const valid=records.filter(r=>['EVIDENCE_FOUND','SOURCES_FOUND','REPORTED_FACTS_FOUND'].includes(r.status));
   if(!valid.length)return 'Available records did not establish the requested facts. No conclusion was manufactured.';
   return 'Retrieved '+evidence.length+' attributable evidence passage'+(evidence.length===1?'':'s')+
     ' from '+valid.length+' authorized harness'+(valid.length===1?'':'es')+
