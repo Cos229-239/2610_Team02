@@ -282,6 +282,23 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     particleGeometry.setAttribute('position',new THREE.BufferAttribute(rainPositions,3));
     geometries.add(particleGeometry);
     const particles=new THREE.Points(particleGeometry,palette.rain);particles.visible=false;group.add(particles);
+    // Existing precipitation spread 1,900 particles across the entire city.
+    // At 21st-floor view almost none were visible through the glass. Keep those
+    // distant particles and add a sparse real geometry foreground field.
+    const foregroundPositions=new Float32Array(520*3);
+    for(let i=0;i<520;i++){
+      foregroundPositions[3*i]=-21.7-rand()*13;
+      foregroundPositions[3*i+1]=-3+rand()*21;
+      foregroundPositions[3*i+2]=-15.5+rand()*31;
+    }
+    const foregroundGeometry=new THREE.BufferGeometry();
+    foregroundGeometry.setAttribute('position',new THREE.BufferAttribute(foregroundPositions,3));
+    geometries.add(foregroundGeometry);
+    const foregroundRainMaterial=new THREE.PointsMaterial({
+      color:'#dce7ec',size:.11,transparent:true,opacity:.52,depthWrite:false
+    });
+    const foregroundRain=new THREE.Points(foregroundGeometry,foregroundRainMaterial);
+    foregroundRain.visible=false;group.add(foregroundRain);
     const snowfall=new THREE.PointsMaterial({color:'#edf5fa',size:.16,transparent:true,opacity:.82,depthWrite:false});
     const wet=new THREE.MeshStandardMaterial({color:'#17252d',roughness:.19,metalness:.38});
     const lightning=new THREE.PointLight(0xd5e7ff,0,115,2);
@@ -351,6 +368,9 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         speedSelect.style.display=chaos.enabled?'inline-block':'none';
       }
       particles.visible=rainModes.has(next)||snowModes.has(next);
+      foregroundRain.visible=particles.visible;
+      foregroundRainMaterial.size=snowModes.has(next)?.18:.105;
+      foregroundRainMaterial.opacity=snowModes.has(next)?.68:.48;
       particleMaterial.color.set(snowModes.has(next)?'#e9f2ff':'#a6d7f0');
       particleMaterial.size=snowModes.has(next)?.16:.065;
       for(const road of rainRoads)road.material=rainModes.has(next)?wet:palette.road;
@@ -394,7 +414,8 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
       scene.remove(group);panel.remove();
       for(const g of geometries)g.dispose();
-      const used=new Set(Object.values(palette));used.add(snowfall);used.add(wet);used.add(skyMat);effectMats.forEach(m=>used.add(m));
+      const used=new Set(Object.values(palette));used.add(snowfall);used.add(wet);used.add(skyMat);
+      used.add(foregroundRainMaterial);effectMats.forEach(m=>used.add(m));
       for(const a of animation)for(const key of ['blindsMat','curtainMat','silhouetteMat'])used.add(a[key]);
       skyTexture.dispose();
       for(const m of used)m.dispose();
@@ -442,7 +463,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     setMode('normal');
     const api=Object.freeze({
       get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,storm:cinematicStorm.state,outbreak:zombieOutbreak.state,simulationSpeed,
-        visibleScenarioEffects:{clouds:atmosphereGroup.visible,smoke:civilSmokeGroup.visible,
+        visibleScenarioEffects:{clouds:atmosphereGroup.visible,smoke:civilSmokeGroup.visible,foregroundWeather:foregroundRain.visible,
           emergency: ['fire','cataclysm','airborne','purge','zombie'].includes(mode)},
         skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
       setMode,
@@ -521,6 +542,18 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         lightning.intensity=Math.sin(time*.0013)> .998?150:Math.sin(time*.0013)>.995?28:0;
         if(lightning.intensity>0)chaos.events++;
       }else{lightning.intensity=0}
+      if(foregroundRain.visible){
+        const positions=foregroundGeometry.attributes.position.array;
+        const storm=['hurricane','typhoon','severe'].includes(mode);
+        const snow=snowModes.has(mode);
+        for(let i=0;i<positions.length;i+=3){
+          positions[i+1]-=(snow?2.2:storm?18:13)*delta;
+          positions[i]+=(storm?-12:snow?-1.8:-2)*delta;
+          if(positions[i+1]<-3)positions[i+1]=18+(i%11)*.28;
+          if(positions[i]<-35)positions[i]=-21.7;
+        }
+        foregroundGeometry.attributes.position.needsUpdate=true;
+      }
       if(particles.visible){
         const p=particleGeometry.attributes.position.array;
         for(let i=0;i<p.length;i+=3){
@@ -549,6 +582,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     civilMaterials.forEach(m=>m.dispose());
     scene.remove(group);
     for(const g of geometries)g.dispose();
+    foregroundRainMaterial.dispose();
     for(const m of [...Object.values(palette),...effectMats])m.dispose();
     for(const a of animation)for(const key of ['blindsMat','curtainMat','silhouetteMat'])a[key].dispose();
     throw error;
