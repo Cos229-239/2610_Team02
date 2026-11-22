@@ -81,7 +81,7 @@ test('Azure Flow route requires login and never writes inventory', async t=>{
 test('review actions account for pending purchase orders and cannot mutate stock',()=>{
   const {createProduct,setStock,createPurchaseOrder}=require('../lib/inventory');
   const state=emptyInventory();
-  const part=createProduct(state,{name:'Business adapter',priceCents:1800,minimumStock:10});
+  const part=createProduct(state,{name:'Business adapter',barcode:'AF-ADAPTER-01',priceCents:1800,minimumStock:10});
   setStock(state,part.id,{location:'Main',quantity:2});
   const prior=JSON.stringify(state);
   const proposed=overviewForReview(state);
