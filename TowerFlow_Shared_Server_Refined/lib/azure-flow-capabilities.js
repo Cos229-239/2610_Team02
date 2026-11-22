@@ -4,10 +4,12 @@
 const {overview}=require('./azure-flow-harness');
 const {retrieve}=require('./azure-flow-retrieval');
 const {publicSearch}=require('./azure-flow-public-research');
+const {searchFilings}=require('./azure-flow-sec-filings');
 const MANIFEST=Object.freeze([
   {id:'workspace.inventory',description:'Inspect recorded TowerFlow products, stock levels, low-stock risk, replenishment and pending purchase orders',scope:'local',permission:'signed_in',kind:'structured'},
   {id:'workspace.sales',description:'Inspect recorded sale movements, gross sales history and monthly sales totals from TowerFlow ledger',scope:'local',permission:'signed_in',kind:'structured'},
   {id:'knowledge.markdown',description:'Retrieve passages from maintained Markdown design, research, knowledge and architecture files with hashes and citations',scope:'local',permission:'signed_in',kind:'retrieval'},
+  {id:'research.sec',description:'Identify a U.S. public company from official SEC issuer records and locate its recent 10-K/10-Q/20-F/40-F filing metadata. Requires operator-identifying user agent and user opt-in.',scope:'external',permission:'explicit_public_opt_in',kind:'primary_source'},
   {id:'research.public',description:'Search a public encyclopedia for background about a named subject, company, person, place, or concept. Not a financial quote service.',scope:'external',permission:'explicit_public_opt_in',kind:'retrieval'}
 ]);
 function authorized({allowPublic=false}={}){
@@ -23,12 +25,17 @@ function validatePlan(value,allowed=authorized()){
     throw Error('Plan question invalid');
   return value;
 }
-async function execute(id,{question,state,revision,now,allowPublic,retrieveImpl=retrieve,publicImpl=publicSearch}={}){
+async function execute(id,{question,state,revision,now,allowPublic,retrieveImpl=retrieve,publicImpl=publicSearch,secImpl=searchFilings}={}){
   if(!authorized({allowPublic}).some(h=>h.id===id))throw Error('Capability not authorized: '+id);
   if(id==='knowledge.markdown') {
     const found=retrieveImpl(question);
     return {capability:id,status:found.hits.length?'EVIDENCE_FOUND':'NO_MATCH',
       evidence:found.hits,claims:[],indexItems:found.indexItems};
+  }
+  if(id==='research.sec') {
+    const result=await secImpl(question,{now});
+    return {capability:id,status:result.status,evidence:result.hits||[],claims:[],
+      issuer:result.issuer||null,candidates:result.candidates||[],note:result.note};
   }
   if(id==='research.public') {
     const found=await publicImpl(question,{now});
