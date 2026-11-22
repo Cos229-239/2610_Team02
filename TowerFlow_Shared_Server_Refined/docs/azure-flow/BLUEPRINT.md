@@ -104,3 +104,16 @@ Corrections built on the feature branch:
 - Owner-triggered calibration must report real answers/latency; the five visible cases cannot establish 80% reliability on unseen tasks. Add a blind and varied scenario suite before any model is considered production-qualified.
 - Confirm no paid API keys, unapproved downloads, external model calls, inventory writes, securities trades or private code copied from AscendenceAgent007.
 - Retain draft PR #47 until all acceptance evidence is available. Existing TowerFlow data cannot be replenished from invented values.
+
+## 15. Azure Flow reactive presence and preserved TF orb
+The TF orb's existing magenta/gold spherical core, ring geometry, proportions and central **TF** identity are retained. A dedicated `public/azure-flow-motion.js` controller and CSS scoped to `#azureFlow` add:
+- Gentle floating motion and two independent ring sweeps; no texture or 3D engine dependency.
+- Pointer-responsive tilt on the orb only; positions are clamped and handled via `requestAnimationFrame`.
+- State-linked glow for working, ready, unavailable and focused UI, observing actual status elements rather than presenting fake AI success.
+- Reduced-motion support and pause on hidden browser/section.
+- Subtle card interaction and response reveal animation, with no modifications to other TowerFlow tabs.
+- No model or API calls initiated by the motion controller.
+Visual motion is NOT evidence of model availability. Smoke test with pointer, keyboard, reduced-motion and tab visibility on the real browser.
+
+## 16. Reproducible local model screen
+`node tools/azure-flow-live-calibration.cjs dolphin-llama3:8b [qwen3.5:4b]` runs **20 authored cases** (10 intent-routing cases, 10 read-only reorder/abstention cases) on installed localhost models. Outputs expected vs observed labels, schema validity, time and errors; returns nonzero on failure and never selects, downloads or promotes a model. This is a reproducible screening suite, not hidden benchmarks or certified business reasoning. It never creates purchase orders or uses user business data.
