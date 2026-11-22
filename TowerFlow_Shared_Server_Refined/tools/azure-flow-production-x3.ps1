@@ -49,6 +49,24 @@ try {
     $process=Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
     Log "HOST: PID $($listener.OwningProcess) / $($process.Name) / launched $($process.CreationDate)"
     if($process.Name -ne 'node.exe'){throw '4173 is not owned by node.exe.'}
+    Log 'NATIVE_TESTS: running complete suite before production requests.'
+    Push-Location $root
+    try {
+        $tap=@(& npm.cmd test 2>&1 | ForEach-Object {$_.ToString()})
+        $testExit=$LASTEXITCODE
+    }finally {Pop-Location}
+    $tapText=$tap -join [Environment]::NewLine
+    $tests=[regex]::Matches($tapText,'(?m)^\s*(?:#|\S+)?\s*tests\s+(\d+)')
+    $pass=[regex]::Matches($tapText,'(?m)^\s*(?:#|\S+)?\s*pass\s+(\d+)')
+    $fail=[regex]::Matches($tapText,'(?m)^\s*(?:#|\S+)?\s*fail\s+(\d+)')
+    $count=if($tests.Count){[int]$tests[$tests.Count-1].Groups[1].Value}else{-1}
+    $passed=if($pass.Count){[int]$pass[$pass.Count-1].Groups[1].Value}else{-1}
+    $failed=if($fail.Count){[int]$fail[$fail.Count-1].Groups[1].Value}else{-1}
+    Log "NATIVE_TESTS: $passed/$count passed; failed=$failed; exit=$testExit"
+    if($testExit -ne 0 -or $count -le 0 -or $passed -ne $count -or $failed -ne 0){
+        foreach($line in @($tap | Select-Object -Last 20)){Log "TEST_FAILURE: $line"}
+        throw 'Native source tests failed. Production feed request blocked.'
+    }
     $health=Status '/api/auth/status'
     if($health.Code -ne 200 -or !$health.Body.initialized){throw 'Existing server health/setup unavailable.'}
     $unauth=Status '/api/azure-flow/live-market' 'POST' @{allowPublic=$true}
