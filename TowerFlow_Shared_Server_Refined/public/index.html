@@ -82,6 +82,8 @@
                     placeholder="Research Sony · Analyze my business · Review inventory" autocomplete="off">
                   <button type="submit" id="afAsk" class="af-main-action">Investigate ↗</button>
                 </div>
+                <label class="af-consent"><input type="checkbox" id="afAllowPublic">
+                  Include public background research (sends this question to Wikipedia; no workspace records)</label>
                 <div class="af-query-examples">
                   <button type="button" data-af-example="Sony">Sony</button>
                   <button type="button" data-af-example="Show my low-stock risks">Inventory risks</button>
@@ -89,6 +91,10 @@
                 </div>
               </form>
               <div id="afAnswer" class="af-answer" role="status" aria-live="polite" hidden></div>
+              <div class="af-research-save" id="afSaveArea" hidden>
+                <button id="afSaveResearch" type="button" class="af-secondary">Save reviewed findings + draft ADR (Markdown)</button>
+                <small id="afSaveStatus" role="status" aria-live="polite">Nothing is saved automatically.</small>
+              </div>
               <div class="af-command">
                 <button id="afAnalyze" type="button" class="af-main-action">✦ Analyze my business</button>
                 <span id="afStatus" class="af-status" role="status" aria-live="polite">Ready · read-only analysis</span>
