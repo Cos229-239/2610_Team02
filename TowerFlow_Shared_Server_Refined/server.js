@@ -14,6 +14,7 @@ const { dashboard } = require('./lib/report');
 const { interpret: guideInterpret, apply: guideApply } = require('./lib/azure-guide');
 const { run: runAzureFlow } = require('./lib/azure-flow-harness');
 const { investigate: investigateAzureFlow } = require('./lib/azure-flow-orchestrator');
+const { calibrate: calibrateAzureFlow, snapshot: azureCalibrationStatus } = require('./lib/azure-flow-calibration');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
@@ -199,6 +200,14 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
+      }
+      if (method === 'GET' && pathname === '/api/azure-flow/model-status') {
+        return respond(res, 200, azureCalibrationStatus());
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/calibrate') {
+        const body = await jsonBody(req);
+        if (Object.keys(body).length) throw new InputError('Model screening accepts no user-supplied parameters.');
+        return respond(res, 200, await calibrateAzureFlow());
       }
       if (method === 'POST' && pathname === '/api/azure-flow/investigate') {
         const body = await jsonBody(req);
