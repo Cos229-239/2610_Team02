@@ -49,3 +49,12 @@
 #azureFlow :focus-visible{outline:3px solid #ffdb97;outline-offset:4px}
 @media(max-width:900px){#azureFlow .af-cards,#azureFlow .af-scale{grid-template-columns:1fr}#azureFlow .af-orbit{display:none}}
 @media(prefers-reduced-motion:reduce){#azureFlow .af-title{transform:none}}
+
+#azureFlow .af-market-lookup{margin:12px 20px 20px;border-top:1px solid #78516f}
+#azureFlow .af-market-lookup summary{padding:12px 0}
+#azureFlow .af-market-lookup form{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:12px 0}
+#azureFlow .af-market-lookup label{display:flex;flex-direction:column;gap:6px}
+#azureFlow .af-market-lookup input{width:180px;max-width:100%;background:#170c23;color:#faeffa;border:1px solid #ab749e;border-radius:8px;padding:10px;font:inherit}
+#azureFlow #afMarketResult{color:#edcfb8;padding:10px 0 14px;font-size:13px}
+#azureFlow .af-review-row{border-top:1px solid #583b56;margin-top:12px;padding:10px 0}
+#azureFlow .af-review-row .af-secondary{font-size:12px;padding:8px 11px}
