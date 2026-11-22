@@ -107,7 +107,7 @@
         article.append(textNode('strong',source.title||source.source||'Evidence'),
           textNode('p',source.excerpt||'No excerpt.'),
           textNode('small',source.source+' · SHA-256 '+String(source.sha256||'').slice(0,12),'af-badge'));
-        if(typeof source.url==='string'&&/^https:\/\/(?:en\.wikipedia\.org\/wiki\/|www\.sec\.gov\/Archives\/edgar\/data\/)/.test(source.url)){
+        if(typeof source.url==='string'&&/^https:\/\/(?:en\.wikipedia\.org\/wiki\/|www\.sec\.gov\/Archives\/edgar\/data\/|data\.sec\.gov\/api\/xbrl\/companyfacts\/CIK[0-9]{10}\.json)/.test(source.url)){
           const anchor=document.createElement('a');
           anchor.href=source.url;anchor.rel='noopener noreferrer';anchor.target='_blank';
           anchor.textContent='Open cited source ↗';
