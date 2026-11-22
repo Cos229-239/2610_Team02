@@ -75,3 +75,108 @@
 #azureFlow .af-answer .af-badge{display:block;font-size:12px;color:#d9c4d7;margin-top:12px}
 #azureFlow .af-answer .af-example-action{margin:8px 8px 0 0}
 @media(max-width:720px){#azureFlow .af-query-row{flex-direction:column}#azureFlow .af-query .af-main-action{width:100%}}
+
+
+/* Azure Flow presence layer. Existing TF orb geometry/colors are preserved. */
+/* Compositor-friendly transforms and opacity; no canvas, timers, or heavyweight 3D engine. */
+@keyframes af-orb-drift {
+  0%,100% {transform:translate3d(0,0,0) rotateX(17deg) rotateY(-15deg)}
+  45% {transform:translate3d(5px,-11px,0) rotateX(20deg) rotateY(-9deg)}
+  75% {transform:translate3d(-4px,-5px,0) rotateX(15deg) rotateY(-21deg)}
+}
+@keyframes af-ring-sweep-y {
+  0% {transform:rotateY(65deg) rotateZ(0deg)}
+  100% {transform:rotateY(425deg) rotateZ(360deg)}
+}
+@keyframes af-ring-sweep-x {
+  0% {transform:rotateX(66deg) rotateZ(0deg)}
+  100% {transform:rotateX(426deg) rotateZ(360deg)}
+}
+@keyframes af-core-breathe {
+  0%,100% {filter:brightness(1)}
+  50% {filter:brightness(1.13)}
+}
+@keyframes af-state-busy {
+  0%,100% {opacity:.5}
+  50% {opacity:1}
+}
+@keyframes af-answer-appear {
+  from {opacity:0;transform:translate3d(0,6px,0)}
+  to {opacity:1;transform:translate3d(0,0,0)}
+}
+#azureFlow[data-af-motion="enabled"] .af-orbit {
+  animation:af-orb-drift 9s ease-in-out infinite;
+  transition:transform .45s ease,box-shadow .4s ease;
+  cursor:crosshair;
+  will-change:transform;
+}
+#azureFlow[data-af-motion="enabled"] .af-orbit:before {
+  animation:af-ring-sweep-y 23s linear infinite;
+}
+#azureFlow[data-af-motion="enabled"] .af-orbit:after {
+  animation:af-ring-sweep-x 29s linear infinite reverse;
+}
+#azureFlow[data-af-motion="enabled"] .af-core {
+  animation:af-core-breathe 6s ease-in-out infinite;
+  transition:box-shadow .5s ease,filter .5s ease;
+}
+#azureFlow[data-af-motion="enabled"] .af-orbit:hover {
+  animation-play-state:paused;
+  transform:translate3d(var(--af-pointer-x,0px),var(--af-pointer-y,0px),0)
+    rotateX(calc(17deg + var(--af-tilt-y,0deg)))
+    rotateY(calc(-15deg + var(--af-tilt-x,0deg)));
+}
+#azureFlow[data-af-state="busy"] .af-orbit {
+  box-shadow:inset 0 0 50px #9f308c63,0 0 72px #d342b26b,0 0 20px #e4be83a8;
+}
+#azureFlow[data-af-state="busy"] .af-core {
+  animation-duration:1.2s;
+}
+#azureFlow[data-af-state="busy"] .af-kicker {
+  animation:af-state-busy 1.25s ease-in-out infinite;
+}
+#azureFlow[data-af-state="ready"] .af-orbit {
+  box-shadow:inset 0 0 50px #9f308c63,0 0 65px #d342b255,0 0 28px #f4cf867a;
+}
+#azureFlow[data-af-state="error"] .af-orbit {
+  box-shadow:inset 0 0 50px #9f308c63,0 0 40px #b94d7166;
+}
+#azureFlow[data-af-state="focused"] .af-orbit {
+  box-shadow:inset 0 0 50px #9f308c63,0 0 75px #f4cf8655;
+}
+#azureFlow[data-af-motion="enabled"] .af-answer:not([hidden]) {
+  animation:af-answer-appear .3s ease-out both;
+}
+#azureFlow[data-af-motion="enabled"] .af-card {
+  transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease;
+}
+#azureFlow[data-af-motion="enabled"] .af-card:hover,
+#azureFlow[data-af-motion="enabled"] .af-card:focus-within {
+  transform:translate3d(0,-2px,0);
+  border-color:#d5a47e99;
+  box-shadow:0 10px 20px #05020c70;
+}
+#azureFlow[data-af-visible="false"] .af-orbit,
+#azureFlow[data-af-visible="false"] .af-orbit:before,
+#azureFlow[data-af-visible="false"] .af-orbit:after,
+#azureFlow[data-af-visible="false"] .af-core,
+#azureFlow[data-af-visible="false"] .af-kicker,
+#azureFlow[data-af-visible="false"] .af-answer {
+  animation-play-state:paused!important;
+}
+@media (prefers-reduced-motion:reduce) {
+  #azureFlow .af-orbit,
+  #azureFlow .af-orbit:before,
+  #azureFlow .af-orbit:after,
+  #azureFlow .af-core,
+  #azureFlow .af-kicker,
+  #azureFlow .af-answer,
+  #azureFlow .af-card {
+    animation:none!important;
+    transition:none!important;
+    will-change:auto!important;
+  }
+  #azureFlow[data-af-motion="enabled"] .af-orbit:hover {
+    transform:rotateX(17deg) rotateY(-15deg);
+  }
+}
