@@ -24,7 +24,7 @@ async function request(url,{fetchImpl=fetch,now=Date.now()}={}){
     signal:AbortSignal.timeout(7500)});
   if(!response.ok)throw Error('PUBLIC_SOURCE_HTTP_'+response.status);
   const buffer=await response.arrayBuffer();
-  if(buffer.byteLength>200000)throw Error('SOURCE_PAYLOAD_TOO_LARGE');
+  if(buffer.byteLength>2500000)throw Error('SOURCE_PAYLOAD_TOO_LARGE');
   return JSON.parse(Buffer.from(buffer).toString('utf8'));
 }
 function urlFor(params){
@@ -82,26 +82,26 @@ async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),request
       const results=Array.isArray(found.search)?found.search:[];
       const names=results.filter(x=>itemId(x.id)&&typeof x.label==='string').slice(0,5);
       if(!names.length){outcomes.push({query,status:'NO_MATCH'});continue}
-      const ids=names.map(x=>x.id);
-      const payload=await requester(urlFor({action:'wbgetentities',ids:ids.join('|'),
-        props:'labels|descriptions|claims',languages:'en'}),{fetchImpl,now});
-      const candidates=names.map(x=>observation(payload?.entities?.[x.id],query,now)).filter(Boolean);
-      if(!candidates.length){outcomes.push({query,status:'NO_BUSINESS_ENTITY_MATCH'});continue}
-      // Only auto-resolve when exact first-label or alias match is observed.
-      // Otherwise label ambiguity; do not assert that any fuzzy result is the user target.
-      const searchMatches=new Map(names.map(x=>[x.id,x]));
-      const exact=candidates.filter(x=>{
-        const item=searchMatches.get(x.entityId);
-        return x.title.toLocaleLowerCase('en')===query.toLocaleLowerCase('en')||
-          (typeof item?.match?.text==='string'&&
-            item.match.text.toLocaleLowerCase('en')===query.toLocaleLowerCase('en'));
-      });
+      // Search establishes exact label/alias identity before downloading ONE entity.
+      // Avoid downloading huge claim graphs for unrelated top-five suggestions.
+      const exact=names.filter(item=>item.label.toLocaleLowerCase('en')===query.toLocaleLowerCase('en')||
+        (typeof item.match?.text==='string'&&
+          item.match.text.toLocaleLowerCase('en')===query.toLocaleLowerCase('en')));
       if(exact.length!==1){
-        outcomes.push({query,status:'AMBIGUOUS_OR_NOT_EXACT',candidates:candidates.map(x=>({title:x.title,id:x.entityId}))});
+        outcomes.push({query,status:'AMBIGUOUS_OR_NOT_EXACT',
+          candidates:names.map(x=>({title:x.label,id:x.id}))});
         continue;
       }
-      hits.push(exact[0]);
-      outcomes.push({query,status:'ENTITY_MATCHED',id:exact[0].entityId});
+      const selected=exact[0];
+      const payload=await requester(urlFor({action:'wbgetentities',ids:selected.id,
+        props:'labels|descriptions|claims',languages:'en'}),{fetchImpl,now});
+      const profile=observation(payload?.entities?.[selected.id],query,now);
+      if(!profile){
+        outcomes.push({query,status:'NO_BUSINESS_ENTITY_MATCH'});
+        continue;
+      }
+      hits.push(profile);
+      outcomes.push({query,status:'ENTITY_MATCHED',id:profile.entityId});
     }catch(e){
       outcomes.push({query,status:'SOURCE_UNAVAILABLE',reason:String(e.message).slice(0,90)});
     }
