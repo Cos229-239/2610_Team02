@@ -58,6 +58,7 @@ async function execute(id,{question,state,revision,now,allowPublic,isOwner=false
     return {capability:id,status,evidence,claims:[],
       issuer:locator.issuer||null,candidates:locator.candidates||[],
       financialStatus:financials.status,
+      financialConflicts:financials.conflicts||[],
       note:[locator.note,financials.note].filter(Boolean).join(' ')};
   }
   if(id==='research.public') {
