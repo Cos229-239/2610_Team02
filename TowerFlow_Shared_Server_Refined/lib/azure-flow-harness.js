@@ -40,6 +40,22 @@ function overview(state, { now = Math.floor(Date.now() / 1000), revision = 'unkn
   const data = aggregateSales(state);
   const low = state.products.filter(p => !p.archived &&
     p.stock.reduce((n,x) => n + x.quantity, 0) <= p.minimumStock);
+  // Prepare business decisions, never execute them. Existing Orders/Inventory remain authoritative.
+  const pendingOrders=Array.isArray(state.purchaseOrders) ? state.purchaseOrders.filter(p=>p.status==='pending') : [];
+  const reviewActions=low.slice(0,3).map(p=>{
+    const available=p.stock.reduce((n,x)=>n+x.quantity,0);
+    const pending=pendingOrders.filter(o=>o.productId===p.id);
+    const incoming=pending.reduce((n,o)=>n+o.quantity,0);
+    const quantity=Math.max(0,p.minimumStock+1-available-incoming);
+    return {
+      productId:p.id,productName:p.name,currentUnits:available,minimumStock:p.minimumStock,
+      incomingUnits:incoming,reviewQuantity:quantity,
+      disposition:quantity>0?'REVIEW_REPLENISHMENT':'PENDING_ORDER_COVERS_MINIMUM',
+      provenance:'Recorded stock quantities, configured minimum, and pending purchase-order quantities.',
+      targetTab:quantity>0?'orders':'inventory',
+      requiresHumanReview:true,applied:false
+    };
+  });
   const findings = [];
   if (low.length) findings.push({ severity:'attention', title:low.length + ' products at or below minimum',
     basis:'Compared current per-location quantities with each product minimum stock.', action:'Inspect low-stock products in Inventory.' });
@@ -54,6 +70,7 @@ function overview(state, { now = Math.floor(Date.now() / 1000), revision = 'unkn
     inventory:{...totals, lowNames:low.slice(0,5).map(p=>p.name)},
     operations:data,
     findings:findings.slice(0,3),
+    reviewActions,
     limits:['No external market quotes or brokerage connections.','Only first 30 products have model-level forecast details.',
       'Inventory value reflects recorded list prices; it is not company valuation.'],
     capabilities:[CAPABILITIES.inventory,CAPABILITIES.operations]
