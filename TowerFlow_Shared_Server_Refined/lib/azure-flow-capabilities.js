@@ -50,7 +50,9 @@ async function execute(id,{question,state,revision,now,allowPublic,isOwner=false
     if(locator.issuer&&Number.isSafeInteger(locator.issuer.cik)){
       financials=await financialImpl(locator.issuer.cik,{now});
     }
-    const evidence=[...(locator.hits||[]),...(financials.hits||[])];
+    // Prioritize primary numerical observations before filing locators so that
+    // bounded synthesis contexts do not silently omit the actual financial data.
+    const evidence=[...(financials.hits||[]),...(locator.hits||[])];
     const status=financials.status==='REPORTED_FACTS_FOUND'?'REPORTED_FACTS_FOUND':
       locator.status;
     return {capability:id,status,evidence,claims:[],
