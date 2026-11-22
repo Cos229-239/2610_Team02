@@ -37,60 +37,76 @@
     if (!response.ok) throw new Error(data.error || 'Investigation unavailable.');
     return data;
   }
-  // Query results are rendered entirely as text; never trust market/provider/model data as HTML.
+  // Active research is routed by a validated model plan and capability registry.
+  // Every displayed source is a text-only, attributable retrieval receipt.
+  let latestEvidenceId=null;
   async function askAzure(question) {
-    const output=get('afAnswer'), button=get('afAsk');
-    button.disabled=true; output.hidden=false;
-    output.replaceChildren(textNode('p','Investigating verified information…'));
+    const output=get('afAnswer'),button=get('afAsk');
+    const saveArea=get('afSaveArea'),saveStatus=get('afSaveStatus');
+    latestEvidenceId=null;saveArea.hidden=true;
+    button.disabled=true;output.hidden=false;
+    output.replaceChildren(textNode('p','Planning an evidence-grounded investigation…'));
     try {
-      const response=await fetch('/api/azure-flow/query',{
+      const response=await fetch('/api/azure-flow/research',{
         method:'POST',credentials:'same-origin',
         headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
-        body:JSON.stringify({question})
+        body:JSON.stringify({question,allowPublic:get('afAllowPublic').checked})
       });
       const result=await response.json();
-      if(!response.ok) throw Error(result.error||'Investigation unavailable.');
-      output.replaceChildren();
-      const label=result.intent==='market' ? (result.subject||result.symbol) :
-        result.intent==='unresolved' ? 'Investigation needs context' :
-        result.intent==='sales' ? 'Sales intelligence' : 'Inventory intelligence';
-      output.append(textNode('h3',label),textNode('p',result.explanation));
-      if(result.intent==='market') {
-        const quote=result.market;
-        if(quote?.status==='OBSERVED'&&quote.observation) {
-          output.append(textNode('strong',result.symbol+' · USD '+Number(quote.observation.closeUsd).toFixed(2)),
-            textNode('p','Close '+quote.observation.date+' · '+(quote.source||'unknown source')+' · not live','af-badge'));
-        } else {
-          output.append(textNode('p','Recent quote unavailable; no price was fabricated.','af-badge'));
+      if(!response.ok)throw Error(result.error||'Research unavailable.');
+      output.replaceChildren(
+        textNode('h3','Research investigation'),
+        textNode('p',result.answer),
+        textNode('p','Plan: '+(result.plan?.status||'unknown')+
+          ' · Authorized harnesses: '+(result.plan?.capabilities||[]).join(', '),'af-badge')
+      );
+      if(result.plan?.model)output.append(textNode('p','Planner: '+result.plan.model,'af-badge'));
+      if(result.plan?.status==='MODEL_UNAVAILABLE')output.append(textNode('p',
+        'Local model could not plan this inquiry. Only local Markdown retrieval ran.','af-badge'));
+      if(!result.sources?.length)output.append(textNode('p',
+        'No verified sources found. Azure cannot substantiate a factual conclusion.','af-badge'));
+      for(const source of (result.sources||[])){
+        const article=document.createElement('article');
+        article.className='af-evidence';
+        article.append(textNode('strong',source.title||source.source||'Evidence'),
+          textNode('p',source.excerpt||'No excerpt.'),
+          textNode('small',source.source+' · SHA-256 '+String(source.sha256||'').slice(0,12),'af-badge'));
+        if(typeof source.url==='string'&&/^https:\/\/en\.wikipedia\.org\/wiki\//.test(source.url)){
+          const anchor=document.createElement('a');
+          anchor.href=source.url;anchor.rel='noopener noreferrer';anchor.target='_blank';
+          anchor.textContent='Open cited source ↗';
+          article.append(anchor);
         }
+        output.append(article);
       }
-      if(result.report) {
-        const report=result.report;
-        output.append(textNode('p','Active products: '+report.inventory.products+
-          ' · Stock alerts: '+report.inventory.lowStock+
-          ' · Recorded sales: '+report.operations.recordedSales));
-        const issue=(report.findings||[])[0];
-        if(issue) output.append(textNode('p','Next review: '+issue.action));
-        const targetTab=result.intent==='sales'?'movements':'inventory';
-        const review=textNode('button','Review source in '+(targetTab==='sales'?'Sales':'TowerFlow'),'af-secondary');
-        review.type='button';
-        review.textContent=targetTab==='movements'?'Open Movements':'Open Inventory';
-        review.addEventListener('click',()=>{
-          document.querySelector('.nav[data-page="'+targetTab+'"]')?.click();
-        });
-        output.append(review);
-      }
-      for(const phrase of (result.suggestions||[]).slice(0,4)){
-        const choice=textNode('button',phrase,'af-example-action');
-        choice.type='button';
-        choice.addEventListener('click',()=>{get('afQuestion').value=phrase;void askAzure(phrase);});
-        output.append(choice);
-      }
-      output.append(textNode('small','Evidence source: '+result.source,'af-badge'));
+      output.append(textNode('small','Evidence receipt: '+result.provenance.evidenceId.slice(0,18)+
+        ' · Human review required; no business action performed.','af-badge'));
+      latestEvidenceId=result.provenance.evidenceId;
+      saveArea.hidden=false;
+      saveStatus.textContent='Optional owner action. Creates a draft findings/ADR Markdown record locally; nothing is saved automatically.';
     } catch(error){
-      output.replaceChildren(textNode('p','Azure Flow cannot verify this investigation: '+error.message));
+      output.replaceChildren(textNode('p','Azure could not complete this investigation: '+error.message));
     } finally {button.disabled=false;}
   }
+  get('afSaveResearch').addEventListener('click',async()=>{
+    const status=get('afSaveStatus'),button=get('afSaveResearch');
+    if(!latestEvidenceId){status.textContent='No current evidence receipt.';return}
+    button.disabled=true;
+    status.textContent='Recording reviewed research locally…';
+    try{
+      const response=await fetch('/api/azure-flow/save-research',{
+        method:'POST',credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
+        body:JSON.stringify({evidenceId:latestEvidenceId})
+      });
+      const result=await response.json();
+      if(!response.ok)throw Error(result.error||'Could not save.');
+      latestEvidenceId=null;
+      status.textContent='Saved '+result.filename+' · SHA-256 '+result.sha256.slice(0,14)+
+        ' · draft only, not published.';
+      button.disabled=true;
+    }catch(error){status.textContent='Save blocked: '+error.message;button.disabled=false}
+  });
   get('afQueryForm').addEventListener('submit',event=>{
     event.preventDefault();
     void askAzure(get('afQuestion').value.trim());
