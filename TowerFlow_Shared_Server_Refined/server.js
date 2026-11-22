@@ -19,6 +19,7 @@ const { getDailyClose: marketClose } = require('./lib/azure-flow-market');
 const { answer: answerAzureQuery } = require('./lib/azure-flow-query');
 const { investigate: researchAzure } = require('./lib/azure-flow-intelligence');
 const { persist: saveAzureRecord } = require('./lib/azure-flow-evidence-record');
+const { read: readAzureLearning, append: recordAzureLearning, similar: recallAzureLearning } = require('./lib/azure-flow-learning');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
@@ -212,8 +213,12 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
         const body = await jsonBody(req);
         if (Object.keys(body).sort().join(',') !== 'allowPublic,question' ||
           typeof body.allowPublic !== 'boolean') throw new InputError('Research requires a question and explicit public-search setting.');
+        // Read only same-owner approved precedents; other users do not share episodes.
+        const learningDir=path.join(directory,'azure-flow-learning');
+        const precedents=recallAzureLearning(body.question,
+          readAzureLearning(learningDir,{userId:user.id}));
         const output = await researchAzure(body.question,{state,revision:revisionOf(fingerprint),
-          allowPublic:body.allowPublic});
+          allowPublic:body.allowPublic,priorCases:precedents});
         // Bounded ephemeral draft receipts, not persistent automatic memory writes.
         for(const [key,entry] of azureDrafts){
           if(Date.now()-entry.at>600000)azureDrafts.delete(key);
@@ -221,6 +226,21 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
         if(azureDrafts.size>=40)azureDrafts.delete(azureDrafts.keys().next().value);
         azureDrafts.set(output.provenance.evidenceId,{at:Date.now(),userId:user.id,result:output});
         return respond(res,200,output);
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/feedback') {
+        if (user.role !== 'admin')throw new AuthError('Owner access required to train routing memory.',403);
+        const body=await jsonBody(req);
+        if(Object.keys(body).sort().join(',')!=='evidenceId,grade,note')throw new InputError('Feedback requires evidenceId, grade, note.');
+        const entry=azureDrafts.get(body.evidenceId);
+        if(!entry||entry.userId!==user.id||Date.now()-entry.at>600000)
+          throw new InputError('Research receipt expired or belongs to another user.');
+        try {
+          const recorded=recordAzureLearning(path.join(directory,'azure-flow-learning'),
+            entry.result,body,{userId:user.id});
+          return respond(res,201,recorded);
+        } catch(error) {
+          throw new InputError(error.message);
+        }
       }
       if (method === 'POST' && pathname === '/api/azure-flow/save-research') {
         if (user.role !== 'admin')throw new AuthError('Owner approval required to save research records.',403);
