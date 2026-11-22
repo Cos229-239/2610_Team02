@@ -316,6 +316,7 @@
     liveRunning=false;
     clearTimeout(liveTimer);liveTimer=null;
     liveButton.textContent='Start live feed';liveButton.setAttribute('aria-pressed','false');
+    liveGrid.replaceChildren();
     liveStatus.textContent=message;
   }
   async function refreshLiveFeed(){
@@ -337,6 +338,7 @@
       if(!response.ok)throw Error(data.error||'HTTP '+response.status);
       if(data.schema!=='azure-flow.live-market/v1'||data.market!=='CRYPTO_SPOT_ONLY'||
         !Array.isArray(data.results))throw Error('Unrecognized market-data response.');
+      if(!liveRunning||document.hidden||root.hidden)return;
       liveGrid.replaceChildren();
       for(const row of data.results){
         const card=document.createElement('article');
