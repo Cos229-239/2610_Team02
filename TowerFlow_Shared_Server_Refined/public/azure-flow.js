@@ -27,13 +27,23 @@
     if (!response.ok) throw new Error(data.error || 'Evaluation unavailable.');
     return data;
   }
+  async function evaluateInvestigation() {
+    const response = await fetch('/api/azure-flow/investigate', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
+      body:'{}'
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Investigation unavailable.');
+    return data;
+  }
   get('afAnalyze').addEventListener('click', async () => {
     const button = get('afAnalyze');
     const status = get('afStatus');
     button.disabled = true;
     status.textContent = 'Investigating recorded business evidence…';
     try {
-      const result = await evaluate({ capability:'inventory.read' });
+      const result = await evaluateInvestigation();
       const inventory = get('afInventory');
       const sales = get('afOperations');
       const rec = get('afRecommendations');
@@ -73,7 +83,10 @@
         ' · ' + new Date(result.evaluatedAt).toLocaleString();
       get('afHeadline').hidden = false;
       get('afCards').hidden = false;
-      status.textContent = 'Analysis complete · evidence checked · read-only';
+      status.textContent = result.model?.state === 'MODEL_SUGGESTION_VALIDATED'
+        ? 'Local model prioritized a verified finding · read-only'
+        : 'Verified harness analysis · local model unavailable or not validated';
+
     } catch (error) {
       status.textContent = 'Could not analyze: ' + error.message;
     } finally { button.disabled = false; }
