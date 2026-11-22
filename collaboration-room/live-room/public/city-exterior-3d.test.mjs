@@ -123,6 +123,13 @@ test('all 17 scenarios mount, select, render at least one update and restore ori
     if(['fire','cataclysm','purge'].includes(name))
       assert.equal(api.state.visibleScenarioEffects.smoke,true);
     if(name==='cloudy')assert.equal(api.state.visibleScenarioEffects.clouds,true);
+    if(['rain','snow','blizzard','thunder','severe','hurricane','typhoon'].includes(name))
+      assert.equal(api.state.visibleScenarioEffects.foregroundWeather,
+        ['rain','snow','blizzard','thunder','severe','hurricane','typhoon'].includes(name));
+    if(name==='normal'||name==='sunny'){
+      assert.equal(api.state.visibleScenarioEffects.smoke,false);
+      assert.equal(api.state.visibleScenarioEffects.foregroundWeather,false);
+    }
   }
   assert.deepEqual(listed,CITY_EVENTS.map(([name])=>name));
   api.dispose();
