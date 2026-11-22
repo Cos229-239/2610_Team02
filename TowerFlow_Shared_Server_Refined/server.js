@@ -212,6 +212,7 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
         return respond(res, 200, azureCalibrationStatus());
       }
       if (method === 'POST' && pathname === '/api/azure-flow/calibrate') {
+        if (user.role !== 'admin') throw new AuthError('Owner access is required to screen local models.', 403);
         const body = await jsonBody(req);
         if (Object.keys(body).length) throw new InputError('Model screening accepts no user-supplied parameters.');
         return respond(res, 200, await calibrateAzureFlow());
