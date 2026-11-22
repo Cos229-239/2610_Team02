@@ -49,3 +49,18 @@ Confirmed changes use the existing movement ledger (receive/remove), shared inve
 The shared version 2 JSON file contains work and purchase orders. Older desktop or local-only editions do not understand those extra order fields, so **do not restore a shared backup into an older edition** if you need to keep the orders. Migrate from the older editions into this server instead.
 
 `CONTRIBUTIONS.md` and `INTEGRATION.md` document what was incorporated from each teammate, including Daniel’s Azure Stock Guide. `SOURCE_AUDIT.csv` lists every file entry in the three supplied ZIPs and how it was treated. Run `npm test` for the included model and server checks.
+
+## Local LLM harness (proposed, no API keys)
+
+This feature branch adds a separate **Local LLM assistant** form under Azure Stock Guide. It uses the existing authenticated server route `POST /api/local-llm/ask`, forwarding read-only inventory summary data to **Ollama on 127.0.0.1:11434**. It does not call cloud APIs, store credentials, execute model-generated commands, or change inventory. Existing deterministic stock commands remain unchanged.
+
+Install and start Ollama on the **same server computer**, then pull the configured model (default `dolphin-llama3:8b`) and ensure Ollama is running:
+
+```powershell
+ollama pull dolphin-llama3:8b
+ollama list
+```
+
+Optional model selection before starting TowerFlow: `$env:TOWERFLOW_OLLAMA_MODEL='dolphin-llama3:8b'`. There is **no API key**. If Ollama is absent or the model is missing, the assistant reports a recoverable error without writing inventory.
+
+The harness is deliberately **read-only, summary-only and non-agentic** in this first increment. It gives the model aggregate product count, units, low-stock count and inventory value, not individual products or private account data. It cannot truthfully answer product-level questions or perform inventory transactions. Any future tool expansion requires per-tool authorization, explicit confirmation, schema validation and integration tests. This is a proposed feature branch until reviewed and merged into `dev`; real Ollama/browser acceptance remains to be tested.
