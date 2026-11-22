@@ -59,3 +59,17 @@ test('coherent model: invalid inputs rejected without mutation',()=>{
   assert.throws(()=>analyze(state(),{now:NaN}),/Invalid model/);
   assert.throws(()=>analyze(state(),{now:NOW,query:'x'.repeat(161)}),/Invalid model/);
 });
+
+test('coherent model: old history from another product cannot qualify a new product',()=>{
+  const other={...product(3),id:2,name:'New Part',barcode:'NEW',partNumber:116,serialNumber:902702};
+  const history=[
+    {type:'receive',productId:1,quantity:20,recordedAt:NOW-100*D},
+    {type:'receive',productId:2,quantity:10,recordedAt:NOW-4*D},
+    {type:'sale',productId:2,quantity:1,recordedAt:NOW-3*D},
+    {type:'sale',productId:2,quantity:1,recordedAt:NOW-2*D},
+    {type:'sale',productId:2,quantity:1,recordedAt:NOW-D}
+  ];
+  const r=analyze({products:[product(7),other],movements:history},{now:NOW,query:'New Part'});
+  assert.equal(r.rows[0].status,'INSUFFICIENT_DATA');
+  assert.equal(r.rows[0].evidence.observationDays,4);
+});
