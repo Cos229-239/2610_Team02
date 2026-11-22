@@ -73,6 +73,10 @@ test('Azure Flow route requires login and never writes inventory', async t=>{
   ]},cookie);
   assert.equal(holdings.status,200);
   assert.equal((await holdings.json()).differenceCents,1000);
+  const status=await fetch(origin+'/api/azure-flow/model-status',{headers:{Cookie:cookie}});
+  assert.equal(status.status,200);
+  const invalidMarket=await post('/api/azure-flow/market-close',{symbol:'../../secrets'},cookie);
+  assert.equal(invalidMarket.status,400);
   const after=await (await fetch(origin+'/api/state',{headers:{Cookie:cookie}})).json();
   assert.deepEqual(after,prior);
   assert.equal(fs.existsSync(path.join(directory,'inventory.json')),false);
