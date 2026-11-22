@@ -27,5 +27,5 @@ test('explicit official-source selection must not modify inventory or existing b
     server.indexOf("pathname === '/api/azure-flow/feedback'"));
   assert.ok(source.length>350);
   assert.doesNotMatch(source,/saveState|publish\(|writeFileSync|recordMovement|applyStock/);
-  assert.match(source,/researchAzure\(/);
+  assert.match(source,/researchImpl\(/);
 });
