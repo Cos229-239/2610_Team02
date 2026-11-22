@@ -51,3 +51,23 @@ Whether business scale refers to annual sales, funding, valuation or customer ti
 
 ## 9. Next vertical slices
 (1) browser acceptance and accessibility; (2) replayable scenarios with backtesting; (3) real audited profit/cost data; (4) governed local language adapter; (5) user-authorized historical-market CSV import; (6) business partners/marketing consent workflows. No external API dependency until the owner explicitly changes this boundary.
+
+## 10. Approved governance decisions (2026-11-22)
+The owner approved these recommendations:
+1. **Model policy:** reuse the installed Ollama host and model from the private AscendenceAgent007 collaboration-room lineage, with `dolphin-llama3:8b` as the explicitly named baseline. `qwen3:8b` and `hermes3:latest` are eligible **only if already installed**. An opt-in five-case local calibration screen measures bounded JSON selection performance but does not claim blind evaluation or promote models automatically. Any high-performing replacement requires broader held-out acceptance.
+2. **Harness hierarchy:** one Azure Flow orchestrator, bounded internal inventory/sales/evidence/market harnesses, no delegated arbitrary shell or repository editing. The existing local Ollama connector uses loopback HTTP as an internal process protocol; no external AI APIs or credentials.
+3. **Autonomy:** prepare **read-only recommendations for human review**, not automatic inventory writes, securities trades or outreach. A future approved-write adapter must retain the native TowerFlow confirmation and revision controls.
+4. **Market sources:** free public information is allowed if source, reuse rights, observation date, provider downtime, and freshness are transparently surfaced. Market networking cannot be mandatory. No source has yet passed an end-to-end real-price verification on this branch, so current implemented portfolio valuation remains user-supplied/offline.
+5. **Scale labels:** the $50k and $1m bands refer to **verified annual business revenue**, not software charges, stock valuation or investment capital. The app does not currently have audited annual revenue data, so no user may be assigned a verified revenue band by the harness.
+6. **Code privacy:** only the *interface idea* from private AscendenceAgent007 was adapted: local Ollama `/api/tags` and structured `/api/chat`, allowlist, hard timeout, output schema validation and fail-closed response. The private source implementation and credentials are not copied.
+
+### Harness-of-harnesses state
+`Session auth` → `read-only source snapshot` → `inventory + sales + evidence` → `optional locally installed LLM proposes one of already-verified findings` → `validate model JSON` → `present review-only recommendation`. Model failure returns baseline evidence without changing the app.
+
+### Evidence maturity
+- Static JavaScript parsing: performed against remote branch files.
+- Model calibration unit test: authored, but not executed here.
+- Real local model installed/active: **UNKNOWN** on Windows until operator check.
+- Live market access: **UNKNOWN / optional**.
+- All browser/login regression checks: pending local end-to-end verification.
+- Approval to merge: not granted.
