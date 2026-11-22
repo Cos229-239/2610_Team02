@@ -77,7 +77,7 @@ function reviewCase(item,selected,modelStatus){
   ];
   const escapes=roles[2].detectorEscapeCount;
   return {itemId:item.id,selected,verdict,roles,
-    decision:!verdict.pass||escapes?'BLOCK':'REVIEW_REQUIRED',
+    decision:!verdict.pass||escapes||modelStatus!=='MODEL_PLAN_VALIDATED'?'BLOCK':'REVIEW_REQUIRED',
     hiddenQualityCertified:false};
 }
 function reviewRun(rows){
