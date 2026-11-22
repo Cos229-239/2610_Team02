@@ -71,7 +71,7 @@ function interpret(state, input) {
   if (/^sort quantity$/i.test(command)) return adviceParts([...parts].sort(byQuantity), 'Showing parts with the lowest quantity first.');
   if (/^sort name$/i.test(command)) return adviceParts([...parts].sort(byName), 'Showing parts alphabetically.');
 
-  if (/^forecast(?:\\s|$)/i.test(command)) {
+  if (/^forecast(?:\s|$)/i.test(command)) {
     const query = command.slice('forecast'.length).trim();
     if (query.length > 160) throw new InputError('Forecast filter must be 160 characters or fewer.');
     const result = decisionModel(state, { query });
