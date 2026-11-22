@@ -43,7 +43,7 @@
   async function askAzure(question) {
     const output=get('afAnswer'),button=get('afAsk');
     const saveArea=get('afSaveArea'),saveStatus=get('afSaveStatus');
-    latestEvidenceId=null;saveArea.hidden=true;
+    latestEvidenceId=null;saveArea.hidden=true;get('afLearning').hidden=true;
     button.disabled=true;output.hidden=false;
     output.replaceChildren(textNode('p','Planning an evidence-grounded investigation…'));
     try {
@@ -83,10 +83,37 @@
         ' · Human review required; no business action performed.','af-badge'));
       latestEvidenceId=result.provenance.evidenceId;
       saveArea.hidden=false;
+      get('afLearning').hidden=false;
+      get('afFeedbackStatus').textContent='No feedback recorded for this investigation.';
+      for(const action of root.querySelectorAll('[data-af-grade]'))action.disabled=false;
       saveStatus.textContent='Optional owner action. Creates a draft findings/ADR Markdown record locally; nothing is saved automatically.';
     } catch(error){
       output.replaceChildren(textNode('p','Azure could not complete this investigation: '+error.message));
     } finally {button.disabled=false;}
+  }
+  for(const button of root.querySelectorAll('[data-af-grade]')){
+    button.addEventListener('click',async()=>{
+      const status=get('afFeedbackStatus');
+      if(!latestEvidenceId){status.textContent='An active research receipt is required.';return;}
+      for(const action of root.querySelectorAll('[data-af-grade]'))action.disabled=true;
+      status.textContent='Recording your explicit assessment…';
+      try{
+        const response=await fetch('/api/azure-flow/feedback',{
+          method:'POST',credentials:'same-origin',
+          headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
+          body:JSON.stringify({evidenceId:latestEvidenceId,grade:button.dataset.afGrade,
+            note:get('afFeedbackNote').value})
+        });
+        const result=await response.json();
+        if(!response.ok)throw Error(result.error||'Feedback rejected');
+        status.textContent='Review recorded · '+(result.eligibleForRouting?
+          'approved as a future routing example':'not approved for retrieval')+
+          ' · model weights unchanged.';
+      }catch(error){
+        status.textContent='Feedback not recorded: '+error.message;
+        for(const action of root.querySelectorAll('[data-af-grade]'))action.disabled=false;
+      }
+    });
   }
   get('afSaveResearch').addEventListener('click',async()=>{
     const status=get('afSaveStatus'),button=get('afSaveResearch');
