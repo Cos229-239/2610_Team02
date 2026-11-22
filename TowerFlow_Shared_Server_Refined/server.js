@@ -220,10 +220,6 @@ function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researc
           readAzureLearning(learningDir,{userId:user.id}));
         const output = await researchImpl(body.question,{state,revision:revisionOf(fingerprint),
           allowPublic:body.allowPublic,priorCases:precedents,isOwner:user.role==='admin',
-          ...(userSelected?{planner:async question=>({
-            status:'USER_SELECTED_OFFICIAL_SOURCE',model:null,question,
-            capabilities:['research.sec']
-          })}:{}),
           draftDirectory:path.join(directory,'azure-flow-findings',user.id)});
         // Bounded ephemeral draft receipts, not persistent automatic memory writes.
         for(const [key,entry] of azureDrafts){
