@@ -37,6 +37,63 @@
     if (!response.ok) throw new Error(data.error || 'Investigation unavailable.');
     return data;
   }
+  // Query results are rendered entirely as text; never trust market/provider/model data as HTML.
+  async function askAzure(question) {
+    const output=get('afAnswer'), button=get('afAsk');
+    button.disabled=true; output.hidden=false;
+    output.replaceChildren(textNode('p','Investigating verified information…'));
+    try {
+      const response=await fetch('/api/azure-flow/query',{
+        method:'POST',credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
+        body:JSON.stringify({question})
+      });
+      const result=await response.json();
+      if(!response.ok) throw Error(result.error||'Investigation unavailable.');
+      output.replaceChildren();
+      const label=result.intent==='market' ? (result.subject||result.symbol) :
+        result.intent==='unresolved' ? 'Investigation needs context' :
+        result.intent==='sales' ? 'Sales intelligence' : 'Inventory intelligence';
+      output.append(textNode('h3',label),textNode('p',result.explanation));
+      if(result.intent==='market') {
+        const quote=result.market;
+        if(quote?.status==='OBSERVED'&&quote.observation) {
+          output.append(textNode('strong',result.symbol+' · USD '+Number(quote.observation.closeUsd).toFixed(2)),
+            textNode('p','Close '+quote.observation.date+' · '+(quote.source||'unknown source')+' · not live','af-badge'));
+        } else {
+          output.append(textNode('p','Recent quote unavailable; no price was fabricated.','af-badge'));
+        }
+      }
+      if(result.report) {
+        const report=result.report;
+        output.append(textNode('p','Active products: '+report.inventory.products+
+          ' · Stock alerts: '+report.inventory.lowStock+
+          ' · Recorded sales: '+report.operations.recordedSales));
+        const issue=(report.findings||[])[0];
+        if(issue) output.append(textNode('p','Next review: '+issue.action));
+      }
+      for(const phrase of (result.suggestions||[]).slice(0,4)){
+        const choice=textNode('button',phrase,'af-example-action');
+        choice.type='button';
+        choice.addEventListener('click',()=>{get('afQuestion').value=phrase;void askAzure(phrase);});
+        output.append(choice);
+      }
+      output.append(textNode('small','Evidence source: '+result.source,'af-badge'));
+    } catch(error){
+      output.replaceChildren(textNode('p','Azure Flow cannot verify this investigation: '+error.message));
+    } finally {button.disabled=false;}
+  }
+  get('afQueryForm').addEventListener('submit',event=>{
+    event.preventDefault();
+    void askAzure(get('afQuestion').value.trim());
+  });
+  for(const button of root.querySelectorAll('[data-af-example]')){
+    button.addEventListener('click',()=>{
+      const question=button.dataset.afExample;
+      get('afQuestion').value=question;
+      void askAzure(question);
+    });
+  }
   get('afAnalyze').addEventListener('click', async () => {
     const button = get('afAnalyze');
     const status = get('afStatus');
