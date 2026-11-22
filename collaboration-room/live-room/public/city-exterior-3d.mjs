@@ -286,6 +286,36 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     const wet=new THREE.MeshStandardMaterial({color:'#17252d',roughness:.19,metalness:.38});
     const lightning=new THREE.PointLight(0xd5e7ff,0,115,2);
     lightning.position.set(-65,64,0);group.add(lightning);
+    // Dedicated large-scale effects for previously mostly-static scenario presets.
+    // City root owns every mesh; nothing mutates the indoor floor.
+    const atmosphereGroup=new THREE.Group();atmosphereGroup.name='TF_CIVIL_SCENARIO_CLOUDS';
+    group.add(atmosphereGroup);
+    const civilSmokeGroup=new THREE.Group();civilSmokeGroup.name='TF_CIVIL_DISTRESS_PLUMES';
+    group.add(civilSmokeGroup);
+    const civilMaterials=[
+      new THREE.MeshBasicMaterial({color:'#424b55',transparent:true,opacity:.42,depthWrite:false}),
+      new THREE.MeshBasicMaterial({color:'#a6aeb6',transparent:true,opacity:.38,depthWrite:false})
+    ];
+    const atmosphere=[],distressSmoke=[];
+    for(let i=0;i<22;i++){
+      const g=new THREE.IcosahedronGeometry(5+rand()*9,1);geometries.add(g);
+      const obj=new THREE.Mesh(g,civilMaterials[1]);
+      obj.position.set(-56-rand()*46,34+rand()*25,(rand()-.5)*130);
+      obj.scale.set(1.5,.38,1.15);
+      atmosphereGroup.add(obj);atmosphere.push({obj,baseZ:obj.position.z,speed:.5+rand()});
+    }
+    for(let i=0;i<28;i++){
+      const g=new THREE.IcosahedronGeometry(2.2+rand()*2.6,1);geometries.add(g);
+      const obj=new THREE.Mesh(g,civilMaterials[0]);
+      const gx=-58-(i%3)*13, gz=[-39,9,43][i%3];
+      obj.position.set(gx,STREET_LEVEL+7+Math.floor(i/3)*8,gz+(rand()-.5)*7);
+      civilSmokeGroup.add(obj);
+      distressSmoke.push({obj,baseY:obj.position.y,baseZ:obj.position.z,seed:rand()*6.28});
+    }
+    const civilEmergencyLight=new THREE.PointLight(0xff3444,0,85,2);
+    civilEmergencyLight.position.set(-53,STREET_LEVEL+24,-29);group.add(civilEmergencyLight);
+    const civilPoliceLight=new THREE.PointLight(0x207dff,0,85,2);
+    civilPoliceLight.position.set(-60,STREET_LEVEL+22,23);group.add(civilPoliceLight);
     const disaster=createCinematicDisaster({THREE,urban});
     const cinematicStorm=createCinematicStorm({THREE,group,urban,streetLevel:STREET_LEVEL});
     const zombieOutbreak=createZombieOutbreak({THREE,urban,scene});
@@ -332,8 +362,13 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       raptureGroup.visible=next==='rapture';
       if(next==='sept11')disaster.start();else disaster.stop();
       cinematicStorm.setMode(['severe','hurricane','typhoon','blizzard'].includes(next)?next:null);
+      atmosphereGroup.visible=['cloudy','thunder','airborne','fire','cataclysm','purge'].includes(next);
+      civilSmokeGroup.visible=['fire','cataclysm','purge'].includes(next);
+      for(const light of [civilEmergencyLight,civilPoliceLight])light.intensity=0;
       // Tinted skies, strong hurricane rain and brighter wet surfaces; texture is unchanged.
-      skyMat.color.set(['severe','hurricane','typhoon','blizzard'].includes(next)?'#78848f':'#ffffff');
+      skyMat.color.set(['severe','hurricane','typhoon','blizzard'].includes(next)?'#78848f':
+        next==='sunny'?'#d0edff':next==='cloudy'?'#a0aaba':
+        ['fire','cataclysm','purge'].includes(next)?'#a2948b':'#ffffff');
       particleMaterial.opacity=['hurricane','typhoon','severe'].includes(next)?.9:.55;
       // Controls can be created after the first normal-mode call.
       if(typeof seek!=='undefined'&&seek){seek.style.display=next==='sept11'?'inline-block':'none';seek.value='0';}
@@ -347,6 +382,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       disaster.dispose();
       cinematicStorm.dispose();
       zombieOutbreak.dispose();
+      civilMaterials.forEach(m=>m.dispose());
       wall.visible=prior.wall;glass.visible=prior.glass;
       originalTrims.forEach(({object,visible})=>{object.visible=visible});
       leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
@@ -386,7 +422,10 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     button('Restore',stop);
     setMode('normal');
     const api=Object.freeze({
-      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,storm:cinematicStorm.state,outbreak:zombieOutbreak.state,skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
+      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,storm:cinematicStorm.state,outbreak:zombieOutbreak.state,
+        visibleScenarioEffects:{clouds:atmosphereGroup.visible,smoke:civilSmokeGroup.visible,
+          emergency: ['fire','cataclysm','airborne','purge','zombie'].includes(mode)},
+        skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
       setMode,dispose:stop
     });
     scene.add(group);wall.visible=false;glass.visible=false;doc.body.append(panel);
@@ -397,6 +436,23 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       sky.position.copy(camera.position);
       const delta=Math.min(.05,Math.max(0,(time-last)/1000));last=time;
       cinematicStorm.update(delta);
+      if(atmosphereGroup.visible){
+        for(const c of atmosphere){
+          c.obj.position.z=c.baseZ+Math.sin(time*.00012+c.speed)*16;
+        }
+      }
+      if(civilSmokeGroup.visible){
+        for(const p of distressSmoke){
+          p.obj.position.y=p.baseY+Math.sin(time*.0004+p.seed)*3;
+          p.obj.position.z=p.baseZ+Math.cos(time*.00013+p.seed)*5;
+          p.obj.scale.setScalar(.8+Math.abs(Math.sin(time*.00018+p.seed))*.6);
+        }
+      }
+      if(['fire','cataclysm','airborne','purge'].includes(mode)){
+        const flash=Math.floor(time/360)%2===0;
+        civilEmergencyLight.intensity=flash?36:0;
+        civilPoliceLight.intensity=flash?0:34;
+      }else civilEmergencyLight.intensity=civilPoliceLight.intensity=0;
       if(mode==='zombie'){
         const z=zombieOutbreak.update(delta);
         telemetry.textContent='21F · infected '+z.infected+'/'+z.population+' · collisions '+z.crashes+' · '+z.phase;
@@ -465,6 +521,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     disaster.dispose();
     cinematicStorm.dispose();
     zombieOutbreak.dispose();
+    civilMaterials.forEach(m=>m.dispose());
     scene.remove(group);
     for(const g of geometries)g.dispose();
     for(const m of [...Object.values(palette),...effectMats])m.dispose();
