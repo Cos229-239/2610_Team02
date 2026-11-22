@@ -12,12 +12,15 @@ const { InputError, emptyInventory, label, createProduct, editProduct,
   createPurchaseOrder, receivePurchaseOrder, cancelPurchaseOrder } = require('./lib/inventory');
 const { dashboard } = require('./lib/report');
 const { interpret: guideInterpret, apply: guideApply } = require('./lib/azure-guide');
+const { run: runAzureFlow } = require('./lib/azure-flow-harness');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
 const MIME = { '/': ['index.html', 'text/html; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
-  '/styles.css': ['styles.css', 'text/css; charset=utf-8'] };
+  '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
+  '/azure-flow.js': ['azure-flow.js', 'text/javascript; charset=utf-8'],
+  '/azure-flow.css': ['azure-flow.css', 'text/css; charset=utf-8'] };
 const UUID = '[a-f0-9-]{36}';
 const cookieName = 'towerflow_session';
 const hash = data => data === null ? null : crypto.createHash('sha256').update(data).digest('hex');
@@ -196,6 +199,14 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
       }
+      if (method === 'POST' && pathname === '/api/azure-flow/evaluate') {
+        const body = await jsonBody(req);
+        const permitted = ['inventory.read','sales.aggregate','portfolio.evaluate-import'];
+        if (!permitted.includes(body.capability)) throw new InputError('Unsupported Azure Flow capability.');
+        const output = runAzureFlow(state, { capability: body.capability,
+          revision: revisionOf(fingerprint), portfolioRows: body.portfolioRows });
+        return respond(res, 200, output);
+      }
       if (method === 'POST' && pathname === '/api/azure-guide') {
         const body = await jsonBody(req);
         const guide = guideInterpret(state, body.command);
@@ -355,7 +366,7 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       return respond(res, 404, { error: 'Route not found.' });
     } catch (error) {
-      const status = error instanceof InputError || error instanceof AuthError ? (error.status || 400) : 500;
+      const status = error instanceof InputError || error instanceof AuthError || (error.status === 400) ? (error.status || 400) : 500;
       if (status === 500) console.error(error);
       if (!res.headersSent) respond(res, status, { error: status === 500 ? 'Could not complete the request; inventory was not changed.' : error.message });
     }
