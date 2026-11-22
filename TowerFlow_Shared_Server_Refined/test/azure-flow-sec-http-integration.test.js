@@ -55,7 +55,8 @@ test('authenticated Azure Flow official SEC mode reaches evidence API while disa
   const configData=await config.json();
   assert.equal(configData.schema,'towerflow.azure-flow.runtime-config/v1');
   assert.equal(configData.core.researchEndpoint,'/api/azure-flow/research');
-  assert.equal(configData.research.defaultMode,'adaptive');
+  assert.equal(configData.research.defaultMode,'company');
+  assert.ok(configData.research.modes.some(x=>x.id==='company'&&x.enabled));
   assert.equal(configData.research.externalConsentRequired,true);
   assert.ok(configData.research.modes.some(x=>x.id==='adaptive'&&x.enabled));
   assert.ok(configData.capabilities.some(x=>x.id==='workspace.inventory'));
