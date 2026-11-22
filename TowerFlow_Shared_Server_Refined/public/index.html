@@ -83,15 +83,18 @@
                   <button type="submit" id="afAsk" class="af-main-action">Investigate ↗</button>
                 </div>
                 <label class="af-consent"><input type="checkbox" id="afAllowPublic">
-                  Authorize external research (sends this question to SEC EDGAR and/or Wikipedia; never workspace records)</label>
+                  Allow public company research (queries Wikidata; SEC and Wikipedia only when selected; no workspace records sent)</label>
                 <label class="af-consent" for="afSourceMode">Research strategy</label>
                 <select id="afSourceMode" class="af-source-mode" aria-describedby="afSourceNote">
+                  <option value="company" selected>Investigate named businesses · live public company records (no model required)</option>
                   <option value="adaptive">Adaptive local AI (experimental)</option>
                   <option value="official-sec">Official SEC filing + reported financial facts (public-company research)</option>
                 </select>
-                <small id="afSourceNote">Official SEC research needs external consent and an operator-identifying User-Agent configured on the server. No trading, quotations or advice.</small>
+                <small id="afSourceNote">Business lookup uses public Wikidata records; enable external research above. SEC is separate and optional. Sources are community-maintained, not live equity prices or verified financial statements.</small>
                 <div class="af-query-examples">
                   <button type="button" data-af-example="Sony">Sony</button>
+                  <button type="button" data-af-example="Microsoft">Microsoft</button>
+                  <button type="button" data-af-example="Compare Sony and Microsoft">Compare businesses</button>
                   <button type="button" data-af-example="Show my low-stock risks">Inventory risks</button>
                   <button type="button" data-af-example="Review sales trajectory">Sales trajectory</button>
                 </div>
