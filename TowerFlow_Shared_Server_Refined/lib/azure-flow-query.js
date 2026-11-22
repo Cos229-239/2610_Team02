@@ -3,6 +3,7 @@
 // external LLM instructions, company profiling inventions or persistence.
 const { getDailyClose } = require('./azure-flow-market');
 const { overview } = require('./azure-flow-harness');
+const { classify: classifyAzureQuestion } = require('./azure-flow-intent-model');
 
 const COMPANY_ALIASES = Object.freeze({
   sony: { symbol:'SONY', label:'Sony Group Corporation' },
@@ -59,7 +60,7 @@ function responseForBusiness(resolution,state,{now=Math.floor(Date.now()/1000),r
   return {kind:'azure-flow-answer/v1',readOnly:true,original:resolution.original,intent:resolution.intent,
     explanation,report,source:'TowerFlow recorded business data',actions:report.reviewActions||[],evidenceHash:report.evidenceHash};
 }
-async function answer(question,state,{now=Math.floor(Date.now()/1000),revision='unknown',marketLookup=getDailyClose}={}) {
+async function answer(question,state,{now=Math.floor(Date.now()/1000),revision='unknown',marketLookup=getDailyClose,classifier=classifyAzureQuestion}={}) {
   const resolution=resolve(question,state);
   if(resolution.intent==='market') {
     const quote=await marketLookup(resolution.symbol,{nowMs:now*1000});
@@ -72,8 +73,17 @@ async function answer(question,state,{now=Math.floor(Date.now()/1000),revision='
       source:quote.source,actions:[],limitations:['No brokerage access or live quotes.','Issuer mappings require independent confirmation.']};
   }
   if(resolution.intent==='sales'||resolution.intent==='inventory') return responseForBusiness(resolution,state,{now,revision});
+  // Open-ended requests receive a bounded LOCAL LLM route suggestion, not an invented answer.
+  const suggestion=await classifier(resolution.original);
+  if(suggestion.state==='MODEL_INTENT_VALIDATED' &&
+    (suggestion.intent==='inventory'||suggestion.intent==='sales')){
+    const answer=responseForBusiness({...resolution,intent:suggestion.intent},state,{now,revision});
+    return {...answer,model:{state:suggestion.state,name:suggestion.model||null},
+      routing:'Local structured classification; facts computed independently from TowerFlow records.'};
+  }
   return {kind:'azure-flow-answer/v1',readOnly:true,intent:'unresolved',original:resolution.original,
     explanation:'I need a business area, recorded product name, or company/ticker to choose a verified investigation. No market or inventory results were guessed.',
-    suggestions:HELP,actions:[],source:'No supported data source selected'};
+    suggestions:HELP,actions:[],source:'No supported data source selected',
+    model:{state:suggestion.state,name:null}};
 }
 module.exports={COMPANY_ALIASES,HELP,normalize,resolve,responseForBusiness,answer};
