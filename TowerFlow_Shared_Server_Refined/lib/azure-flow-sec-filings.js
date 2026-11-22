@@ -87,19 +87,18 @@ async function searchFilings(topic,{fetchImpl=fetch,now=Date.now(),agent=UA}={})
     const url=URLS.submissions+'CIK'+String(issuer.cik).padStart(10,'0')+'.json';
     const filings=await requestJson(url,{fetchImpl,agent:ua,limit:2500000});
     const records=recentFilings(filings,issuer.cik);
-    const body=JSON.stringify({issuer,records});
-    const hash=crypto.createHash('sha256').update(body).digest('hex');
     return {status:records.length?'SOURCES_FOUND':'NO_RECENT_SUPPORTED_FORMS',
       issuer:{cik:issuer.cik,name:issuer.name,ticker:issuer.ticker,exchange:issuer.exchange},
-      hits:records.map((r,i)=>({
-        sourceId:'sec-'+issuer.cik+'-'+i+'-'+hash.slice(0,10),
-        kind:'official_filing_metadata',source:'U.S. Securities and Exchange Commission EDGAR',
-        title:issuer.name+' · '+r.form+' · '+r.date,url:r.url,
-        excerpt:'Official EDGAR filing metadata: '+issuer.name+' ('+issuer.ticker+'), '+r.form+
-          ', filed '+r.date+', accession '+r.accession+'. This is a filing locator, not an audited financial conclusion.',
-        sha256:hash,retrievedAt:new Date(now).toISOString(),
-        limitations:'The filing itself must be read and analyzed before making financial claims.'
-      })),note:'Official filing metadata only, not valuation, verified revenue or advice.'};
+      hits:records.map((r,i)=>{
+        const excerpt='Official EDGAR filing metadata: '+issuer.name+' ('+issuer.ticker+'), '+r.form+
+          ', filed '+r.date+', accession '+r.accession+'. This is a filing locator, not an audited financial conclusion.';
+        const hash=crypto.createHash('sha256').update(excerpt).digest('hex');
+        return {sourceId:'sec-'+issuer.cik+'-'+i+'-'+hash.slice(0,10),
+          kind:'official_filing_metadata',source:'U.S. Securities and Exchange Commission EDGAR',
+          title:issuer.name+' · '+r.form+' · '+r.date,url:r.url,
+          excerpt,sha256:hash,retrievedAt:new Date(now).toISOString(),
+          limitations:'The filing itself must be read and analyzed before making financial claims.'};
+      }),note:'Official filing metadata only, not valuation, verified revenue or advice.'};
   } catch {
     return {status:'SEC_UNAVAILABLE',hits:[],note:'SEC access failed or was blocked. No issuer data or filing facts were invented.'};
   }
