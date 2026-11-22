@@ -101,3 +101,18 @@ test('review actions account for pending purchase orders and cannot mutate stock
     return overview(source,{now:Math.floor(Date.now()/1000),revision:'fixture'});
   }
 });
+
+test('Azure Flow provides one safe live-runtime route check with explicit status interpretation',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'..','public','index.html'),'utf8');
+  const js=fs.readFileSync(path.join(__dirname,'..','public','azure-flow.js'),'utf8');
+  assert.match(html,/id="afCheckRoute"/);
+  assert.match(html,/id="afRouteStatus"/);
+  assert.match(js,/get\('afCheckRoute'\)\.addEventListener\('click',checkLiveResearchConnection\)/);
+  const probe=js.slice(js.indexOf('async function checkLiveResearchConnection()'),
+    js.indexOf("get('afProbe').addEventListener"));
+  assert.match(probe,/body:'\{\}'/);
+  assert.match(probe,/response\.status===400/);
+  assert.match(probe,/response\.status===404/);
+  assert.match(probe,/response\.status===401/);
+  assert.doesNotMatch(probe,/allowPublic:true|sourceMode:'official-sec'|\/api\/azure-flow\/save/);
+});
