@@ -12,6 +12,14 @@ This edition lets authorized teammates edit the **same inventory** from their br
 
 The process listens on the computer's IPv4 network interfaces. It does not expose a collaboration room, source editor, arbitrary file API, command route, Win32 API, Registry access, or privilege-elevation feature. Do not expose this HTTP server directly to the public internet. HTTP does not encrypt passwords on a plain LAN; a trusted VPN is preferable if the network is not fully trusted.
 
+## AI Advancement v1 — explainable inventory decision model
+
+The **7-day outlook** quick action in **Azure Stock Guide** invokes `forecast`. Use `forecast bolt` or `forecast 115/902701` to narrow by product. This computes a **read-only**, reproducible planning estimate from the existing sales ledger. It does **not** call an LLM, does not train a statistical learner, does not change inventory, and does not automatically create purchase orders.
+
+The model requires **14 days of recorded movement history for each product** and sales on **three distinct days** before estimating a constant seven-day demand rate. Without those minimum signals it returns `INSUFFICIENT_DATA` instead of making up a projection. It ignores movements such as transfers/removals when estimating demand. If evidence passes, it shows actual sales, observed time, projected units, suggested replenishment and the arithmetic behind the recommendation. These estimates are **not validated demand forecasts**, and no calibrated confidence is claimed.
+
+Code: `lib/decision-model.js` (pure inference), `lib/azure-guide.js` (existing authenticated command route), `public/` (guide interface). Verification: `test/decision-model.test.js`, `test/decision-model-route.test.js`, existing `npm test`. See `CURRENT_HANDOFF.md` section 8 for evidence and Trello/Git workflow. The feature must pass branch checks and a reviewed pull request before it is part of shared `dev`.
+
 ## Shared work
 
 - Products and parts: category, name, number, serial, revision, barcode, QR payload, price, minimum stock, search, exact scan, and six-digit serial generation.

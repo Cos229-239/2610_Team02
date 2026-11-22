@@ -153,3 +153,49 @@ The application adds consolidated accounts, revision checking and notifications.
 - [ ] Handoff evidence includes command output, observed UI result, and exact Git commit hash.
 
 **Next task:** finish local runtime transition and browser acceptance for `TowerFlow_Shared_Server_Refined`; do **not** resume the old collaboration room in Team 02.
+
+## 8. AI Advancement — coherent inventory decision model v1 (feature proposal)
+
+**Trello linkage:** `AI Advancement — Intelligent Inventory Assistance & GitHub Integration`, assigned to Daniel Dulsky. This work concerns the **current refined shared inventory application**, not the retired 3D room.
+
+**Implementation branch:** `feature/ai-advancement-coherent-inventory-model-20261121`, started from `dev` commit `1d8187b7068de262a542fc43caddad69319b4265`. Merge into `dev` only after model and integration tests pass and the team reviews the PR.
+
+**Definition of “coherent”:** Given the same validated inventory state, query and evaluation timestamp, the model produces the same result, with transparent calculations and no conflicting status flags. When evidence is insufficient, it **abstains** rather than fabricating an estimate. The module does not modify inventory, authentication, storage, purchase orders, or stock history.
+
+**Classification:** Deterministic, statistics-based decision-support model. **Not** a trained machine-learning model, not an LLM, not generative AI, and **not a validated predictive forecasting system**. “AI Advancement” is the Trello workstream name; these implementations improve an AI-ready, evidence-based foundation without falsely claiming model intelligence.
+
+### Implemented in proposed feature branch
+
+- `lib/decision-model.js`: pure `analyze(state, {now, query})` function; checks sales demand and stock threshold, outputs auditable 7-day planning estimates with evidence, assumptions, status and reason.
+- `lib/azure-guide.js`: extends the existing authenticated guide with read-only `forecast` and `forecast <name/code>` commands; retains all prior `set`/`add` preview-and-confirm behavior.
+- `public/index.html`, `public/app.js`: **7-day outlook** shortcut and safe DOM text rendering of results. No new vendor integration, telemetry or API key.
+- `test/decision-model.test.js`: eight fixtures covering repeatability, no mutation, insufficient-data abstention, non-sales-event exclusion, priority, filtering and validation.
+- `test/decision-model-route.test.js`: checks the existing authenticated HTTP route, response shape and that a forecast does not create an inventory file.
+- `.github/workflows/ai-advancement-model.yml`: tests the proposed changes using Node 24; this is independent of the previously failing Team 02 native C++ inventory workflow.
+
+### Model contract and limitations
+
+1. Demand evidence = `sale` movements only; `transfer` and `remove` are explicitly excluded.
+2. Observation window = up to 30 calendar days since **each product's earliest recorded movement** at evaluation time. History from another product must never qualify this product. The earliest event is a **proxy** for the existence of history, not proof of completeness.
+3. Model abstains unless at least 14 recorded-history days **and** sales on 3 distinct days exist. This prevents ungrounded predictions from a new or sparse dataset.
+4. Daily sales rate = sale quantities in the observation window / observed days.
+5. Seven-day demand = ceil(7 × rate); projected units = max(0, current stock − demand).
+6. Proposed reorder quantity = max(0, product minimum stock + 7-day demand − current stock); **never** creates a purchase order automatically.
+7. Status is exactly one of `INSUFFICIENT_DATA`, `CURRENTLY_LOW`, `PROJECTED_LOW`, or `ABOVE_THRESHOLD`; the model includes the calculation and evidence. No synthetic probability/confidence percentage is reported.
+8. The model assumes complete records since the earliest movement, constant near-term demand, and no seasonality, lead times, supply disruption, or trend effects. Such projections require **real historical backtesting** before promotion beyond “planning estimates.”
+
+### Evidence milestones
+
+| Gate | Required evidence | Current status |
+| --- | --- | --- |
+| Source on personal feature branch | GitHub commit and diff | **Implemented in feature branch** |
+| Deterministic model test | `node --test test/decision-model.test.js` | **Pending complete CI result** |
+| Full regression | `npm test` includes existing 8 tests plus new tests | **Pending complete CI result** |
+| Authenticated read-only API | HTTP integration fixture | **Test authored; pending run** |
+| Browser screen | Real user clicks 7-day outlook | **Not yet manually verified** |
+| Team collaboration | PR reviewed and merged into `dev` | **Not yet confirmed** |
+| Trello participation | Actual Trello card populated with verified commits/test results | **Not remotely updated by this implementation** |
+
+**Critical academic integrity:** Do not use this change as screenshot evidence of a successful merge until GitHub actually reports a merged PR into `dev` and GitHub Desktop shows it on the selected `dev` branch. A draft or open PR alone does not meet the Git assignment.
+
+**Continuation:** Check the feature workflow, remediate failures without weakening safeguards, request a teammate review, merge only once verified, then update `dev` checkout and perform a real browser acceptance test. Keep automatically copied PowerShell diagnostic output as evidence.
