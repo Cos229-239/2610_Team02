@@ -109,7 +109,7 @@ test('Azure Flow provides one safe live-runtime route check with explicit status
   assert.match(html,/id="afRouteStatus"/);
   assert.match(js,/get\('afCheckRoute'\)\.addEventListener\('click',checkLiveResearchConnection\)/);
   const probe=js.slice(js.indexOf('async function checkLiveResearchConnection()'),
-    js.indexOf("get('afProbe').addEventListener"));
+    js.indexOf("get('afCheckRoute').addEventListener",js.indexOf('async function checkLiveResearchConnection()')));
   assert.match(probe,/body:'\{\}'/);
   assert.match(probe,/response\.status===400/);
   assert.match(probe,/response\.status===404/);
