@@ -89,7 +89,13 @@ async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),request
       if(!candidates.length){outcomes.push({query,status:'NO_BUSINESS_ENTITY_MATCH'});continue}
       // Only auto-resolve when exact first-label or alias match is observed.
       // Otherwise label ambiguity; do not assert that any fuzzy result is the user target.
-      const exact=candidates.filter(x=>x.title.toLocaleLowerCase('en')===query.toLocaleLowerCase('en'));
+      const searchMatches=new Map(names.map(x=>[x.id,x]));
+      const exact=candidates.filter(x=>{
+        const item=searchMatches.get(x.entityId);
+        return x.title.toLocaleLowerCase('en')===query.toLocaleLowerCase('en')||
+          (typeof item?.match?.text==='string'&&
+            item.match.text.toLocaleLowerCase('en')===query.toLocaleLowerCase('en'));
+      });
       if(exact.length!==1){
         outcomes.push({query,status:'AMBIGUOUS_OR_NOT_EXACT',candidates:candidates.map(x=>({title:x.title,id:x.entityId}))});
         continue;
