@@ -67,4 +67,30 @@ function retrieve(query,{root=path.resolve(__dirname,'..'),limit=4}={}){
   return {kind:'markdown-bm25',indexItems:all.length,hits:rank(query,all,limit),
     note:'Local Markdown passages; relevance is estimated, not evidence of factual truth.'};
 }
-module.exports={terms,sources,chunkMarkdown,rank,retrieve};
+// User-scoped draft archive retrieval. These documents are prior hypotheses, NOT facts.
+function retrieveFindings(query,{directory,limit=3}={}){
+  if(typeof directory!=='string'||!path.isAbsolute(directory))throw Error('Trusted absolute archive root required');
+  if(!fs.existsSync(directory))return {kind:'review-draft-memory',hits:[],indexItems:0};
+  const stat=fs.lstatSync(directory);
+  if(!stat.isDirectory()||stat.isSymbolicLink())throw Error('Unsafe archive directory');
+  const names=fs.readdirSync(directory,{withFileTypes:true})
+    .filter(x=>x.isFile()&&/^azure-[a-f0-9]{24}-[a-f0-9]{8}\.md$/.test(x.name))
+    .slice(-25);
+  const chunks=[];
+  for(const entry of names){
+    const full=path.resolve(directory,entry.name);
+    if(!full.startsWith(path.resolve(directory)+path.sep))continue;
+    const info=fs.lstatSync(full);
+    if(info.isSymbolicLink()||!info.isFile()||info.size>MAX_BYTES)continue;
+    const id='owner-draft/'+entry.name;
+    for(const c of chunkMarkdown(fs.readFileSync(full,'utf8'),id)){
+      chunks.push({...c,kind:'draft_research_memory',source:id,
+        limitations:'Historical owner-saved unapproved draft, not independently verified evidence.'});
+      if(chunks.length>=MAX_CHUNKS)break;
+    }
+    if(chunks.length>=MAX_CHUNKS)break;
+  }
+  return {kind:'review-draft-memory',hits:rank(query,chunks,Math.min(4,limit)),indexItems:chunks.length,
+    note:'Research drafts recall prior hypotheses; source claims require fresh verification.'};
+}
+module.exports={terms,sources,chunkMarkdown,rank,retrieve,retrieveFindings};
