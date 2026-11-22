@@ -13,7 +13,7 @@ const { InputError, emptyInventory, label, createProduct, editProduct,
 const { dashboard } = require('./lib/report');
 const { interpret: guideInterpret, apply: guideApply } = require('./lib/azure-guide');
 const { run: runAzureFlow } = require('./lib/azure-flow-harness');
-const { investigate: investigateAzureFlow } = require('./lib/azure-flow-orchestrator');
+const { investigate: investigateAzureFlow, diagnoseModel: diagnoseAzureModel } = require('./lib/azure-flow-orchestrator');
 const { calibrate: calibrateAzureFlow, snapshot: azureCalibrationStatus } = require('./lib/azure-flow-calibration');
 const { getDailyClose: marketClose } = require('./lib/azure-flow-market');
 const { answer: answerAzureQuery } = require('./lib/azure-flow-query');
@@ -214,6 +214,9 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
         if (Object.keys(body).sort().join(',') !== 'symbol') throw new InputError('Only a stock symbol is accepted.');
         try { return respond(res, 200, await marketClose(body.symbol)); }
         catch { throw new InputError('Enter a supported U.S. equity symbol.'); }
+      }
+      if (method === 'GET' && pathname === '/api/azure-flow/model-health') {
+        return respond(res, 200, await diagnoseAzureModel());
       }
       if (method === 'GET' && pathname === '/api/azure-flow/model-status') {
         return respond(res, 200, azureCalibrationStatus());
