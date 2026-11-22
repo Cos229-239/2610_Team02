@@ -68,7 +68,7 @@ export function createZombieOutbreak({THREE,urban,scene,seed=1729,population=OUT
       convertedAt:i===0?0:-1,alive:true,panic:0});
   }
   // Patient zero starts near another pedestrian for a reproducible first contact.
-  agents[0].x=agents[1].x-1.3;agents[0].z=agents[1].z-.6;
+  agents[0].x=agents[1].x-.45;agents[0].z=agents[1].z-.2;
   function instanceAt(inst,i,x,y,z,rotationY,scale=1){
     agentDummy.position.set(x,y,z);agentDummy.rotation.set(0,rotationY,0);
     agentDummy.scale.setScalar(scale);agentDummy.updateMatrix();
@@ -144,7 +144,7 @@ export function createZombieOutbreak({THREE,urban,scene,seed=1729,population=OUT
       a.z=-69+col*2.6+Math.cos(a.seed)*.6;
       a.vx=0;a.vz=0;a.infected=i===0;a.convertedAt=i===0?0:-1;a.panic=0;
     }
-    agents[0].x=agents[1].x-1.3;agents[0].z=agents[1].z-.6;
+    agents[0].x=agents[1].x-.45;agents[0].z=agents[1].z-.2;
     for(const r of response){r.crashed=false;r.g.visible=false;r.flash.intensity=0;r.g.position.z=r.originZ;}
     for(const c of crashCars){c.g.visible=false;c.scorch.visible=false;c.g.scale.set(1,1,1);}
     for(const f of towerFigures){f.g.visible=false;f.g.position.set(f.origin.x,f.origin.y,f.origin.z);}
@@ -178,7 +178,7 @@ export function createZombieOutbreak({THREE,urban,scene,seed=1729,population=OUT
         if(target>=0){
           const other=agents[target];
           // Proximity tag converts a person, with a short per-agent incubation.
-          if(distance2<1.75*1.75&&!other.infected&&elapsed-a.convertedAt>.6){
+          if(distance2<1.75*1.75&&!other.infected&&elapsed-a.convertedAt>(i===0?.12:.6)){
             other.infected=true;other.convertedAt=elapsed;additional++;
           }
         }
