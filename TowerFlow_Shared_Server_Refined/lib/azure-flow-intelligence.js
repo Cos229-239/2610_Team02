@@ -5,6 +5,7 @@ const crypto=require('node:crypto');
 const {localRequest,MODEL}=require('./azure-flow-orchestrator');
 const {authorized,validatePlan,execute}=require('./azure-flow-capabilities');
 const {synthesize}=require('./azure-flow-synthesis');
+const {audit: auditEvidence}=require('./azure-flow-evidence-audit');
 function fingerprint(v){return crypto.createHash('sha256').update(JSON.stringify(v)).digest('hex')}
 function validQuestion(q){
   if(typeof q!=='string'||q.trim().length<2||q.length>280||/[\x00-\x1f\x7f]/.test(q))
@@ -72,6 +73,7 @@ async function investigate(question,{state,revision='unknown',allowPublic=false,
     catch{runs.push({capability:id,status:'HARNESS_UNAVAILABLE',evidence:[],claims:[]});}
   }
   const sources=sourcePresentation(runs);
+  const evidenceAudit=auditEvidence(runs,sources);
   const synthesis=await synthesizer(original,sources);
   const conclusion=synthesis.state==='MODEL_HYPOTHESIS_SOURCE_MATCHED' ?
     'Hypothesis (not verified): '+synthesis.hypothesis : responseSummary(proposed,runs);
@@ -80,7 +82,7 @@ async function investigate(question,{state,revision='unknown',allowPublic=false,
     sourceHashes:sources.map(x=>x.sha256),timestamp:new Date(now).toISOString()};
   const evidenceId=fingerprint(receipt);
   return {schema:'azure-flow-investigation/v1',original,mode:'EVIDENCE_FIRST_READ_ONLY',
-    answer:conclusion,synthesis,plan:{status:proposed.status,model:proposed.model,
+    answer:conclusion,synthesis,evidenceAudit,plan:{status:proposed.status,model:proposed.model,
       capabilities,modelInterpretation:proposed.modelInterpretation||null},
     stages:['PRESERVE','DISCOVER_CAPABILITIES','AUTHORIZE','PLAN','RETRIEVE','VERIFY_SOURCES','SYNTHESIZE_HYPOTHESES','RECORD_DECISION_PENDING'],
     harnesses:runs.map(({evidence,claims,...other})=>({...other,evidenceCount:evidence.length})),
