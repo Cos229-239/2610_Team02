@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TowerFlow · Inventory</title>
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/azure-flow.css">
   <script src="/app.js" defer></script>
+  <script src="/azure-flow.js" defer></script>
 </head>
 <body>
   <div id="authPanel" class="auth-screen"><div class="auth-card"><span class="eyebrow">TOWERFLOW SHARED INVENTORY</span><h1 id="authTitle">Sign in</h1><p id="authHint">Use the account the owner created for you.</p><p id="authError" class="notice bad" role="alert" hidden></p><form id="authForm"><label>Username<input id="authUsername" autocomplete="username" required minlength="3" maxlength="32"></label><label>Password<input id="authPassword" type="password" autocomplete="current-password" required minlength="12"></label><button class="primary" type="submit" id="authSubmit">Sign in</button></form></div></div>
@@ -19,6 +21,7 @@
         <button class="nav" data-page="orders"><span>▣</span> Orders</button>
         <button class="nav" data-page="operations"><span>▦</span> Malik’s operations</button>
         <button class="nav" data-page="azure"><span>◇</span> Azure Stock Guide</button>
+        <button class="nav" data-page="azureflow"><span>✦</span> Azure Flow</button>
         <button class="nav" data-page="data"><span>◈</span> Data &amp; exports</button>
       </nav>
       <div class="sidefoot"><span class="live-dot"></span> Shared workspace<br><small>Saved on the host · account required</small></div>
@@ -62,6 +65,53 @@
           <div class="panel padded"><span class="eyebrow">PURCHASE ORDERS</span><h3>Request goods</h3><form id="purchaseForm" class="stack"><label>Existing product<select name="productId" id="purchaseProduct" required></select></label><label>Supplier<input name="supplier" maxlength="160" required></label><label>Quantity<input name="quantity" type="number" min="1" required></label><label>Unit price ($)<input name="unitPrice" inputmode="decimal" value="0.00" required></label><button class="primary">Create purchase order</button></form></div></div>
           <div class="panel padded"><h3>Work orders</h3><div class="tablewrap"><table><thead><tr><th>ORDER</th><th>DESCRIPTION</th><th>PRODUCT</th><th>UNITS</th><th>ACTIONS</th></tr></thead><tbody id="workRows"></tbody></table></div><p class="empty" id="workEmpty" hidden>No work orders yet.</p></div>
           <div class="panel padded"><h3>Purchase orders</h3><p>Receiving an order adds stock once. Creating or cancelling an order does not change stock.</p><div class="tablewrap"><table><thead><tr><th>ORDER</th><th>SUPPLIER</th><th>PRODUCT</th><th>UNITS</th><th>VALUE</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="purchaseRows"></tbody></table></div><p class="empty" id="purchaseEmpty" hidden>No purchase orders yet.</p></div>
+        </section>
+        <section data-view="azureflow" hidden id="azureFlow" class="azure-flow" aria-labelledby="azureFlowHeading">
+          <div class="af-horizon" aria-hidden="true"></div>
+          <div class="af-hero">
+            <div class="af-hero-copy">
+              <div class="af-kicker">TOWERFLOW / FRONTIER INTELLIGENCE</div>
+              <div class="af-title-stage"><h2 id="azureFlowHeading" class="af-title">AZURE FLOW</h2></div>
+              <p class="af-mission">Business clarity. Evidence first. Every action deliberate.</p>
+              <p class="af-submission">An intelligence layer for your existing inventory and recorded business activity. No external APIs required.</p>
+              <div class="af-command">
+                <button id="afAnalyze" type="button" class="af-main-action">✦ Analyze my business</button>
+                <span id="afStatus" class="af-status" role="status" aria-live="polite">Ready · read-only analysis</span>
+              </div>
+            </div>
+            <div class="af-orbit" aria-hidden="true"><div class="af-core">TF</div></div>
+          </div>
+          <div class="af-headline" id="afHeadline" hidden>
+            <strong id="afHeadlineText">Analysis ready</strong><small id="afMeta"></small>
+          </div>
+          <div class="af-cards" id="afCards" hidden>
+            <details class="af-card" open><summary><span class="af-index">01</span> Business health</summary>
+              <div id="afInventory" class="af-card-body"></div></details>
+            <details class="af-card"><summary><span class="af-index">02</span> Sales trajectory</summary>
+              <div id="afOperations" class="af-card-body"></div></details>
+            <details class="af-card"><summary><span class="af-index">03</span> Next move</summary>
+              <div id="afRecommendations" class="af-card-body"></div></details>
+          </div>
+          <details class="af-feature" id="afPortfolioPanel">
+            <summary>◆ Market &amp; shares · personal record analysis</summary>
+            <p>Import or enter a small historical portfolio to calculate its recorded value. Offline, no live quotes, no brokerage orders.</p>
+            <form id="afPortfolioForm">
+              <label for="afPortfolioRows">One holding per line: SYMBOL, SHARES, COST/SHARE, OBSERVED PRICE, YYYY-MM-DD</label>
+              <textarea id="afPortfolioRows" rows="4" maxlength="6000" placeholder="AAPL,2,150.00,180.00,2026-11-20" spellcheck="false" required></textarea>
+              <button class="af-secondary" type="submit">Analyze entered holdings</button>
+            </form>
+            <div id="afPortfolioResult" role="status" aria-live="polite"></div>
+          </details>
+          <details class="af-feature">
+            <summary>◇ Growth architecture · scales with the business</summary>
+            <div class="af-scale">
+              <div><b>Foundation</b><small>Under $50k business scale · inventory intelligence and evidence.</small><span>ACTIVE CORE</span></div>
+              <div><b>Enterprise growth</b><small>At $50k scale · sourcing, partners, campaigns, and margins.</small><span>ROADMAP</span></div>
+              <div><b>Market franchise</b><small>At $1m scale · multi-location strategy, investor analysis, tailored campaigns.</small><span>ROADMAP</span></div>
+            </div>
+            <p class="af-footnote">Scale bands are product design targets, not prices, automatic entitlements, or verified revenue. Advertisements require opt-in customer data and approved channels.</p>
+          </details>
+          <div class="af-footnote">Existing TowerFlow tabs remain unchanged. Azure Flow reads their shared inventory record; it does not alter stock, orders, accounts, or trading positions. Historical prices must be supplied by the user.</div>
         </section>
         <section data-view="azure" hidden>
           <div class="heading"><div><span class="eyebrow">DANIEL DULSKY · LOCAL STOCK TOOL</span><h2>Azure Stock Guide</h2><p>Find stock, spot reorder needs, and safely adjust part quantities. Adapted from Daniel's original C# Stock Guide.</p></div></div>
