@@ -61,6 +61,17 @@
           ' · Authorized harnesses: '+(result.plan?.capabilities||[]).join(', '),'af-badge')
       );
       if(result.plan?.model)output.append(textNode('p','Planner: '+result.plan.model,'af-badge'));
+      if(result.evidenceAudit){
+        const a=result.evidenceAudit;
+        output.append(textNode('p','Evidence audit: '+a.evidenceStatus+
+          ' · '+a.sourceCount+' source passages · '+a.independentOriginsObserved+
+          ' observed source origins · '+(result.retrievalPasses||1)+' research pass(es).','af-badge'));
+        if(a.failedCapabilities?.length)
+          output.append(textNode('p','Unresolved source checks: '+
+            a.failedCapabilities.map(x=>x.id+' ('+x.status+')').join('; '),'af-badge'));
+        output.append(textNode('p',a.nextEvidenceNeed,'af-badge'));
+      }
+
       if(result.plan?.status==='MODEL_UNAVAILABLE')output.append(textNode('p',
         'Local model could not plan this inquiry. Only local Markdown retrieval ran.','af-badge'));
       if(result.synthesis?.state==='MODEL_HYPOTHESIS_SOURCE_MATCHED'){
