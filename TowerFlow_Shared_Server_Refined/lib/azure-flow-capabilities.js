@@ -5,12 +5,13 @@ const {overview}=require('./azure-flow-harness');
 const {retrieve,retrieveFindings}=require('./azure-flow-retrieval');
 const {publicSearch}=require('./azure-flow-public-research');
 const {searchFilings}=require('./azure-flow-sec-filings');
+const {researchFacts}=require('./azure-flow-sec-fundamentals');
 const MANIFEST=Object.freeze([
   {id:'workspace.inventory',description:'Inspect recorded TowerFlow products, stock levels, low-stock risk, replenishment and pending purchase orders',scope:'local',permission:'signed_in',kind:'structured'},
   {id:'workspace.sales',description:'Inspect recorded sale movements, gross sales history and monthly sales totals from TowerFlow ledger',scope:'local',permission:'signed_in',kind:'structured'},
   {id:'knowledge.findings',description:'Recall the signed-in owner\'s saved research findings and proposed ADR Markdown drafts. Historical hypotheses are not primary facts.',scope:'local',permission:'owner_only',kind:'retrieval'},
   {id:'knowledge.markdown',description:'Retrieve passages from maintained Markdown design, research, knowledge and architecture files with hashes and citations',scope:'local',permission:'signed_in',kind:'retrieval'},
-  {id:'research.sec',description:'Identify a U.S. public company from official SEC issuer records and locate its recent 10-K/10-Q/20-F/40-F filing metadata. Requires operator-identifying user agent and user opt-in.',scope:'external',permission:'explicit_public_opt_in',kind:'primary_source'},
+  {id:'research.sec',description:'Identify a public issuer from official SEC company records; retrieve filing locators and available issuer-reported annual US-GAAP XBRL metrics. Does not calculate valuations or infer an investment decision. Requires explicit public opt-in and real operator identity.',scope:'external',permission:'explicit_public_opt_in',kind:'primary_source'},
   {id:'research.public',description:'Search a public encyclopedia for background about a named subject, company, person, place, or concept. Not a financial quote service.',scope:'external',permission:'explicit_public_opt_in',kind:'retrieval'}
 ]);
 function authorized({allowPublic=false,isOwner=false}={}){
@@ -29,7 +30,7 @@ function validatePlan(value,allowed=authorized()){
     throw Error('Plan question invalid');
   return value;
 }
-async function execute(id,{question,state,revision,now,allowPublic,isOwner=false,draftDirectory,retrieveImpl=retrieve,draftsImpl=retrieveFindings,publicImpl=publicSearch,secImpl=searchFilings}={}){
+async function execute(id,{question,state,revision,now,allowPublic,isOwner=false,draftDirectory,retrieveImpl=retrieve,draftsImpl=retrieveFindings,publicImpl=publicSearch,secImpl=searchFilings,financialImpl=researchFacts}={}){
   if(!authorized({allowPublic,isOwner}).some(h=>h.id===id))throw Error('Capability not authorized: '+id);
   if(id==='knowledge.findings') {
     if(!isOwner||!draftDirectory)throw Error('Owner archive access denied');
@@ -44,9 +45,18 @@ async function execute(id,{question,state,revision,now,allowPublic,isOwner=false
       evidence:found.hits,claims:[],indexItems:found.indexItems};
   }
   if(id==='research.sec') {
-    const result=await secImpl(question,{now});
-    return {capability:id,status:result.status,evidence:result.hits||[],claims:[],
-      issuer:result.issuer||null,candidates:result.candidates||[],note:result.note};
+    const locator=await secImpl(question,{now});
+    let financials={status:'NOT_REQUESTED',hits:[]};
+    if(locator.issuer&&Number.isSafeInteger(locator.issuer.cik)){
+      financials=await financialImpl(locator.issuer.cik,{now});
+    }
+    const evidence=[...(locator.hits||[]),...(financials.hits||[])];
+    const status=financials.status==='REPORTED_FACTS_FOUND'?'REPORTED_FACTS_FOUND':
+      locator.status;
+    return {capability:id,status,evidence,claims:[],
+      issuer:locator.issuer||null,candidates:locator.candidates||[],
+      financialStatus:financials.status,
+      note:[locator.note,financials.note].filter(Boolean).join(' ')};
   }
   if(id==='research.public') {
     const found=await publicImpl(question,{now});
