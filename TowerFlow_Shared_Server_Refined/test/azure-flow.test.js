@@ -77,3 +77,23 @@ test('Azure Flow route requires login and never writes inventory', async t=>{
   assert.deepEqual(after,prior);
   assert.equal(fs.existsSync(path.join(directory,'inventory.json')),false);
 });
+
+test('review actions account for pending purchase orders and cannot mutate stock',()=>{
+  const {createProduct,setStock,createPurchaseOrder}=require('../lib/inventory');
+  const state=emptyInventory();
+  const part=createProduct(state,{name:'Business adapter',priceCents:1800,minimumStock:10});
+  setStock(state,part.id,{location:'Main',quantity:2});
+  const prior=JSON.stringify(state);
+  const proposed=overviewForReview(state);
+  assert.equal(proposed.reviewActions[0].reviewQuantity,9);
+  assert.equal(proposed.reviewActions[0].requiresHumanReview,true);
+  assert.equal(proposed.reviewActions[0].applied,false);
+  assert.equal(JSON.stringify(state),prior);
+  createPurchaseOrder(state,{supplier:'Vendor',productId:part.id,quantity:9,unitPriceCents:1000});
+  const covered=overviewForReview(state);
+  assert.equal(covered.reviewActions[0].reviewQuantity,0);
+  assert.equal(covered.reviewActions[0].disposition,'PENDING_ORDER_COVERS_MINIMUM');
+  function overviewForReview(source){
+    return overview(source,{now:Math.floor(Date.now()/1000),revision:'fixture'});
+  }
+});
