@@ -110,18 +110,27 @@ export function createZombieOutbreak({THREE,urban,scene,seed=1729,population=OUT
     crashCars.push({g,event,car,windshield,scorch,smoke,index:i});
     impactMarks.push(scorch);
   }
-  // Apartment/tower activity through visible facade silhouettes: no anatomically
-  // graphic falling characters. Coordinates correspond to the exterior city.
+  // Anchor apartment activity to ACTUAL existing facade coordinates.
+  // Previous arbitrary x/y/z placements caused black figures to float in open sky.
+  // Parent silhouettes to a tower mesh, not to the world at approximate coordinates.
   const towerFigures=[];
-  for(let i=0;i<46;i++){
-    const g=new THREE.Group();exterior.add(g);
-    const x=i%2===0?-82.5:-105.2;
-    const z=-61+(i%23)*5.4;
-    const y=19+Math.floor(i/2)%12*6.2;
+  const visibleTowers=urban.children.filter(o=>o.isGroup&&o!==exterior&&
+    o.children.some(child=>child.isMesh&&child.geometry?.parameters?.height>=25));
+  for(let i=0;i<46&&visibleTowers.length;i++){
+    const tower=visibleTowers[i%visibleTowers.length];
+    const body=tower.children.find(child=>child.isMesh&&child.geometry?.parameters?.height>=25);
+    if(!body)continue;
+    const h=body.geometry.parameters.height,w=body.geometry.parameters.width,
+      depth=body.geometry.parameters.depth;
+    const side=i%2===0?1:-1;
+    // All apartment figures are small enough to appear behind a window.
+    const x=side*(w/2+.11),z=(rand()-.5)*(depth-2.4);
+    const y=Math.min(h-2.5,4+Math.floor(rand()*Math.max(2,(h-8)/2.15))*2.15);
+    const g=new THREE.Group();tower.add(g);
     g.position.set(x,y,z);
-    cube(g,.5,1.25,.30,0,0,0,mat.silhouette);
-    orb(g,.27,0,.87,0,mat.silhouette);
-    towerFigures.push({g,origin:{x,y,z},seed:rand()*6.28,jumping:i%8===0});
+    const figure=cube(g,.20,.59,.12,0,-.17,0,mat.silhouette);
+    orb(g,.13,0,.22,0,mat.silhouette);
+    towerFigures.push({g,tower,origin:{x,y,z},seed:rand()*6.28,jumping:false});
   }
   // Alarm strips are on the exterior building skin, street-facing and at upper
   // floors, plus restrained red illumination inside the collaboration room.
@@ -253,15 +262,9 @@ export function createZombieOutbreak({THREE,urban,scene,seed=1729,population=OUT
     for(const f of towerFigures){
       f.g.visible=elapsed>=20&&elapsed<210;
       if(!f.g.visible)continue;
-      const age=Math.max(0,elapsed-60-f.seed*6);
-      if(f.jumping&&age>0){
-        // Distant non-graphic falling silhouettes; disappear at street level.
-        f.g.position.x=f.origin.x+Math.min(12,age*.25);
-        f.g.position.y=Math.max(.2,f.origin.y-age*age*.14);
-        if(f.g.position.y<=.3)f.g.visible=false;
-      }else{
-        f.g.position.z=f.origin.z+Math.sin(elapsed*.7+f.seed)*.18;
-      }
+      // Apartment figures remain indoors; no ungrounded black stick figures.
+      f.g.position.z=f.origin.z+Math.sin(elapsed*.7+f.seed)*.08;
+      f.g.position.y=f.origin.y+Math.sin(elapsed*.38+f.seed)*.035;
     }
     for(const b of buildingAlarm)b.visible=alert&&pulse;
     indoor.visible=alert;
@@ -296,6 +299,7 @@ export function createZombieOutbreak({THREE,urban,scene,seed=1729,population=OUT
   function dispose(){
     if(disposed)return;
     stop();disposed=true;urban.remove(exterior);scene.remove(indoor);
+    for(const f of towerFigures)f.tower.remove(f.g);
     for(const g of geometries)g.dispose();
     for(const m of materials)m.dispose();
   }
