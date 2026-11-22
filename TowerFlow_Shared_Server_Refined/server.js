@@ -251,8 +251,9 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
         if(!entry||entry.userId!==user.id||Date.now()-entry.at>600000)
           throw new InputError('Research receipt expired; investigate again before saving.');
         // Remove before writing, preventing duplicate saves for the same approved receipt.
-        azureDrafts.delete(body.evidenceId);
-        const saved=saveAzureRecord(entry.result,{directory:path.join(directory,'azure-flow-findings')});
+        if(entry.saved)throw new InputError('Receipt already saved.');
+        const saved=saveAzureRecord(entry.result,{directory:path.join(directory,'azure-flow-findings',user.id)});
+        entry.saved=true;
         return respond(res,201,saved);
       }
       if (method === 'POST' && pathname === '/api/azure-flow/query') {
