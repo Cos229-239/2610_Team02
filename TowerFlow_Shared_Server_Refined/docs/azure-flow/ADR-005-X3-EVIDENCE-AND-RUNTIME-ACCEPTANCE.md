@@ -1,10 +1,10 @@
 # ADR-AF-005 — X3 evidence workflow and live-runtime acceptance
 
-**Status:** PROPOSED — trial evidence captured; effectiveness not yet established  
+**Status:** SCOPE CORRECTED — X3 is an assistant operating method, not a TowerFlow product feature  
 **Date:** 2026-11-22  
 **Repository:** `Cos229-239/2610_Team02`  
 **Branch:** `feature/azure-flow-frontier-v1-20261122` · **PR #47 remains draft**  
-**Scope:** Azure Flow operational validation; this ADR does not authorize merging, trading, autonomous edits, or server restarts.
+**Scope:** Historical investigation only. X3 belongs to the assistant's interaction protocol, NOT TowerFlow source, runtime, accounts, login, or UI. This ADR does not authorize merging, trading, autonomous edits, or server restarts.
 
 ## Decision question
 
@@ -103,3 +103,9 @@ Log every future X3 run with a unique timestamp, source commit and **actual** va
 **Decision:** Retain X3 as an **experimental evidence/diagnostic workflow** because the first run provided the test baseline, real authorized source observations, and a concrete stale-runtime signal without stopping the production server. Follow-up restart restored source/runtime freshness according to local diagnostics.
 
 **Verdict: METHOD_TRIAL_PASS; PRODUCTION_BROWSER_UNVERIFIED; IMPROVEMENT_UNMEASURED.** PR #47 remains draft. Update the evidence ledger after actual browser acceptance and several independent runs; only then evaluate promotion.
+
+## Scope correction — 2026-11-22 (owner feedback)
+
+The user clarified that the three-process command/report/clipboard pattern was **intended for the assistant's workflow**, not as a TowerFlow capability. Integrating general assistant orchestration into the team's application was a scope error. The production-login HTTP 401 from the attempted X3 acceptance is **not evidence that TowerFlow user authentication is broken**; it only establishes that the separately supplied CLI credentials were rejected or authentication could not be established on that call. No credential values were retained in evidence.
+
+**Remediation:** Removed `tools/azure-flow-triple-pass.ps1` and `tools/azure-flow-production-x3.ps1` from this feature branch. The historical observations in this ADR remain for audit only; they are not instructions to install or reintroduce those scripts. The existing market-data adapter, authentication, frontend, and business logic are unchanged. The assistant must implement X3 by organizing its own work and reporting, without expanding the user's application or requesting credentials unless intrinsic to the user's product objective. The previous conclusion `METHOD_TRIAL_PASS` is narrowed to **FIRST DIAGNOSTIC CYCLE OBSERVED; PROCESS BENEFIT UNVERIFIED**.
