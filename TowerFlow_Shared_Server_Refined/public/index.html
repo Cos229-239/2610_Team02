@@ -91,6 +91,18 @@
                 </div>
               </form>
               <div id="afAnswer" class="af-answer" role="status" aria-live="polite" hidden></div>
+              <div id="afLearning" class="af-learning" hidden>
+                <strong>Teach Azure Flow from this investigation</strong>
+                <p>Optional human review; a useful decision becomes a routing precedent, not a new fact or model-weight update.</p>
+                <div class="af-learning-actions">
+                  <button type="button" data-af-grade="useful" class="af-secondary">Useful</button>
+                  <button type="button" data-af-grade="incorrect" class="af-secondary">Incorrect</button>
+                  <button type="button" data-af-grade="needs-more-evidence" class="af-secondary">Need stronger evidence</button>
+                </div>
+                <label for="afFeedbackNote">Review note (optional)</label>
+                <input type="text" id="afFeedbackNote" maxlength="500" placeholder="Why was this route useful or incorrect?">
+                <small id="afFeedbackStatus" role="status" aria-live="polite">No memory written until you submit feedback.</small>
+              </div>
               <div class="af-research-save" id="afSaveArea" hidden>
                 <button id="afSaveResearch" type="button" class="af-secondary">Save reviewed findings + draft ADR (Markdown)</button>
                 <small id="afSaveStatus" role="status" aria-live="polite">Nothing is saved automatically.</small>
