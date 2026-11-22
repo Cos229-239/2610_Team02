@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TowerFlow inventory dashboard</title>
+<style>
+:root{color-scheme:dark;font:14px system-ui,sans-serif;color:#e9f3fb;background:#0d1725}*{box-sizing:border-box}body{margin:0 auto;max-width:1350px;padding:36px 28px}header{display:flex;justify-content:space-between;align-items:center;gap:18px}h1{margin:5px 0;font-size:30px}h2{font-size:18px}small,.muted{color:#a5b8c8}.tag{color:#68dfb9;font-size:11px;letter-spacing:.13em;font-weight:800}.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:28px 0}.card,.panel{background:#17263b;border:1px solid #31445a;border-radius:12px;padding:17px}.card b{display:block;font-size:24px;margin-top:10px}.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}input,select,button{font:inherit;background:#0c1a2a;color:#ecf7ff;border:1px solid #3a5065;border-radius:8px;padding:9px 12px}input{min-width:265px}button{cursor:pointer;background:#1c3d3d;border-color:#407966}button:hover{background:#275849}.panel{margin:20px 0;overflow:auto}table{border-collapse:collapse;width:100%;min-width:780px}th,td{padding:11px 12px;border-bottom:1px solid #324356;text-align:left}th{color:#94b6b4;font-size:11px;letter-spacing:.08em}tr:last-child td{border-bottom:0}.low{color:#f8c17e}@media(max-width:800px){.metrics{grid-template-columns:repeat(2,1fr)}body{padding:20px 12px}}
+</style></head><body>
+<header><div><span class="tag">TOWERFLOW • OFFLINE REPORT</span><h1>__BUSINESS_NAME__</h1><small id="generated"></small></div><div class="tag">INVENTORY DASHBOARD</div></header>
+<div class="metrics"><div class="card">Products<b id="products">0</b></div><div class="card">Units<b id="units">0</b></div><div class="card">List value<b id="value">$0.00</b></div><div class="card">Low stock<b id="low">0</b></div></div>
+<div class="filters"><input type="search" id="search" placeholder="Search product, barcode, QR or ID" aria-label="Search products"><select id="location" aria-label="Filter location"><option value="">All locations</option></select><button id="productsCsv">Download filtered products CSV</button><button id="movementsCsv">Download filtered movements CSV</button></div>
+<section class="panel"><h2>Products</h2><table><thead><tr><th>ID</th><th>Product</th><th>Category</th><th>Barcode</th><th>Location</th><th>Units</th><th>List price</th><th>Minimum</th><th>Status</th></tr></thead><tbody id="productRows"></tbody></table></section>
+<section class="panel"><h2>Movement history</h2><table><thead><tr><th>When</th><th>Type</th><th>Product</th><th>Quantity</th><th>From</th><th>To</th><th>Supplier / customer</th><th>Unit price</th><th>Reference</th></tr></thead><tbody id="movementRows"></tbody></table></section>
+<script>
+'use strict';
+const report=__REPORT_DATA__;
+const $=id=>document.getElementById(id);
+const money=value=>{const amount=BigInt(value);return '$'+(amount/100n).toLocaleString()+'.'+String(amount%100n).padStart(2,'0')};
+const total=p=>p.stock.reduce((n,item)=>n+item.quantity,0);
+const known=new Set(report.products.flatMap(p=>p.stock.map(item=>item.location)));
+for(const name of [...known].sort()){$('location').add(new Option(name,name))}
+$('generated').textContent='Generated '+new Date(report.generatedAt).toLocaleString();
+let visibleProducts=[],visibleMovements=[];
+function row(body,values,low=false){const tr=document.createElement('tr');for(const value of values){const td=document.createElement('td');td.textContent=String(value??'');if(low)td.classList.add('low');tr.append(td)}body.append(tr)}
+function render(){
+ const query=$('search').value.trim().toLowerCase(),loc=$('location').value;
+ visibleProducts=report.products.filter(p=>!p.archived&&[p.id,p.name,p.category,p.barcode,p.qrPayload,p.partNumber,p.serialNumber].some(v=>String(v??'').toLowerCase().includes(query))&&(!loc||p.stock.some(item=>item.location===loc)));
+ const ids=new Set(visibleProducts.map(p=>p.id));
+ visibleMovements=report.movements.filter(m=>ids.has(m.productId)&&(!loc||m.from===loc||m.to===loc));
+ let count=0,value=0n,low=0;const body=$('productRows');body.replaceChildren();
+ for(const p of visibleProducts){const units=loc?p.stock.filter(x=>x.location===loc).reduce((sum,x)=>sum+x.quantity,0):total(p);count+=units;value+=BigInt(units)*BigInt(p.priceCents);if(total(p)<=p.minimumStock)low++;
+  for(const stock of (loc?p.stock.filter(x=>x.location===loc):p.stock.length?p.stock:[{location:'—',quantity:0}]))
+   row(body,[p.id,p.name,p.category||'',p.barcode,stock.location,stock.quantity,money(p.priceCents),p.minimumStock,total(p)<=p.minimumStock?'Low stock':'In stock'],total(p)<=p.minimumStock);
+ }
+ $('products').textContent=visibleProducts.length.toLocaleString();$('units').textContent=count.toLocaleString();$('value').textContent=money(value);$('low').textContent=low.toLocaleString();
+ const history=$('movementRows');history.replaceChildren();for(const m of [...visibleMovements].reverse()){
+  const p=report.products.find(item=>item.id===m.productId);
+  row(history,[new Date(m.recordedAt*1000).toLocaleString(),m.type,p?.name||m.productId,m.quantity,m.from||'—',m.to||'—',m.business||'—',m.unitPriceCents?money(m.unitPriceCents):'—',m.reference||'—']);
+ }
+}
+function csvCell(v){let s=String(v??'');if(/^\s*[=+@-]/.test(s))s="'"+s;return '"'+s.replaceAll('"','""')+'"'}
+function download(name,rows){const file=new Blob([rows.map(r=>r.map(csvCell).join(',')).join('\r\n')+'\r\n'],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(file);const link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+$('productsCsv').onclick=()=>download('towerflow-products.csv',[['ID','Name','Category','Barcode','Location','Units','Price cents','Minimum'],...visibleProducts.flatMap(p=>(p.stock.length?p.stock:[{location:'',quantity:0}]).filter(x=>!$('location').value||x.location===$('location').value).map(x=>[p.id,p.name,p.category||'',p.barcode,x.location,x.quantity,p.priceCents,p.minimumStock]))]);
+$('movementsCsv').onclick=()=>download('towerflow-movements.csv',[['Time','Type','Product ID','Quantity','From','To','Business','Unit price cents','Reference'],...visibleMovements.map(m=>[new Date(m.recordedAt*1000).toISOString(),m.type,m.productId,m.quantity,m.from,m.to,m.business,m.unitPriceCents,m.reference])]);
+$('search').addEventListener('input',render);$('location').addEventListener('change',render);render();
+</script></body></html>
