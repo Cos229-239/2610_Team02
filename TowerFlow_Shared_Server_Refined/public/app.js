@@ -525,245 +525,33 @@ async function runAzureGuide(command) {
     if (sequence === azureCommandSequence) $('#azureRun').disabled = false;
   }
 }
-// Azure's default view is deliberately brief; original stock tools remain under Details.
+// Azure one-click insights — existing Stock Guide remains unchanged.
 $('#azureInsightsButton').addEventListener('click', async () => {
   const button = $('#azureInsightsButton');
   const status = $('#azureInsightsStatus');
   const cards = $('#azureInsightsCards');
   button.disabled = true;
-  status.textContent = 'Checking recorded inventory and market availability…';
+  status.textContent = 'Analyzing inventory…';
   try {
     const data = await request('/api/azure-insights', 'POST', {});
-    const inv = $('#azureInsightsInventory');
+    const inventory = $('#azureInsightsInventory');
     const market = $('#azureInsightsMarket');
     const actions = $('#azureInsightsActions');
-    inv.replaceChildren();
-    market.replaceChildren();
-    actions.replaceChildren();
-    inv.append(el('p', '', data.inventory.products + ' products · ' + data.inventory.units + ' units'),
-      el('p', '', data.inventory.lowStock + ' at or below minimum'),
-      el('p', 'subtle', 'Inventory value: ' + money(data.inventory.valueCents)));
-    const quotes = data.market?.quotes || [];
-    if (quotes.length) {
-      for (const q of quotes) {
-        const close = Number(q.close);
-        market.append(el('p', '', q.symbol + ' · 
-  event.preventDefault();
-  runAzureGuide($('#azureCommand').value);
-});
-$$('[data-azure-command]').forEach(button => button.addEventListener('click', () => {
-  $('#azureCommand').value = button.dataset.azureCommand;
-  runAzureGuide(button.dataset.azureCommand);
-}));
-$('#azureClear').addEventListener('click', () => {
-  ++azureCommandSequence;
-  $('#azureRun').disabled = false;
-  $('#azureCommand').value = '';
-  $('#azureResults').hidden = true;
-  $('#azureRows').replaceChildren();
-  clearAzurePreview();
-  $('#azureModelResults').hidden = true;
-  $('#azureModelResults').replaceChildren();
-  $('#azureResponse').textContent = 'Enter a command or choose a quick action.';
-  $('#azureCommand').focus();
-});
-$('#azureDiscard').addEventListener('click', () => {
-  clearAzurePreview();
-  $('#azureResponse').textContent = 'Stock change preview discarded. No changes were saved.';
-});
-$('#azureConfirm').addEventListener('click', async () => {
-  if (!azurePreviewId) return;
-  if (state?.revision !== azurePreviewRevision) {
-    clearAzurePreview();
-    $('#azureResponse').textContent = 'Inventory changed after the preview. Run the command again.';
-    return;
-  }
-  if (!confirm('Apply the previewed stock change and record it in movement history?')) return;
-  const previewId = azurePreviewId;
-  const revision = azurePreviewRevision;
-  clearAzurePreview();
-  $('#azureConfirm').disabled = true;
-  try {
-    const saved = await request('/api/azure-guide/apply', 'POST', { previewId }, revision);
-    await refresh();
-    $('#azureResponse').textContent = `Saved ${saved.quantity} units at ${saved.location}. Movement history was updated.`;
-    notice('Azure Stock Guide quantity change saved.');
-  } catch (error) {
-    $('#azureResponse').textContent = `${error.message} Run the command again to create a new preview.`;
-    notice(error.message, true);
-    try { await refresh(); } catch { /* Leave the shown server error visible. */ }
-  } finally { $('#azureConfirm').disabled = false; }
-});
-$('#businessForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  try { await request('/api/business', 'PUT', { name: $('#businessName').value }); await refresh(); notice('Business name saved.'); }
-  catch (error) { notice(error.message, true); }
-});
-$('#businessImport').addEventListener('click', async () => {
-  const file = $('#businessFile').files[0];
-  if (!file) return notice('Choose an old .business file first.', true);
-  if (file.size > 1024) return notice('Business name file is too large.', true);
-  try {
-    const name = (await file.text()).split('\n', 1)[0].trim();
-    if (!name || name.length > 160) throw new Error('Invalid business name.');
-    if (!confirm(`Use ${name} as this workspace's business name?`)) return;
-    await request('/api/business', 'PUT', { name });
-    $('#businessFile').value = '';
-    await refresh(); notice('Business name imported.');
-  } catch (error) { notice(error.message, true); }
-});
-$('#importButton').addEventListener('click', async () => {
-  const file = $('#importFile').files[0];
-  if (!file) return notice('Choose a legacy text file first.', true);
-  if (file.size > 2_000_000) return notice('File exceeds the 2 MB import limit.', true);
-  try {
-    const text = await file.text();
-    const revision = state.revision;
-    const preview = await request('/api/import/preview', 'POST', { text });
-    $('#importStatus').textContent = `${preview.format}: ${preview.products} products and ${preview.movements} movements found.`;
-    if (!confirm(`Import ${preview.products} products and ${preview.movements} movements from ${file.name}?`)) return;
-    const result = await request('/api/import', 'POST', { text }, revision);
-    await refresh(); notice(`Imported ${result.products} products and ${result.movements} movements.`);
-    $('#importFile').value = '';
-  } catch (error) { notice(error.message, true); }
-});
-$('#restoreButton').addEventListener('click', async () => {
-  const file = $('#restoreFile').files[0];
-  if (!file) return notice('Choose a JSON backup first.', true);
-  if (file.size > 2_000_000) return notice('Backup exceeds the 2 MB restore limit.', true);
-  try {
-    const backup = JSON.parse(await file.text());
-    const revision = state.revision;
-    const preview = await request('/api/restore/preview', 'POST', backup);
-    if (!confirm(`Replace the current inventory with ${preview.products} products and ${preview.movements} movements from ${file.name}? The prior inventory is saved as a .bak file.`)) return;
-    await request('/api/restore', 'POST', backup, revision);
-    $('#restoreFile').value = '';
-    await refresh(); notice('Backup restored.');
-  } catch (error) { notice(error.message, true); }
-});
-
-function showAuth(status) {
-  events?.close(); events = null;
-  state = null; currentUser = null;
-  clearAzurePreview();
-  $('#azureResults').hidden = true;
-  $('#azureRows').replaceChildren();
-  $('#azureResponse').textContent = 'Enter a command or choose an example to inspect inventory.';
-  $('#shell').hidden = true;
-  $('#authPanel').hidden = false;
-  const setup = status.setupAvailable;
-  $('#authTitle').textContent = setup ? 'Create owner account' : 'Sign in';
-  $('#authHint').textContent = setup ? 'Only the server computer can create the first owner account.' :
-    status.initialized ? 'Use the account the owner created for you.' :
-      'The owner must finish setup on the server computer first.';
-  $('#authForm').hidden = !setup && !status.initialized;
-  $('#authSubmit').textContent = setup ? 'Create owner account' : 'Sign in';
-  $('#authPassword').autocomplete = setup ? 'new-password' : 'current-password';
-  $('#authError').hidden = true;
-  $('#authForm').reset();
-  $('#authForm').dataset.setup = setup ? '1' : '0';
-}
-async function enter(user) {
-  clearAzurePreview();
-  currentUser = user;
-  $('#signedInAs').textContent = `${user.username} · ${user.role}`;
-  $('#adminPanel').hidden = user.role !== 'admin';
-  $('#restorePanel').hidden = user.role !== 'admin';
-  $('#authPanel').hidden = true;
-  $('#shell').hidden = false;
-  await refresh();
-  if (user.role === 'admin') await loadUsers();
-  events?.close();
-  events = new EventSource('/api/events');
-  events.onmessage = async event => {
-    try {
-      const update = JSON.parse(event.data);
-      if (!state || update.revision !== state.revision) await refresh();
-    } catch (error) { notice(error.message, true); }
-  };
-  events.onerror = () => notice('Connection interrupted; trying to reconnect.', true);
-}
-async function loadUsers() {
-  const users = await request('/api/users');
-  const list = $('#userList'); list.replaceChildren();
-  for (const user of users) {
-    const row = el('div', 'user-row');
-    row.append(el('span', '', `${user.username} · ${user.role}`));
-    if (user.id !== currentUser.id) {
-      const reset = el('button', 'textbtn', 'Reset password');
-      reset.addEventListener('click', async () => {
-        const password = prompt(`New temporary password for ${user.username} (12+ characters):`);
-        if (password == null) return;
-        try { await request(`/api/users/${user.id}/password`, 'PUT', { password }); await loadUsers(); notice('Password reset; previous sessions ended.'); }
-        catch (error) { notice(error.message, true); }
-      });
-      const remove = el('button', 'textbtn danger', 'Remove access');
-      remove.addEventListener('click', async () => {
-        if (!confirm(`Remove ${user.username}'s access?`)) return;
-        try { await request(`/api/users/${user.id}`, 'DELETE'); await loadUsers(); notice('Access removed.'); }
-        catch (error) { notice(error.message, true); }
-      });
-      row.append(reset, remove);
+    inventory.replaceChildren(); market.replaceChildren(); actions.replaceChildren();
+    inventory.append(el('p', '', data.inventory.products + ' products · ' + data.inventory.units + ' units'));
+    inventory.append(el('p', '', data.inventory.lowStock + ' at or below minimum'));
+    inventory.append(el('p', 'subtle', 'Inventory value: ' + money(data.inventory.valueCents)));
+    for (const q of (data.market?.quotes || [])) {
+      market.append(el('p', '', q.symbol + ': USD ' + Number(q.close).toFixed(2) + ' (close ' + q.asOf + ')'));
     }
-    list.append(row);
-  }
-}
-$('#authForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  const setup = event.currentTarget.dataset.setup === '1';
-  try {
-    const result = await request(setup ? '/api/auth/setup' : '/api/auth/login', 'POST',
-      { username: $('#authUsername').value, password: $('#authPassword').value });
-    await enter(result.user);
-  } catch (error) {
-    $('#authError').textContent = error.message;
-    $('#authError').hidden = false;
-  }
-});
-$('#logoutButton').addEventListener('click', async () => {
-  try { await request('/api/auth/logout', 'POST'); showAuth({ initialized: true }); }
-  catch (error) { notice(error.message, true); }
-});
-$('#passwordForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  const f = event.currentTarget.elements;
-  try {
-    await request('/api/auth/password', 'PUT',
-      { currentPassword: f.currentPassword.value, newPassword: f.newPassword.value });
-    showAuth({ initialized: true });
-  } catch (error) { notice(error.message, true); }
-});
-$('#userForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  const f = event.currentTarget.elements;
-  try {
-    const user = await request('/api/users', 'POST', { username: f.username.value, password: f.password.value, role: f.role.value });
-    event.currentTarget.reset(); await loadUsers(); notice(`Account created for ${user.username}.`);
-  } catch (error) { notice(error.message, true); }
-});
-request('/api/auth/status').then(status => status.user ? enter(status.user) : showAuth(status))
-  .catch(error => { showAuth({ initialized: false }); $('#authHint').textContent = error.message; });
- + close.toFixed(2) + ' (close ' + q.asOf + ')'));
-      }
-    }
-    market.append(el('p', 'subtle', data.market?.message || 'Market data unavailable.'),
-      el('p', 'subtle', 'Source: ' + (data.market?.source || 'none') + '. Not live prices or personal holdings.'));
-    if (data.attention.length) {
-      for (const item of data.attention) {
-        const row = el('p', '', item.text);
-        actions.append(row);
-      }
-    } else {
-      actions.append(el('p', '', 'No immediate stock alerts from recorded data.'));
-    }
-    actions.append(el('p', 'subtle', 'Review the Stock Guide tools for details; no changes were made.'));
+    market.append(el('p', 'subtle', data.market?.message || 'Market data unavailable.'));
+    for (const item of data.attention) actions.append(el('p', '', item.text));
+    if (!data.attention.length) actions.append(el('p', '', 'No immediate stock alerts.'));
+    actions.append(el('p', 'subtle', 'Review Stock Guide tools for details. No inventory changes made.'));
     cards.hidden = false;
-    status.textContent = 'Insights ready · read-only · expand a card to see more.';
-  } catch (error) {
-    status.textContent = 'Insights are unavailable: ' + error.message;
-  } finally {
-    button.disabled = false;
-  }
+    status.textContent = 'Insights ready · expand a card for details.';
+  } catch (error) { status.textContent = 'Insights unavailable: ' + error.message; }
+  finally { button.disabled = false; }
 });
 $('#azureForm').addEventListener('submit', event => {
   event.preventDefault();
