@@ -128,7 +128,8 @@
           <details class="af-feature" id="afModelTools">
             <summary>◈ Local intelligence · model screening</summary>
             <p>Azure Flow reuses your existing localhost Ollama installation. The current default is dolphin-llama3:8b. Compare eligible already-installed models using five bounded test cases. No downloads, paid providers, or automatic model promotion.</p>
-            <div><button id="afCalibrate" type="button" class="af-secondary">Screen installed models</button>
+            <div><button id="afProbe" type="button" class="af-secondary">Check local AI connection</button> <button id="afCalibrate" type="button" class="af-secondary">Screen installed models</button>
+              <p id="afModelHealth" class="af-footnote" role="status" aria-live="polite">Local model status not checked.</p>
               <p id="afCalibrationStatus" class="af-footnote" role="status" aria-live="polite">No screening requested.</p>
             </div>
           </details>
