@@ -156,3 +156,16 @@ A new `azure-flow-route-evaluation.js` rubric scores omissions and inappropriate
 The runtime now explicitly marks `plan.semanticFit=NOT_INDEPENDENTLY_VERIFIED`; `MODEL_PLAN_VALIDATED` means **format and permission only**. Results must not claim competent source selection solely from this status. A revised natural-language planner instruction asks the model to distinguish workspace/private source scopes from outside-company primary evidence; this is an open source-authority rule, not a hardcoded company-specific answer.
 
 **Current live observation:** 1/1 identified semantic routing case failed, even though schema check passed. No actual rerun of Dolphin after the prompt improvement has yet been observed. Do not promote the model or merge.
+
+## 19. Three-role evaluator actually integrated with the live route audit
+The user-approved triad is preserved separately in the private `AscendenceAgent007/projects/towerflow-collaboration-room/docs/AZURE_FLOW_THREE_ROLE_ADVERSARIAL_EVALUATION.md`. The public/team Azure Flow branch contains only its independent implementation and nonsensitive regression methods:
+
+- **Role 1 Devil's Advocate:** challenge source authority, seductive structural PASS results, assumptions and proof gaps.
+- **Role 2 Diagnostic Investigator:** compare expected vs observed capabilities; identify missing/extra sources; root causes remain *UNKNOWN_PENDING_TRACE* unless reproduced.
+- **Role 3 Adversarial Collaboration + Blind-Spot Analysis:** mutate routes with irrelevant extras, required omissions, false abstentions and unauthorized capabilities, then test whether the grader rejects them.
+
+`lib/azure-flow-three-role-audit.js` executes these roles on each `tools/azure-flow-route-audit.cjs` case. The grader now rejects unapproved extras, missing or repeated case IDs and apparently valid abstention if the model was unavailable. The three-role decision is not production authorization. Regression tests include previously falsely accepted F06/F07, offline empty-list abstention, duplicate IDs and critical omissions.
+
+**Additional metamorphic probe:** `node tools/azure-flow-metamorphic-audit.cjs` exercises four disclosed cases twice with the authorized harness list in normal and reverse order. It fails if changing only registry ordering changes the selected capability set, or if either route is semantically invalid. This is an **optional** real-Ollama check that performs no research provider requests, writes, downloads or model promotion. It is not a protected blind holdout; models may legitimately propose alternative equivalent routes, so strict invariance should be treated as an initial diagnostic, with false rejection reviewed rather than as proof of general competence.
+
+**Evidence boundary:** The most recent observed Windows full test suite (before these later changes) was 67/67 passed; actual Dolphin routing was 10/14 initially, NOT_QUALIFIED. Replaying those same model outputs against the stricter grade gave 4/14. This is retrospective regrading rather than a new live measurement; do not present it as an observed model regression. Run updated Windows tests and the live route and metamorphic audits before any acceptance claim.
