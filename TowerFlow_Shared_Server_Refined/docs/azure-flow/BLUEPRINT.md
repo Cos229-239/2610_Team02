@@ -71,3 +71,17 @@ The owner approved these recommendations:
 - Live market access: **UNKNOWN / optional**.
 - All browser/login regression checks: pending local end-to-end verification.
 - Approval to merge: not granted.
+
+## 11. Optional no-key market source: narrow allowance
+The owner's clarification allows **free public** market observations while prohibiting paid AI APIs, model downloads, and cloud AI services. The separate `azure-flow-market.js` harness supports one manually requested U.S. ticker at a time, using Stooq's daily CSV download page. It enforces a fixed host, ticker allowlist, four-second timeout, bounded CSV parsing, seven-day observation freshness, 30-minute per-symbol cache and a truthful **UNAVAILABLE** state. Output is always a dated historical closing observation, not a trade, current quote, or investment recommendation. This is an external HTTP source, but not a provider API key requirement. Providers may deny scripted access or change licensing; commercial reuse and live availability are not established. No model is given raw external web text.
+
+## 12. Review-before-action contract
+`reviewActions` uses recorded quantities, product-specific minimum thresholds and any pending purchase order quantities. Actions show proposed shortfall to **minimum + 1** and a location in TowerFlow's existing Orders or Inventory tab. They are **never** purchase orders and are **never** executed by Azure Flow. Any user action proceeds through the existing native workflow, with its own authentication, review and revision safeguards. This is an approval preparation, not autonomous stock control.
+
+## 13. Calibration and performance budget
+Only the owner can manually trigger local Ollama screening; editor-level users retain read-only business inference. The five canned cases screen only `dolphin-llama3:8b`, `qwen3:8b` and `hermes3:latest` if already installed and cap simultaneous candidates at two. Correctness and observed elapsed time are reported, including invalid outputs as failures. A fixed five-case gate is **not** a blind benchmark or general reliability proof. No replacement model is automatically promoted to Azure's live default. More comprehensive held-out evaluation will be required.
+
+**Source references**
+- Ollama local API and structured outputs: https://docs.ollama.com/api
+- Stooq daily CSV interface and common denial modes: https://stooq.com/ and https://github.com/HKUDS/Vibe-Trading/blob/main/agent/backtest/loaders/stooq_loader.py
+- Private source consulted for design only: AscendenceAgent007 / projects/towerflow-collaboration-room / branch-preservation / azure-harness / collaboration-room / azure-bridge / azure-local-reasoner.cjs. This path documents the source relationship; its private implementation is **not copied** into Team 02.
