@@ -20,6 +20,7 @@ const { answer: answerAzureQuery } = require('./lib/azure-flow-query');
 const { investigate: researchAzure } = require('./lib/azure-flow-intelligence');
 const { persist: saveAzureRecord } = require('./lib/azure-flow-evidence-record');
 const {runtimeConfig: azureRuntimeConfig}=require('./lib/azure-flow-runtime-config');
+const {liveSnapshot: liveMarketSnapshot}=require('./lib/azure-flow-live-market');
 const { read: readAzureLearning, append: recordAzureLearning, similar: recallAzureLearning } = require('./lib/azure-flow-learning');
 
 const ROOT = __dirname;
@@ -209,6 +210,13 @@ function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researc
       }
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/live-market') {
+        const body=await jsonBody(req);
+        if(Object.keys(body).sort().join(',')!=='allowPublic' || body.allowPublic!==true)
+          throw new InputError('Explicit external market-data consent is required.');
+        const snapshot=await liveMarketSnapshot();
+        return respond(res,200,snapshot);
       }
       if (method === 'GET' && pathname === '/api/azure-flow/config') {
         return respond(res,200,azureRuntimeConfig({isOwner:user.role==='admin'}));
