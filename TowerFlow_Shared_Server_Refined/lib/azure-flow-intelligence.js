@@ -34,8 +34,8 @@ async function plan(question,{allowPublic=false,isOwner=false,requester=localReq
           'Different questions require different evidence. Evaluate the SOURCE SCOPE and authority '+
           'of each capability against the actual question before choosing. Workspace inventory and '+
           'sales describe this user\'s own ledger; they are not sources for an unrelated company\'s '+
-          'investment fundamentals. Only configured and authorized source adapters may be used; '+
-          'local Markdown is design knowledge, not a substitute for independent disclosures. '+
+          'investment fundamentals. Official public issuer documents need an authorized public-source '+
+          'harness; local Markdown is design knowledge, not a substitute for issuer disclosures. '+
           'Choose up to three sources that could actually answer the question, or an empty list '+
           'when none can. Prefer a directly authoritative source over a superficially similar name. '+
           'Never invent a capability, infer data availability, or issue mutations. '+
