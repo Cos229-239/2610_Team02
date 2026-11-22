@@ -73,6 +73,7 @@ function interpret(state, input) {
 
   if (/^forecast(?:\\s|$)/i.test(command)) {
     const query = command.slice('forecast'.length).trim();
+    if (query.length > 160) throw new InputError('Forecast filter must be 160 characters or fewer.');
     const result = decisionModel(state, { query });
     const statuses = result.counts;
     return {
