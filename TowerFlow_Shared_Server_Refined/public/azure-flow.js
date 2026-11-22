@@ -48,8 +48,8 @@
     output.replaceChildren(textNode('p','Planning an evidence-grounded investigation…'));
     try {
       const sourceMode=get('afSourceMode').value;
-      if(sourceMode==='official-sec'&&!get('afAllowPublic').checked)
-        throw Error('Enable external research consent to query SEC EDGAR.');
+      if(sourceMode!=='adaptive'&&!get('afAllowPublic').checked)
+        throw Error('Enable public research consent to retrieve actual company records. No external request was issued.');
             const response=await fetch('/api/azure-flow/research',{
         method:'POST',credentials:'same-origin',
         headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
@@ -64,6 +64,18 @@
         textNode('p','Plan: '+(result.plan?.status||'unknown')+
           ' · Authorized harnesses: '+(result.plan?.capabilities||[]).join(', '),'af-badge')
       );
+      if(result.plan?.status==='USER_SELECTED_COMPANY_RESEARCH'){
+        output.append(textNode('p','Business investigation · public Wikidata entity records. No AI-generated company facts.','af-badge'));
+        const record=result.harnesses?.find(h=>h.capability==='research.company');
+        for(const entry of record?.outcomes||[]){
+          const label=entry.status==='ENTITY_MATCHED'?'MATCHED':
+            entry.status==='AMBIGUOUS_OR_NOT_EXACT'?'AMBIGUOUS':'UNAVAILABLE';
+          output.append(textNode('p',entry.query+': '+label+
+            (entry.candidates?.length?' · candidates: '+entry.candidates.map(c=>c.title).join(', '):''),'af-badge'));
+        }
+        if(!result.sources?.length)output.append(textNode('p',
+          'No business entity could be verified from the public provider. Try the organization’s complete name. No factual profile was invented.'));
+      }
       if(result.plan?.status==='USER_SELECTED_OFFICIAL_SOURCE')
         output.append(textNode('p','Official SEC source selected by you. This bypasses the experimental AI routing, not evidence validation.','af-badge'));
       if(result.plan?.model)output.append(textNode('p','Planner: '+result.plan.model,'af-badge'));
@@ -104,10 +116,11 @@
       for(const source of (result.sources||[])){
         const article=document.createElement('article');
         article.className='af-evidence';
+        if(source.kind==='public_reference'&&source.entityId)article.classList.add('af-company-source');
         article.append(textNode('strong',source.title||source.source||'Evidence'),
           textNode('p',source.excerpt||'No excerpt.'),
           textNode('small',source.source+' · SHA-256 '+String(source.sha256||'').slice(0,12),'af-badge'));
-        if(typeof source.url==='string'&&/^https:\/\/(?:en\.wikipedia\.org\/wiki\/|www\.sec\.gov\/Archives\/edgar\/data\/|data\.sec\.gov\/api\/xbrl\/companyfacts\/CIK[0-9]{10}\.json)/.test(source.url)){
+        if(typeof source.url==='string'&&/^https:\/\/(?:www\.wikidata\.org\/wiki\/Q[1-9][0-9]*|en\.wikipedia\.org\/wiki\/|www\.sec\.gov\/Archives\/edgar\/data\/|data\.sec\.gov\/api\/xbrl\/companyfacts\/CIK[0-9]{10}\.json)/.test(source.url)){
           const anchor=document.createElement('a');
           anchor.href=source.url;anchor.rel='noopener noreferrer';anchor.target='_blank';
           anchor.textContent='Open cited source ↗';
@@ -278,7 +291,7 @@
         if(!sec?.enabled&&select.value==='official-sec')select.value='adaptive';
       }
       const note=get('afSourceNote');
-      if(note)note.textContent=sec?.enabled?
+      if(note&&get('afSourceMode')?.value==='official-sec')note.textContent=sec?.enabled?
         'SEC research is optional and configured; external access still requires consent.':
         'SEC research is optional and not configured. Local research and business analysis remain available.';
       const response=await fetch('/api/azure-flow/research',{
