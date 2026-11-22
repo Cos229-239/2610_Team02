@@ -38,7 +38,7 @@ function resolve(question, state) {
   if(/\b(sales|revenue|turnover|performance|sold|trajectory|trend)\b/i.test(text)) {
     return {intent:'sales',source:'explicit business terminology',original};
   }
-  if(/\b(inventory|stock level|low stock|reorder|products|supplier|purchase order|parts|business|grow|opportunities)\b/i.test(text)) {
+  if(/\b(inventory|stock level|low[- ]stock|reorder|products|supplier|purchase order|parts|business|grow|opportunities)\b/i.test(text)) {
     return {intent:'inventory',source:'explicit business terminology',original};
   }
   const products=(state?.products||[]).filter(p=>!p.archived && typeof p.name==='string' &&
