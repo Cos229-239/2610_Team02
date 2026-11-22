@@ -218,7 +218,8 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
         const precedents=recallAzureLearning(body.question,
           readAzureLearning(learningDir,{userId:user.id}));
         const output = await researchAzure(body.question,{state,revision:revisionOf(fingerprint),
-          allowPublic:body.allowPublic,priorCases:precedents});
+          allowPublic:body.allowPublic,priorCases:precedents,isOwner:user.role==='admin',
+          draftDirectory:path.join(directory,'azure-flow-findings',user.id)});
         // Bounded ephemeral draft receipts, not persistent automatic memory writes.
         for(const [key,entry] of azureDrafts){
           if(Date.now()-entry.at>600000)azureDrafts.delete(key);
