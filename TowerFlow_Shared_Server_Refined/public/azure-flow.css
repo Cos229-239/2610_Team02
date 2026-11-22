@@ -180,3 +180,17 @@
     transform:rotateX(17deg) rotateY(-15deg);
   }
 }
+
+
+/* Optional research evidence, memory feedback and human-approved draft decisions. */
+#azureFlow .af-consent{display:flex;gap:9px;align-items:center;margin:12px 0;color:#e9d7e2;font-size:12px;line-height:1.4}
+#azureFlow .af-consent input{width:16px;flex:0 0 16px;accent-color:#d58abd}
+#azureFlow .af-evidence,#azureFlow .af-reasoning{background:#ffffff08;border-left:2px solid #d2a96b;margin:13px 0;padding:11px 14px;border-radius:6px;overflow-wrap:anywhere}
+#azureFlow .af-evidence strong,#azureFlow .af-reasoning strong{font-size:14px;color:#ffe7ab}
+#azureFlow .af-evidence p{white-space:pre-wrap;font-size:13px}
+#azureFlow .af-evidence a{color:#f3cea0;font-size:12px}
+#azureFlow .af-learning,#azureFlow .af-research-save{margin:14px 0;padding:14px 17px;border:1px solid #9c7098;border-radius:10px;background:#26162b;color:#f9e6f1}
+#azureFlow .af-learning>strong{font-size:14px;color:#ffe7ab}
+#azureFlow .af-learning p,#azureFlow .af-research-save small,#azureFlow .af-learning small{display:block;font-size:12px;line-height:1.5;color:#ddc5da;margin:8px 0}
+#azureFlow .af-learning-actions{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+#azureFlow #afFeedbackNote{display:block;width:100%;padding:10px;background:#150e21;color:#f8edf4;border:1px solid #936c92;border-radius:7px;margin:8px 0}
