@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "TowerFlow \u2014 Run with F5",
+      "name": "TowerFlow — Run with F5",
       "type": "chrome",
       "request": "launch",
       "url": "http://127.0.0.1:4174",
@@ -10,38 +10,19 @@
       "preLaunchTask": "TowerFlow: Start local server"
     },
     {
-      "name": "TowerFlow \u2014 Debug server / Codespaces",
+      "name": "TowerFlow — Debug server / Codespaces",
       "type": "node",
       "request": "launch",
       "program": "${workspaceFolder}/TowerFlow/server.js",
       "cwd": "${workspaceFolder}",
-      "env": {
-        "PORT": "4174"
-      },
+      "env": {"PORT": "4174"},
       "console": "integratedTerminal",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
+      "skipFiles": ["<node_internals>/**"],
       "serverReadyAction": {
         "pattern": "TowerFlow server listening at (http://[^ ]+)",
         "uriFormat": "%s",
         "action": "openExternally"
       }
-    },
-    {
-      "name": "TowerFlow \u2014 Debug room checks",
-      "type": "node",
-      "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "runtimeArgs": [
-        "--test",
-        "collaboration-room/azure-bridge/*.test.cjs"
-      ],
-      "autoAttachChildProcesses": true,
-      "console": "integratedTerminal",
-      "skipFiles": [
-        "<node_internals>/**"
-      ]
     }
   ]
 }

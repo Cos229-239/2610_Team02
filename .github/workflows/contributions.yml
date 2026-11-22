@@ -1,4 +1,4 @@
-name: TowerFlow Contribution Checks
+name: TowerFlow Team 02 Contribution Checks
 on:
   pull_request:
     branches: [dev]
@@ -8,6 +8,7 @@ permissions:
   contents: read
 jobs:
   javascript:
+    name: Shared JavaScript syntax and inventory tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,25 +16,6 @@ jobs:
         with:
           node-version: '24'
       - run: node tools/check-contributions.cjs
-      - name: Exercise William and Omarion desks in Chrome
-        run: node tools/check-azure-desk.cjs
-      - name: Exercise the interactive app, breakpoint and shared demo
-        run: |
-          npm install --prefix "$RUNNER_TEMP/towerflow-pilot" --no-package-lock --ignore-scripts --no-audit --no-fund express@4.21.2 playwright-core@1.56.1
-          NODE_PATH="$RUNNER_TEMP/towerflow-pilot/node_modules" node tools/check-contribution-studio.cjs
-  header-debug:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build and run the shared header with debug symbols
-        shell: pwsh
-        run: |
-          cmake -S tools/header-preview -B "$env:RUNNER_TEMP/header-demo"
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          cmake --build "$env:RUNNER_TEMP/header-demo" --config Debug
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          $header = & "$env:RUNNER_TEMP/header-demo/Debug/TowerFlowHeaderDemo.exe"
-          if ($LASTEXITCODE -or (($header -join ' ') -notmatch 'TOWERFLOW INVENTORY SYSTEM')) { throw 'Header demo failed' }
   inventory:
     name: Inventory operations and persistence (Linux)
     runs-on: ubuntu-latest

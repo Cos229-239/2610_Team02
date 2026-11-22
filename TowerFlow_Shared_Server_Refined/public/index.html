@@ -17,6 +17,7 @@
         <button class="nav" data-page="inventory"><span>▤</span> Inventory</button>
         <button class="nav" data-page="movements"><span>⇄</span> Movements</button>
         <button class="nav" data-page="orders"><span>▣</span> Orders</button>
+        <button class="nav" data-page="operations"><span>▦</span> Malik’s operations</button>
         <button class="nav" data-page="azure"><span>◇</span> Azure Stock Guide</button>
         <button class="nav" data-page="data"><span>◈</span> Data &amp; exports</button>
       </nav>
@@ -30,6 +31,22 @@
           <div class="heading"><div><span class="eyebrow">AT A GLANCE</span><h2>Inventory overview</h2><p>Everything in stock, all in one place.</p></div><button class="primary" data-open-product>+ Add product</button></div>
           <div class="stats"><div class="card"><span>Active products</span><strong id="productCount">0</strong><small>Across your catalog</small></div><div class="card"><span>Total units</span><strong id="unitCount">0</strong><small>All locations</small></div><div class="card"><span>List value</span><strong id="totalValue">$0.00</strong><small>Based on current stock</small></div><div class="card warn"><span>Low stock</span><strong id="lowCount">0</strong><small>At or below minimum</small></div></div>
           <div class="panel"><div class="panel-header"><div><span class="eyebrow">NEEDS ATTENTION</span><h3>Low stock products</h3></div><button class="quiet" data-goto="inventory">View inventory →</button></div><div id="lowStockList" class="list"></div></div>
+        </section>
+        <section data-view="operations" hidden>
+          <div class="heading"><div><span class="eyebrow">MALIK BROWN · INVENTORY OPERATIONS</span><h2>Stock, jobs &amp; sales</h2><p>Your terminal workflows, connected to the team’s existing shared inventory.</p></div></div>
+          <div class="panel padded">
+            <h3>Choose an existing product</h3>
+            <label>Available product / part<select id="operationsProduct" aria-describedby="operationsStock"></select></label>
+            <p id="operationsStock" class="subtle" aria-live="polite"></p>
+            <p class="subtle">These shortcuts open a form for review. Stock changes only after you save. Cancel closes an unfinished dialog without saving.</p>
+            <div class="operations-grid">
+              <article><h3>6–9 · Bulk stock</h3><p>Add units, inspect quantities by location, or set a new total. Setting zero clears that location, keeping its history.</p><div class="buttonrow"><button class="secondary" data-operation="receive">Add units</button><button class="secondary" data-operation="inventory">List stock</button><button class="secondary" data-operation="stock">Set / clear stock</button></div></article>
+              <article><h3>10–12 · Work orders</h3><p>Plan, edit or delete a job. Planned units do not reserve or subtract stock.</p><div class="buttonrow"><button class="secondary" data-operation="work">Plan a job</button><button class="secondary" data-operation="orders">Manage orders</button></div></article>
+              <article><h3>13–14 · Purchases</h3><p>Record goods received now, or create a pending supplier request. Receive each request once from Orders.</p><div class="buttonrow"><button class="secondary" data-operation="purchase">Receive purchase</button><button class="secondary" data-operation="purchaseOrder">Request goods</button></div></article>
+              <article><h3>15 · Sales</h3><p>Record a sale from a chosen location. The shared server rejects quantities above available stock.</p><button class="secondary" data-operation="sale">Record sale</button></article>
+            </div>
+          </div>
+          <div class="panel padded"><h3>Available products</h3><p class="subtle">IDs below are shared product IDs. Barcode / SKU values may contain letters. Legacy part and serial fields still use the shared app’s numeric rules.</p><div class="tablewrap operations-table"><table><thead><tr><th>PRODUCT ID</th><th>PRODUCT</th><th>BARCODE / SKU</th><th>AVAILABLE UNITS</th></tr></thead><tbody id="operationsRows"></tbody></table></div><p id="operationsEmpty" class="empty" hidden>No active products yet. Add a product in Inventory first.</p></div>
         </section>
         <section data-view="inventory" hidden>
           <div class="heading"><div><span class="eyebrow">CATALOG</span><h2>Inventory</h2><p>Parts, products, serials, codes, and stock by location.</p></div><button class="primary" data-open-product>+ Add product</button></div>
@@ -55,12 +72,14 @@
               <button type="button" class="guide-chip" data-azure-command="summary">Overview</button>
               <button type="button" class="guide-chip" data-azure-command="low stock">Low stock (≤5)</button>
               <button type="button" class="guide-chip" data-azure-command="reorder">Reorder list</button>
+              <button type="button" class="guide-chip" data-azure-command="forecast">7-day outlook</button>
               <button type="button" class="guide-chip" data-azure-command="sort name">Sort by name</button>
               <button type="button" class="guide-chip" data-azure-command="sort quantity">Sort by quantity</button>
             </div>
             <form id="azureForm" class="guide-form"><label class="grow">Stock Guide command<input id="azureCommand" maxlength="500" placeholder="e.g. find bolt, reorder, set 115/902701 to 10" autocomplete="off" aria-describedby="azureHint" required></label><button type="submit" class="primary" id="azureRun">Run command</button><button type="button" class="secondary" id="azureClear">Clear</button></form>
             <p class="guide-hint" id="azureHint">Try <code>find bolt</code> or <code>find BOLT-115</code>. For changes: <code>set 115/902701 to 10</code> or <code>add 115/902701 by 5</code>. Previews never save automatically.</p>
             <p id="azureResponse" class="azure-response" role="status" aria-live="polite">Enter a command or choose an example to inspect inventory.</p>
+            <div id="azureModelResults" class="panel padded" hidden aria-label="Explainable seven-day inventory outlook"></div>
             <div id="azureResults" class="tablewrap" hidden><table><thead><tr><th>PART / PRODUCT</th><th>PART / SERIAL</th><th>QUANTITY</th><th>MINIMUM</th><th>LOCATIONS</th><th>REORDER</th><th>ACTION</th></tr></thead><tbody id="azureRows"></tbody></table></div>
             <div id="azurePreview" class="azure-preview" hidden>
               <strong>Review stock adjustment — not saved</strong>

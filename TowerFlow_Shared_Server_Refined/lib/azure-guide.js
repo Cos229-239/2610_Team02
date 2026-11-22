@@ -4,6 +4,7 @@
 // manager. This module runs locally on the shared Node.js server, not in .NET.
 // All changes go through the shared inventory's normal stock ledger.
 const { InputError, setStock } = require('./inventory');
+const { analyze: decisionModel } = require('./decision-model');
 
 const MAX_GUIDE_QUANTITY = 1_000_000;
 const MAX_DISPLAY_PARTS = 100;
@@ -31,7 +32,7 @@ function interpret(state, input) {
   const command = input.trim();
   const parts = state.products.filter(p => !p.archived);
   if (!command || /^help$/i.test(command)) {
-    return { message: 'Azure Stock Guide — commands: summary, low stock (5 or fewer units), reorder (at/below the configured minimum), '
+    return { message: 'Azure Stock Guide — commands: forecast [name or code] (read-only 7-day planning model), summary, low stock (5 or fewer units), reorder (at/below the configured minimum), '
       + 'find <name, part/serial, barcode, or category>, sort name, sort quantity, '
       + 'set <part#>/<serial#> to <quantity>, add <part#>/<serial#> by <quantity>. '
       + 'Stock changes are always previewed and require confirmation. Use Inventory → Set stock for products held in multiple locations.' };
@@ -69,6 +70,21 @@ function interpret(state, input) {
   }
   if (/^sort quantity$/i.test(command)) return adviceParts([...parts].sort(byQuantity), 'Showing parts with the lowest quantity first.');
   if (/^sort name$/i.test(command)) return adviceParts([...parts].sort(byName), 'Showing parts alphabetically.');
+
+  if (/^forecast(?:\s|$)/i.test(command)) {
+    const query = command.slice('forecast'.length).trim();
+    if (query.length > 160) throw new InputError('Forecast filter must be 160 characters or fewer.');
+    const result = decisionModel(state, { query });
+    const statuses = result.counts;
+    return {
+      message: 'Coherent Inventory Decision Model v1 — deterministic seven-day planning estimate, NOT a trained AI/LLM or validated demand forecast. ' +
+        `${result.matched} matched product(s); ${statuses.currentlyLow} currently low, ${statuses.projectedLow} projected low, ${statuses.aboveThreshold} above threshold, ${statuses.insufficient} insufficient evidence.` +
+        (result.truncated ? ' Only the first 30 products are displayed.' : '') +
+        ' Requires at least 14 days of recorded history and sales on three different dates. Uses sale events only. It never changes inventory.',
+      modelRows: result.rows,
+      modelAssumptions: result.assumptions
+    };
+  }
 
   const matched = adjustmentPattern.exec(command);
   if (!matched) return { message: 'Command not recognized. Type help to see supported actions.' };
