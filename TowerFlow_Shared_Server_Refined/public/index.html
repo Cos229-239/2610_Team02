@@ -73,7 +73,21 @@
               <div class="af-kicker">TOWERFLOW / FRONTIER INTELLIGENCE</div>
               <div class="af-title-stage"><h2 id="azureFlowHeading" class="af-title">AZURE FLOW</h2></div>
               <p class="af-mission">Business clarity. Evidence first. Every action deliberate.</p>
-              <p class="af-submission">An intelligence layer for your existing inventory and recorded business activity. No external APIs required.</p>
+              <p class="af-submission">A governed intelligence workspace connecting recorded operations with optional sourced market observations. Local AI; no paid data APIs.</p>
+              <form class="af-query" id="afQueryForm">
+                <label for="afQuestion">Ask Azure Flow</label>
+                <div class="af-query-row">
+                  <input id="afQuestion" name="question" maxlength="280" minlength="2" required
+                    placeholder="Research Sony · Analyze my business · Review inventory" autocomplete="off">
+                  <button type="submit" id="afAsk" class="af-main-action">Investigate ↗</button>
+                </div>
+                <div class="af-query-examples">
+                  <button type="button" data-af-example="Sony">Sony</button>
+                  <button type="button" data-af-example="Show my low-stock risks">Inventory risks</button>
+                  <button type="button" data-af-example="Review sales trajectory">Sales trajectory</button>
+                </div>
+              </form>
+              <div id="afAnswer" class="af-answer" role="status" aria-live="polite" hidden></div>
               <div class="af-command">
                 <button id="afAnalyze" type="button" class="af-main-action">✦ Analyze my business</button>
                 <span id="afStatus" class="af-status" role="status" aria-live="polite">Ready · read-only analysis</span>
@@ -94,7 +108,7 @@
           </div>
           <details class="af-feature" id="afPortfolioPanel">
             <summary>◆ Market &amp; shares · personal record analysis</summary>
-            <p>Import or enter a small historical portfolio to calculate its recorded value. Offline, no live quotes, no brokerage orders.</p>
+            <p>For an investment question, use Ask Azure Flow above. This advanced tool calculates the value of holdings you explicitly provide; it is not a brokerage or live feed.</p>
             <form id="afPortfolioForm">
               <label for="afPortfolioRows">One holding per line: SYMBOL, SHARES, COST/SHARE, OBSERVED PRICE, YYYY-MM-DD</label>
               <textarea id="afPortfolioRows" rows="4" maxlength="6000" placeholder="AAPL,2,150.00,180.00,2026-11-20" spellcheck="false" required></textarea>
