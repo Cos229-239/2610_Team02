@@ -107,8 +107,16 @@ test('all 17 scenarios mount, select, render at least one update and restore ori
     e.win.next?.(i*1000+60);
     assert.ok(api.state.frames>0);
     listed.push(name);
-    if(name==='zombie')assert.equal(api.state.outbreak.active,true);
-    else assert.equal(api.state.outbreak.active,false,'zombie failed to stop at '+name);
+    if(name==='zombie'){
+      assert.equal(api.state.outbreak.active,true);
+      assert.equal(api.state.simulationSpeed,4);
+      api.setSimulationSpeed(12);
+      assert.equal(api.state.simulationSpeed,12);
+      api.setSimulationSpeed(4);
+    }else{
+      assert.equal(api.state.outbreak.active,false,'zombie failed to stop at '+name);
+      assert.equal(api.state.simulationSpeed,1);
+    }
     if(['severe','hurricane','typhoon','blizzard'].includes(name)){
       assert.equal(api.state.storm.active,true,'storm did not activate '+name);
     }else assert.equal(api.state.storm.active,false,'storm failed to stop '+name);
