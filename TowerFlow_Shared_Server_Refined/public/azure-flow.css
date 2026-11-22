@@ -390,3 +390,25 @@
   #azureFlow .af-query-examples button,
   #azureFlow .af-example-action{transition:none!important;transform:none!important}
 }
+
+/* Public read-only exchange observations — bounded 3-card responsive panel. */
+#azureFlow .af-live-feed{
+  position:relative;z-index:2;max-width:920px;
+  margin:22px 0 16px;padding:20px;
+  border:1px solid #8b6389;border-radius:16px;
+  background:linear-gradient(140deg,#251732,#180f26);
+}
+#azureFlow .af-live-header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#azureFlow .af-live-eyebrow{color:#f4ce89;letter-spacing:.12em;font-size:10px;font-weight:800}
+#azureFlow .af-live-header h3{font-size:20px;letter-spacing:-.02em;margin:5px 0 7px;color:#fff1f8}
+#azureFlow .af-live-header p,#azureFlow .af-live-feed>small{color:#cbbacf;font-size:12px;line-height:1.5;margin:0}
+#azureFlow #afLiveToggle{min-width:142px;min-height:42px;border-color:#dda96f;color:#ffeac5}
+#azureFlow #afLiveToggle[aria-pressed=true]{background:#633354;border-color:#f0c488}
+#azureFlow .af-live-status{margin:14px 0;color:#e7cbab;font-size:12px;line-height:1.5}
+#azureFlow .af-live-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+#azureFlow .af-live-card{min-width:0;border:1px solid #795672;background:#160f20;border-radius:12px;padding:15px;display:flex;flex-direction:column;gap:8px}
+#azureFlow .af-live-card strong{font-size:12px;color:#efdaed;letter-spacing:.08em}
+#azureFlow .af-live-card b{font-size:clamp(19px,2.2vw,30px);line-height:1.15;color:#fff3db;font-variant-numeric:tabular-nums}
+#azureFlow .af-live-card small{font-size:11px;line-height:1.35;color:#c2b6c9}
+#azureFlow .af-live-card a{font-size:11px;color:#f4c992;overflow-wrap:anywhere}
+@media(max-width:750px){#azureFlow .af-live-grid{grid-template-columns:1fr}#azureFlow .af-live-feed{padding:16px}}
