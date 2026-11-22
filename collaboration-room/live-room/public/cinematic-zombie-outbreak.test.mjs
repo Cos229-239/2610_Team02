@@ -63,3 +63,16 @@ test('actual 3D outbreak: patient zero, first contact, persistent crashes, reset
   assert.equal(urban.children.length,0);
   assert.deepEqual(scene.children,[original]);
 });
+
+test('420-person deterministic contact graph reaches a genuine horde by 95 seconds',()=>{
+  const THREE=fakeTHREE(),urban=new THREE.Group(),scene=new THREE.Group();
+  const outbreak=createZombieOutbreak({THREE,urban,scene,population:420});
+  const before=outbreak.start();
+  assert.equal(before.infected,1);
+  for(let i=0;i<950;i++)outbreak.update(.1);
+  const after=outbreak.state;
+  assert.equal(after.phase,'contagion'); // 95s floating-point accumulation is just below threshold
+  assert.ok(after.infected>=300,'expected hundreds of proximity-converted characters, observed '+after.infected);
+  assert.ok(after.infected<=420);
+  outbreak.dispose();
+});
