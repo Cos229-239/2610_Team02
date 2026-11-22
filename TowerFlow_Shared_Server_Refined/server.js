@@ -211,19 +211,13 @@ function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researc
       }
       if (method === 'POST' && pathname === '/api/azure-flow/research') {
         const body = await jsonBody(req);
-        const sourceMode=body.sourceMode||'adaptive';
-        if (!['adaptive','official-sec'].includes(sourceMode) ||
-          !['allowPublic,question','allowPublic,question,sourceMode'].includes(Object.keys(body).sort().join(',')) ||
-          typeof body.allowPublic !== 'boolean' ||
-          (sourceMode==='official-sec'&&!body.allowPublic))
-          throw new InputError('Research requires authorized public access for the selected source mode.');
+        if (Object.keys(body).sort().join(',')!=='allowPublic,question' ||
+          typeof body.allowPublic!=='boolean')
+          throw new InputError('Research requires a question and explicit external-access choice.');
         // Read only same-owner approved precedents; other users do not share episodes.
         const learningDir=path.join(directory,'azure-flow-learning');
         const precedents=recallAzureLearning(body.question,
           readAzureLearning(learningDir,{userId:user.id}));
-        // Explicit user source selection is a bounded, user-authorized choice.
-        // It never grants mutation rights and does not certify factual correctness.
-        const userSelected=sourceMode==='official-sec';
         const output = await researchImpl(body.question,{state,revision:revisionOf(fingerprint),
           allowPublic:body.allowPublic,priorCases:precedents,isOwner:user.role==='admin',
           ...(userSelected?{planner:async question=>({
