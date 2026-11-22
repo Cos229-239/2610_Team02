@@ -96,6 +96,16 @@
                   <button type="button" data-af-example="Review sales trajectory">Sales trajectory</button>
                 </div>
               </form>
+              <section class="af-live-feed" aria-labelledby="afLiveTitle">
+                <div class="af-live-header"><div>
+                  <span class="af-live-eyebrow">PUBLIC EXCHANGE · ACTUAL OBSERVATIONS</span>
+                  <h3 id="afLiveTitle">Live cryptocurrency market</h3>
+                  <p>BTC, ETH and SOL spot quotes from Coinbase Exchange. No account, key, SEC or inventory history required.</p>
+                </div><button id="afLiveToggle" type="button" class="af-secondary" aria-pressed="false">Start live feed</button></div>
+                <p class="af-live-status" id="afLiveStatus" role="status" aria-live="polite">Paused · requires your external-research consent above.</p>
+                <div class="af-live-grid" id="afLiveGrid" aria-live="off"></div>
+                <small>Exchange snapshot refreshed about every 20 seconds while Azure Flow is visible. Crypto, not stock quotes; source timestamps shown. Unavailable data is never replaced by a guessed price.</small>
+              </section>
               <div class="af-query-examples"><button type="button" id="afCheckRoute" class="af-secondary">Check live research connection</button><small id="afRouteStatus" role="status" aria-live="polite">Checks the running server without initiating research or editing records.</small></div>
               <div id="afAnswer" class="af-answer" role="status" aria-live="polite" hidden></div>
               <div id="afLearning" class="af-learning" hidden>
