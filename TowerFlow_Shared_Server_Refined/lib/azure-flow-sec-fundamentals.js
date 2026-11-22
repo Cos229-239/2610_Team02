@@ -40,14 +40,24 @@ function extract(payload,{cik,now=Date.now()}={}){
   if(!payload||!Number.isSafeInteger(payload.cik)||payload.cik!==cik||
     !payload.facts||typeof payload.facts!=='object'||!payload.facts['us-gaap'])
     return {status:'INVALID_OFFICIAL_PAYLOAD',hits:[],note:'CIK or us-gaap data mismatch.'};
-  const data=payload.facts['us-gaap'],hits=[];
+  const data=payload.facts['us-gaap'],hits=[],conflicts=[];
   for(const metric of SCHEMA){
-    let selected=null,tag=null;
-    for(const candidate of metric.tags){
-      const fact=chooseAnnual(data[candidate],{instant:metric.instant,now});
-      if(fact){selected=fact;tag=candidate;break}
+    const candidates=metric.tags.map(tag=>({
+      tag,row:chooseAnnual(data[tag],{instant:metric.instant,now})
+    })).filter(x=>x.row);
+    if(!candidates.length)continue;
+    candidates.sort((a,b)=>b.row.end.localeCompare(a.row.end)||
+      b.row.filed.localeCompare(a.row.filed)||
+      a.tag.localeCompare(b.tag));
+    const first=candidates[0];
+    // Same-period simultaneous competing concepts can be semantically different.
+    // Never silently claim a single total when equal-priority tags disagree.
+    if(candidates.some(x=>x.row.end===first.row.end&&
+        x.row.filed===first.row.filed&&x.row.val!==first.row.val)){
+      conflicts.push(metric.label);
+      continue;
     }
-    if(!selected)continue;
+    const selected=first.row,tag=first.tag;
     const value=selected.val.toLocaleString('en-US');
     const excerpt=metric.label+': '+value+' USD; fiscal period ending '+selected.end+
       '; filed '+selected.filed+' in Form '+selected.form+
@@ -63,10 +73,13 @@ function extract(payload,{cik,now=Date.now()}={}){
       filed:selected.filed,accession:selected.accn,form:selected.form,
       limitations:'Reported XBRL observation only. No independent audit, stock price, valuation, risk assessment or cash-flow derivation. Financial-year metrics can have different periods.'});
   }
-  return {status:hits.length?'REPORTED_FACTS_FOUND':'NO_US_GAAP_ANNUAL_FACTS',
-    hits,note:hits.length?
-      'Only reported, timestamped US-GAAP metrics. Check period and filing accession before comparisons.':
-      'No validated full-year US-GAAP facts found; do not fabricate metrics.'};
+  return {status:hits.length?'REPORTED_FACTS_FOUND':
+      conflicts.length?'CONFLICTING_GAAP_TAGS':'NO_US_GAAP_ANNUAL_FACTS',
+    hits,conflicts,
+    note:(hits.length?'Issuer-reported USD annual observations. ':'No validated full-year US-GAAP facts found. ')+
+      (conflicts.length?'Conflicting annual facts for: '+conflicts.join(', ')+
+        '; these metrics were withheld. ':'')+
+      'Verify reporting period, accession and source context before making financial claims.'};
 }
 async function researchFacts(cik,{fetchImpl=fetch,agent=process.env.TOWERFLOW_SEC_USER_AGENT||'',
   now=Date.now(),requester=requestJson}={}){
