@@ -117,3 +117,23 @@ Visual motion is NOT evidence of model availability. Smoke test with pointer, ke
 
 ## 16. Reproducible local model screen
 `node tools/azure-flow-live-calibration.cjs dolphin-llama3:8b [qwen3.5:4b]` runs **20 authored cases** (10 intent-routing cases, 10 read-only reorder/abstention cases) on installed localhost models. Outputs expected vs observed labels, schema validity, time and errors; returns nonzero on failure and never selects, downloads or promotes a model. This is a reproducible screening suite, not hidden benchmarks or certified business reasoning. It never creates purchase orders or uses user business data.
+
+## 17. Adaptive learning, RAG and investment-research frontier (2026-11-22)
+The user's later feedback rejected the hardcoded Sony/Microsoft keyword-and-symbol response pattern as an intelligence architecture. Preserve it only as historical prototype context; the **Ask Azure Flow** interface is now routed to `/api/azure-flow/research`, not the old `/api/azure-flow/query` endpoint.
+
+**Implemented on this feature branch:**
+- `azure-flow-intelligence.js`: locally installed Ollama selects an allowed capability plan from a dynamic registry. Every plan is validated before execution and can perform one bounded evidence-driven second pass with explicit public-research consent.
+- `azure-flow-capabilities.js`: typed inventory, sales, local Markdown RAG, owner-only prior findings, public background and SEC issuer/filing metadata harnesses. Individual permissions and sources remain separate.
+- `azure-flow-retrieval.js`: bounded BM25-style local Markdown passage retrieval and owner-scoped historic draft retrieval, content hashes, no arbitrary filesystem paths.
+- `azure-flow-public-research.js`: opt-in free public encyclopedia retrieval for background, clearly flagged community-edited and **not primary financial evidence**.
+- `azure-flow-sec-filings.js`: official free SEC issuer mapping and recent filing-metadata URLs without hardcoded company names. Requires explicit user opt-in and `TOWERFLOW_SEC_USER_AGENT` containing an actual operator name/contact email; without this it abstains. Do not invent a contact or attempt high-volume access. SEC filings themselves are **not** yet parsed, so no claims about a company's financial performance are supported by that adapter.
+- `azure-flow-synthesis.js`: model hypothesis must carry exact quotations with matching source IDs. Substring verification is a provenance check, **not proof of logical or factual correctness**.
+- `azure-flow-evidence-audit.js`: checks evidence coverage, source classes, duplicate IDs, failed harnesses, and identifies unverified financing claims without fabricated confidence scores.
+- `azure-flow-evidence-record.js`: only an explicit owner action saves Markdown findings and proposed ADR into the existing local data folder, scoped by user identity. The ADR records limitations, hypotheses and evidence; no Git commit or approval inferred.
+- `azure-flow-learning.js`: explicitly submitted owner feedback (useful/incorrect/needs-more-evidence) becomes append-only episodic memory. **Only useful reviewed cases** inform future routing as non-factual precedents; the same capability-authorization gate applies at recall time. Incorrect or uncertain cases are recorded for evaluation, not treated as facts or automatic policy updates.
+- `azure-flow-express-bridge.js`: optional Express adapter for an **already existing** authenticated Express collaboration-room host. Not mounted or added as a dependency in the native Node inventory server. No separate port, account system, migration or npm install is required for the current runtime.
+- `docs/azure-flow/knowledge/LEARNING_AND_INVESTMENT.md` and `docs/azure-flow/ADR-002-INTELLIGENCE-LEARNING.md`: reference material, knowledge hierarchy, scope and reviewable architecture decision.
+
+**Not implemented or not certified:** model fine-tuning, gradient descent/reinforcement-learning policy updates, real-time market prices, SEC filing financial-statement extraction, verified valuation, knowledge graph entity disambiguation beyond SEC metadata, simulation-certified returns, independent contradiction detection, automated trading, hidden-holdout reliability >=80%, or a live mounted Express collaboration bridge. Their absence is a known gap, not a silent feature.
+
+**Acceptance criteria before promotion:** `npm test`, actual local Dolphin structured plan/synthesis, strict source-line verification, Wikipedia and SEC blocked-provider behavior, owner/editor memory isolation, repeat-feedback prevention, public-search opt-in, actual browser UX/TF orb response, and differential evaluation against unseen research tasks. Explicitly verify `dev` remains unchanged.
