@@ -11,7 +11,7 @@ const { InputError, emptyInventory, label, createProduct, editProduct,
   validateState, setStock, createWorkOrder, editWorkOrder, deleteWorkOrder,
   createPurchaseOrder, receivePurchaseOrder, cancelPurchaseOrder } = require('./lib/inventory');
 const { dashboard } = require('./lib/report');
-const { reply: assistantReply } = require('./lib/assistant');
+const { interpret: guideInterpret, apply: guideApply } = require('./lib/azure-guide');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
@@ -42,6 +42,8 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
   let fingerprint = hash(initial);
   let state = initial ? validateState(JSON.parse(initial.toString('utf8'))) : emptyInventory();
   const listeners = new Set();
+  // Short-lived, single-use preview IDs; never trust stock quantities supplied by a browser.
+  const guidePreviews = new Map();
   const server = http.createServer(handler);
 
   function publish() {
@@ -194,9 +196,43 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
       }
-      if (method === 'POST' && pathname === '/api/assistant') {
+      if (method === 'POST' && pathname === '/api/azure-guide') {
         const body = await jsonBody(req);
-        return respond(res, 200, { ...assistantReply(state, body.question), revision: revisionOf(fingerprint) });
+        const guide = guideInterpret(state, body.command);
+        // Avoid accumulating abandoned previews. 5-minute previews are single-use.
+        for (const [id, entry] of guidePreviews) {
+          if (entry.expires <= Date.now()) guidePreviews.delete(id);
+        }
+        if (guidePreviews.size >= 1000) guidePreviews.delete(guidePreviews.keys().next().value);
+        const { proposedChange, ...advice } = guide;
+        let previewId = null;
+        if (proposedChange) {
+          previewId = crypto.randomUUID();
+          guidePreviews.set(previewId, { userId: user.id, revision: revisionOf(fingerprint),
+            change: proposedChange, expires: Date.now() + 5 * 60 * 1000 });
+        }
+        return respond(res, 200, { ...advice, previewId, revision: revisionOf(fingerprint) });
+      }
+      if (method === 'POST' && pathname === '/api/azure-guide/apply') {
+        const body = await jsonBody(req);
+        if (typeof body.previewId !== 'string' || !/^[a-f0-9-]{36}$/.test(body.previewId)) {
+          throw new InputError('An Azure Guide preview is required before saving.');
+        }
+        const pending = guidePreviews.get(body.previewId);
+        // Consume before mutation, so previews cannot be replayed even on a failed save.
+        guidePreviews.delete(body.previewId);
+        if (!pending || pending.userId !== user.id || pending.expires <= Date.now()) {
+          const error = new InputError('This guide preview has expired. Run the command again.');
+          error.status = 409;
+          throw error;
+        }
+        if (pending.revision !== revisionOf(fingerprint)) {
+          const error = new InputError('Inventory changed since the preview. Run the command again.');
+          error.status = 409;
+          throw error;
+        }
+        const result = commit(req, candidate => guideApply(candidate, pending.change));
+        return respond(res, 200, result);
       }
       if (method === 'GET' && pathname === '/api/events') {
         res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8',
