@@ -74,7 +74,7 @@ function observation(entity,query,now){
     limitations:'Community-maintained entity record. This is neither independently verified financial performance, live securities pricing, nor an investment recommendation.'};
 }
 async function wikipediaBackground(title,{fetchImpl=fetch,now=Date.now()}={}){
-  if(typeof title!=='string'||!title.trim()||title.length>160||/[\\x00-\\x1f\\x7f]/.test(title))
+  if(typeof title!=='string'||!title.trim()||title.length>160||/[\x00-\x1f\x7f]/.test(title))
     return null;
   const u=new URL('https://en.wikipedia.org/w/api.php');
   for(const [key,value] of Object.entries({action:'query',prop:'extracts',titles:title,
@@ -90,7 +90,7 @@ async function wikipediaBackground(title,{fetchImpl=fetch,now=Date.now()}={}){
     const page=json?.query?.pages?.[0];
     if(!Number.isSafeInteger(page?.pageid)||page.pageid<=0||
       page.title!==title||typeof page.extract!=='string')return null;
-    const excerpt=page.extract.replace(/\\s+/g,' ').trim().slice(0,1500);
+    const excerpt=page.extract.replace(/\s+/g,' ').trim().slice(0,1500);
     if(excerpt.length<80)return null;
     const sha256=crypto.createHash('sha256').update(excerpt).digest('hex');
     return {sourceId:'wikipedia-'+page.pageid+'-'+sha256.slice(0,10),
