@@ -253,6 +253,34 @@
       status.textContent = 'Could not analyze: ' + error.message;
     } finally { button.disabled = false; }
   });
+  // Probe the actual authenticated backend, not source files or a mock server.
+  // An intentionally invalid body reaches route validation but cannot start research.
+  async function checkLiveResearchConnection() {
+    const button=get('afCheckRoute'),status=get('afRouteStatus');
+    button.disabled=true;
+    status.textContent='Checking the running research endpoint…';
+    try {
+      const response=await fetch('/api/azure-flow/research',{
+        method:'POST',credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
+        body:'{}'
+      });
+      if(response.status===400){
+        status.textContent='READY · Live backend recognizes the research endpoint. Research providers not checked.';
+      }else if(response.status===404){
+        status.textContent='OUTDATED SERVER · Research endpoint missing from running backend. Restart the authoritative Node process after coordinating active sessions.';
+      }else if(response.status===401){
+        status.textContent='SIGN IN · Your session is missing or expired.';
+      }else if(response.status===403){
+        status.textContent='BLOCKED · Request security policy rejected this browser.';
+      }else{
+        status.textContent='UNVERIFIED · Backend returned HTTP '+response.status+'. No research was attempted.';
+      }
+    }catch(error){
+      status.textContent='OFFLINE OR UNREACHABLE · '+error.message;
+    }finally{button.disabled=false;}
+  }
+  get('afCheckRoute').addEventListener('click',checkLiveResearchConnection);
   get('afProbe').addEventListener('click', async () => {
     const button=get('afProbe'), status=get('afModelHealth');
     button.disabled=true;
