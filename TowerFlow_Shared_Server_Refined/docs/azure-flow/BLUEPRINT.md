@@ -137,3 +137,22 @@ The user's later feedback rejected the hardcoded Sony/Microsoft keyword-and-symb
 **Not implemented or not certified:** model fine-tuning, gradient descent/reinforcement-learning policy updates, real-time market prices, SEC filing financial-statement extraction, verified valuation, knowledge graph entity disambiguation beyond SEC metadata, simulation-certified returns, independent contradiction detection, automated trading, hidden-holdout reliability >=80%, or a live mounted Express collaboration bridge. Their absence is a known gap, not a silent feature.
 
 **Acceptance criteria before promotion:** `npm test`, actual local Dolphin structured plan/synthesis, strict source-line verification, Wikipedia and SEC blocked-provider behavior, owner/editor memory isolation, repeat-feedback prevention, public-search opt-in, actual browser UX/TF orb response, and differential evaluation against unseen research tasks. Explicitly verify `dev` remains unchanged.
+
+## 18. Detection-oriented evaluation after an observed false green (2026-11-22)
+Operator live observation: `dolphin-llama3:8b` returned **schema-valid** JSON selecting `workspace.inventory`, `workspace.sales` and `knowledge.markdown` when asked about **Microsoft's public financial filings, investment fundamentals and business risks**. The tester reported "SCHEMA AND ALLOWLIST: PASS", but the selected sources cannot directly establish issuer filing facts; the critical `research.sec` capability was omitted. This is an observed **semantic routing failure** and a false positive in the earlier acceptance metric.
+
+Do not equate syntactic or authorization validity with task success. The documented test harness must distinguish:
+- **Parsing / schema compliance:** The output is syntactically valid, no unauthorized tools.
+- **Scope and source fitness:** A selected harness can actually answer the user's question; personal inventory != unrelated issuer filings.
+- **Source existence and provenance:** A provider returned actual records with identifiers, dates, original URLs and receipts.
+- **Answer support:** The conclusion is supported by those records, not an irrelevant quote.
+- **Contradictions and uncertainty:** Missing or conflicting evidence remains unresolved rather than being averaged or concealed.
+- **Behavioral safety:** Explicit public consent and owner/editor boundaries hold in every route.
+- **Resource cost:** Response latency and model memory, measured on actual hardware.
+- **Generalization:** Blind, withheld and previously unseen company names, industries, financial questions, irrelevant distractors, adversarial instructions and changed capability registries.
+
+A new `azure-flow-route-evaluation.js` rubric scores omissions and inappropriate harness selections, not merely whether a response parses. The independent `tools/azure-flow-route-audit.cjs` exercises the **real local** planner on 14 labeled, varied cases; it fails if any primary-source case is missed, even when an overall accuracy percentage is high. The same observed incorrect route is retained as an explicitly identified regression case (`F01`). Positive and negative controls detect false positives. These 14 disclosed cases are **NOT blind**, so the >=80% gate cannot establish general intelligence; qualification requires separately created hidden cases and live browser behavior.
+
+The runtime now explicitly marks `plan.semanticFit=NOT_INDEPENDENTLY_VERIFIED`; `MODEL_PLAN_VALIDATED` means **format and permission only**. Results must not claim competent source selection solely from this status. A revised natural-language planner instruction asks the model to distinguish workspace/private source scopes from outside-company primary evidence; this is an open source-authority rule, not a hardcoded company-specific answer.
+
+**Current live observation:** 1/1 identified semantic routing case failed, even though schema check passed. No actual rerun of Dolphin after the prompt improvement has yet been observed. Do not promote the model or merge.
