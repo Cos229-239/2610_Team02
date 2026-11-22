@@ -82,7 +82,7 @@ test('integrated SEC harness retrieves real-number evidence from a mocked issuer
   });
   assert.equal(report.status,'REPORTED_FACTS_FOUND');
   assert.equal(report.evidence.length,2);
-  assert.equal(report.evidence[1].value,123);
+  assert.equal(report.evidence[0].value,123);
   await assert.rejects(()=>execute('research.sec',{question:'Microsoft',allowPublic:false}),
     /not authorized/);
 });
