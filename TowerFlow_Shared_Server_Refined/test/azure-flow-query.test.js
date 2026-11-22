@@ -41,7 +41,7 @@ test('No invented strategy or company information when sources are missing',asyn
   const state=emptyInventory();
   const noProducts=await answer('Analyze my business',state,{now:1763850000});
   assert.match(noProducts.explanation,/no active products/i);
-  const unknown=await answer('Evaluate unknown firm',state,{now:1763850000});
+  const unknown=await answer('Evaluate unknown firm',state,{now:1763850000,classifier:async()=>({state:'MODEL_NOT_INSTALLED',intent:'unresolved'})});
   assert.equal(unknown.intent,'unresolved');
   assert.equal(unknown.market,undefined);
   assert.equal(unknown.suggestions.length>0,true);
@@ -55,4 +55,12 @@ test('Source labeling survives provider success without inventing an investment 
     marketLookup:async()=>({status:'OBSERVED',source:'Stooq daily CSV',observation:{date:'2026-11-20',closeUsd:100.5}})});
   assert.equal(response.market.observation.closeUsd,100.5);
   assert.match(response.explanation,/not live/);
+});
+test('Governed local model routes open questions but cannot supply unsupported facts',async()=>{
+  const state=emptyInventory();
+  const result=await answer('What should I do next?',state,{now:1763850000,
+    classifier:async()=>({state:'MODEL_INTENT_VALIDATED',intent:'inventory',model:'dolphin-llama3:8b'})});
+  assert.equal(result.intent,'inventory');
+  assert.equal(result.model.state,'MODEL_INTENT_VALIDATED');
+  assert.match(result.explanation,/no active products/);
 });
