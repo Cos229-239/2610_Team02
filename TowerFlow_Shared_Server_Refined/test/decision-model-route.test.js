@@ -34,4 +34,7 @@ test('forecast uses existing authenticated guide route, abstains without sales a
   const after=await (await fetch(origin+'/api/state',{headers:{Cookie:cookie}})).json();
   assert.deepEqual(after,before);
   assert.equal(fs.existsSync(path.join(directory,'inventory.json')),false);
+  const invalid=await post('/api/azure-guide',{command:'forecast '+'x'.repeat(161)},cookie);
+  assert.equal(invalid.status,400);
+  assert.match((await invalid.json()).error,/160 characters/);
 });
