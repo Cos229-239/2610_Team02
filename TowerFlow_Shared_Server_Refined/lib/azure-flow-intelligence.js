@@ -90,7 +90,8 @@ async function investigate(question,{state,revision='unknown',allowPublic=false,
       try{
         const followup=validatePlan({question:original,capabilities:replan.capabilities||[]},remaining).capabilities;
         for(const id of followup.slice(0,2)){
-          runs.push(await executor(id,{question:original,state,revision,allowPublic,now}));
+          try{runs.push(await executor(id,{question:original,state,revision,allowPublic,now}));}
+          catch{runs.push({capability:id,status:'HARNESS_UNAVAILABLE',evidence:[],claims:[]})}
           capabilities.push(id);
         }
         if(followup.length)retrievalPasses=2;
