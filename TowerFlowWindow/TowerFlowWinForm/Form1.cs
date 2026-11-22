@@ -64,7 +64,7 @@ namespace TowerFlowWinForm
 
                     if (advice.ProposedChange is not null)
                     {
-                        var confirmed = MessageBox.Show(advice.Message + "\\n\\nApply this inventory change?",
+                        var confirmed = MessageBox.Show(advice.Message + "\n\nApply this inventory change?",
                             "Azure — confirm stock change", MessageBoxButtons.YesNo,
                             MessageBoxIcon.Question) == DialogResult.Yes;
                         if (!confirmed)
