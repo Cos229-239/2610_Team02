@@ -103,9 +103,17 @@ test('all 17 scenarios mount, select, render at least one update and restore ori
     const [name]=CITY_EVENTS[i];
     api.setMode(name);
     assert.equal(api.state.mode,name);
+    const root=e.scene.getObjectByName('TF_EXTERIOR_CITY_ACTUAL_3D_V1');
+    const cloud=root.getObjectByName('TF_CIVIL_SCENARIO_CLOUDS')?.children[0];
+    const smoke=root.getObjectByName('TF_CIVIL_DISTRESS_PLUMES')?.children[0];
+    const cloudBefore=cloud?.position.z,smokeBefore=smoke?.position.y;
     e.win.next?.(i*1000+30);
     e.win.next?.(i*1000+60);
     assert.ok(api.state.frames>0);
+    if(name==='cloudy')assert.ok(cloud?.position.z!==cloudBefore,
+      'cloud geometry must animate across successive render ticks');
+    if(name==='fire')assert.ok(smoke?.position.y!==smokeBefore,
+      'smoke geometry must rise or sway across successive render ticks');
     listed.push(name);
     if(name==='zombie'){
       assert.equal(api.state.outbreak.active,true);
