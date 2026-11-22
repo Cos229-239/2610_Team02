@@ -65,7 +65,6 @@ test('accounts, protected routes, live update and stale edit rejection', async t
   assert.equal((await anon('/api/state')).status, 401);
   assert.equal((await anon('/api/export.json')).status, 401);
   assert.equal((await anon('/api/events')).status, 401);
-  assert.equal((await anon('/api/assistant', 'POST', { question: 'What is low on stock?' })).status, 401);
   assert.equal((await (await anon('/api/auth/status')).json()).setupAvailable, true);
   const owner = client(origin, await setup(origin));
   assert.equal((await anon('/api/auth/setup', 'POST', { username: 'Second', password })).status, 409);
@@ -78,11 +77,8 @@ test('accounts, protected routes, live update and stale edit rejection', async t
   const editor = client(origin, login.headers.get('set-cookie').split(';')[0]);
   assert.equal((await editor('/api/users')).status, 403);
   assert.equal((await editor('/api/restore/preview', 'POST', emptyInventory())).status, 403);
-  const assistantBefore = await (await editor('/api/state')).json();
-  const assistantResponse = await editor('/api/assistant', 'POST', { question: 'What is low on stock?' });
-  assert.equal(assistantResponse.status, 200);
-  assert.match((await assistantResponse.json()).answer, /No active products/);
-  assert.equal((await (await editor('/api/state')).json()).revision, assistantBefore.revision);
+  assert.equal((await editor('/api/assistant', 'POST', { question: 'test' })).status, 404,
+    'the removed assistant endpoint must no longer exist');
   const initial = await (await editor('/api/state')).json();
   assert.equal(initial.revision, 'empty');
   const stream = await owner('/api/events');

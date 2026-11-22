@@ -13,7 +13,9 @@ let workRevision = null;
 let movementRevision = null;
 let currentUser = null;
 let events = null;
-let assistantRevision = null;
+let azurePreviewId = null;
+let azurePreviewRevision = null;
+let azureCommandSequence = 0;
 
 const money = cents => {
   const n = BigInt(cents);
@@ -51,9 +53,9 @@ async function request(url, method = 'GET', body, revision = state?.revision) {
 async function refresh() {
   state = await request('/api/state');
   render();
-  if (assistantRevision && assistantRevision !== state.revision) {
-    assistantMessage('Inventory changed. Ask again for an updated answer.', 'system');
-    assistantRevision = null;
+  if (azurePreviewId && azurePreviewRevision !== state.revision) {
+    clearAzurePreview();
+    $('#azureResponse').textContent = 'Inventory changed after the preview. Run the command again before saving.';
   }
 }
 function navigate(name) {
@@ -386,51 +388,122 @@ $('#purchaseForm').addEventListener('submit', async event => {
     event.currentTarget.reset(); await refresh(); notice('Supplier request recorded; stock unchanged.');
   } catch (error) { notice(error.message, true); }
 });
-function assistantMessage(content, kind) {
-  const line = el('div', `assistant-message ${kind}`);
-  line.append(el('small', '', kind === 'user' ? 'You' : kind === 'system' ? 'Update' : 'TowerFlow'),
-    el('p', '', content));
-  $('#assistantMessages').append(line);
-  $('#assistantMessages').scrollTop = $('#assistantMessages').scrollHeight;
+function clearAzurePreview() {
+  azurePreviewId = null;
+  azurePreviewRevision = null;
+  $('#azurePreview').hidden = true;
+  $('#azureChangeDescription').textContent = '';
+  $('#azureBefore').textContent = '—';
+  $('#azureAfter').textContent = '—';
+  $('#azureDelta').textContent = '—';
 }
-function assistantSuggestions(items) {
-  const target = $('#assistantSuggestions'); target.replaceChildren();
-  for (const question of items) {
-    const button = el('button', 'assistant-chip', question);
-    button.type = 'button';
-    button.addEventListener('click', () => askAssistant(question));
-    target.append(button);
+async function runAzureGuide(command) {
+  command = command.trim();
+  if (!command) return;
+  const sequence = ++azureCommandSequence;
+  clearAzurePreview();
+  $('#azureResults').hidden = true;
+  $('#azureRows').replaceChildren();
+  $('#azureRun').disabled = true;
+  $('#azureResponse').textContent = 'Running command…';
+  try {
+    const result = await request('/api/azure-guide', 'POST', { command });
+    if (sequence !== azureCommandSequence) return;
+    $('#azureResponse').textContent = result.message;
+    if (result.displayParts) {
+      const rows = $('#azureRows');
+      for (const part of result.displayParts) {
+        const row = el('tr');
+        row.append(el('td', '', part.name),
+          el('td', '', part.partNumber == null ? '—' : `#${part.partNumber} / ${part.serialNumber}`),
+          el('td', '', part.quantity.toLocaleString()),
+          el('td', '', part.minimumStock.toLocaleString()),
+          el('td', '', part.locations));
+        const status = el('td');
+        status.append(el('span', part.reorderAmount ? 'pill alert' : 'pill good',
+          part.reorderAmount ? `+${part.reorderAmount} suggested` : 'Above minimum'));
+        row.append(status);
+        const action = el('td');
+        if (part.partNumber != null && part.serialNumber != null && part.locationCount <= 1 && part.quantity < 1_000_000) {
+          const select = el('button', 'textbtn', 'Prepare adjustment');
+          select.type = 'button';
+          select.title = 'Fills the command field without saving or running it';
+          select.addEventListener('click', () => {
+            $('#azureCommand').value = `add ${part.partNumber}/${part.serialNumber} by 1`;
+            $('#azureCommand').focus();
+          });
+          action.append(select);
+        } else action.textContent = 'Use Inventory';
+        row.append(action);
+        rows.append(row);
+      }
+      $('#azureResults').hidden = result.displayParts.length === 0;
+    }
+    if (result.previewId) {
+      azurePreviewId = result.previewId;
+      azurePreviewRevision = result.revision;
+      $('#azureChangeDescription').textContent = `${result.previewDetails.name} at ${result.previewDetails.location}`;
+      $('#azureBefore').textContent = result.previewDetails.current.toLocaleString();
+      $('#azureAfter').textContent = result.previewDetails.next.toLocaleString();
+      const difference = result.previewDetails.next - result.previewDetails.current;
+      $('#azureDelta').textContent = `${difference > 0 ? '+' : ''}${difference.toLocaleString()}`;
+      $('#azurePreview').hidden = false;
+      if (state && state.revision !== result.revision) {
+        clearAzurePreview();
+        $('#azureResponse').textContent = 'Inventory changed while the preview was being created. Refresh and run it again.';
+      }
+    }
+  } catch (error) {
+    if (sequence === azureCommandSequence) $('#azureResponse').textContent = error.message;
+  } finally {
+    if (sequence === azureCommandSequence) $('#azureRun').disabled = false;
   }
 }
-async function askAssistant(question) {
-  question = question.trim();
-  if (!question) return;
-  assistantMessage(question, 'user');
-  $('#assistantQuestion').value = '';
-  $('#assistantAsk').disabled = true;
-  try {
-    const result = await request('/api/assistant', 'POST', { question });
-    assistantMessage(result.answer, 'assistant');
-    assistantRevision = result.revision;
-    assistantSuggestions(result.suggestions);
-    if (state && state.revision !== assistantRevision) {
-      assistantMessage('Inventory changed while I was answering. Ask again for the latest data.', 'system');
-      assistantRevision = null;
-    }
-  } catch (error) { assistantMessage(error.message, 'system'); }
-  finally { $('#assistantAsk').disabled = false; }
-}
-$('#assistantForm').addEventListener('submit', event => {
+$('#azureForm').addEventListener('submit', event => {
   event.preventDefault();
-  askAssistant($('#assistantQuestion').value);
+  runAzureGuide($('#azureCommand').value);
 });
-function resetAssistant() {
-  $('#assistantMessages').replaceChildren();
-  assistantRevision = null;
-  assistantMessage('I can help you find stock, review low-stock products, and summarize orders or recent movements. Choose a question below or type your own.', 'assistant');
-  assistantSuggestions(['What is low on stock?', 'What should we reorder?',
-    'Show recent movements', 'Show pending purchase orders']);
-}
+$$('[data-azure-command]').forEach(button => button.addEventListener('click', () => {
+  $('#azureCommand').value = button.dataset.azureCommand;
+  runAzureGuide(button.dataset.azureCommand);
+}));
+$('#azureClear').addEventListener('click', () => {
+  ++azureCommandSequence;
+  $('#azureRun').disabled = false;
+  $('#azureCommand').value = '';
+  $('#azureResults').hidden = true;
+  $('#azureRows').replaceChildren();
+  clearAzurePreview();
+  $('#azureResponse').textContent = 'Enter a command or choose a quick action.';
+  $('#azureCommand').focus();
+});
+$('#azureDiscard').addEventListener('click', () => {
+  clearAzurePreview();
+  $('#azureResponse').textContent = 'Stock change preview discarded. No changes were saved.';
+});
+$('#azureConfirm').addEventListener('click', async () => {
+  if (!azurePreviewId) return;
+  if (state?.revision !== azurePreviewRevision) {
+    clearAzurePreview();
+    $('#azureResponse').textContent = 'Inventory changed after the preview. Run the command again.';
+    return;
+  }
+  if (!confirm('Apply the previewed stock change and record it in movement history?')) return;
+  const previewId = azurePreviewId;
+  const revision = azurePreviewRevision;
+  clearAzurePreview();
+  $('#azureConfirm').disabled = true;
+  try {
+    const saved = await request('/api/azure-guide/apply', 'POST', { previewId }, revision);
+    await refresh();
+    $('#azureResponse').textContent = `Saved ${saved.quantity} units at ${saved.location}. Movement history was updated.`;
+    notice('Azure Stock Guide quantity change saved.');
+  } catch (error) {
+    $('#azureResponse').textContent = `${error.message} Run the command again to create a new preview.`;
+    notice(error.message, true);
+    try { await refresh(); } catch { /* Leave the shown server error visible. */ }
+  } finally { $('#azureConfirm').disabled = false; }
+});
 $('#businessForm').addEventListener('submit', async event => {
   event.preventDefault();
   try { await request('/api/business', 'PUT', { name: $('#businessName').value }); await refresh(); notice('Business name saved.'); }
@@ -482,7 +555,10 @@ $('#restoreButton').addEventListener('click', async () => {
 function showAuth(status) {
   events?.close(); events = null;
   state = null; currentUser = null;
-  resetAssistant();
+  clearAzurePreview();
+  $('#azureResults').hidden = true;
+  $('#azureRows').replaceChildren();
+  $('#azureResponse').textContent = 'Enter a command or choose an example to inspect inventory.';
   $('#shell').hidden = true;
   $('#authPanel').hidden = false;
   const setup = status.setupAvailable;
@@ -498,6 +574,7 @@ function showAuth(status) {
   $('#authForm').dataset.setup = setup ? '1' : '0';
 }
 async function enter(user) {
+  clearAzurePreview();
   currentUser = user;
   $('#signedInAs').textContent = `${user.username} · ${user.role}`;
   $('#adminPanel').hidden = user.role !== 'admin';
@@ -505,7 +582,6 @@ async function enter(user) {
   $('#authPanel').hidden = true;
   $('#shell').hidden = false;
   await refresh();
-  resetAssistant();
   if (user.role === 'admin') await loadUsers();
   events?.close();
   events = new EventSource('/api/events');
