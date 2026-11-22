@@ -16,6 +16,7 @@ const { run: runAzureFlow } = require('./lib/azure-flow-harness');
 const { investigate: investigateAzureFlow } = require('./lib/azure-flow-orchestrator');
 const { calibrate: calibrateAzureFlow, snapshot: azureCalibrationStatus } = require('./lib/azure-flow-calibration');
 const { getDailyClose: marketClose } = require('./lib/azure-flow-market');
+const { answer: answerAzureQuery } = require('./lib/azure-flow-query');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
@@ -201,6 +202,12 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/query') {
+        const body = await jsonBody(req);
+        if (Object.keys(body).sort().join(',') !== 'question') throw new InputError('Azure Flow accepts only a question.');
+        const output = await answerAzureQuery(body.question,state,{revision:revisionOf(fingerprint)});
+        return respond(res, 200, output);
       }
       if (method === 'POST' && pathname === '/api/azure-flow/market-close') {
         const body = await jsonBody(req);
