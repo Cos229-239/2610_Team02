@@ -91,6 +91,31 @@
       status.textContent = 'Could not analyze: ' + error.message;
     } finally { button.disabled = false; }
   });
+  get('afCalibrate').addEventListener('click', async () => {
+    const button = get('afCalibrate'), status = get('afCalibrationStatus');
+    button.disabled = true;
+    status.textContent = 'Screening existing models against five bounded examples…';
+    try {
+      const result = await evaluateCalibration();
+      const lines = result.tested?.map(x =>
+        x.model + ': ' + x.correct + '/' + x.total + ' correct in ' + x.measuredMs + ' ms') || [];
+      status.textContent = (result.status || 'UNKNOWN') + ' · ' +
+        (lines.join(' · ') || 'No eligible local models detected.') +
+        ' · Results are a small screening, not general model reliability.';
+    } catch(error) {
+      status.textContent = 'Screening unavailable: ' + error.message;
+    } finally { button.disabled = false; }
+  });
+  async function evaluateCalibration() {
+    const reply = await fetch('/api/azure-flow/calibrate', {
+      method:'POST', credentials:'same-origin',
+      headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
+      body:'{}'
+    });
+    const result = await reply.json();
+    if (!reply.ok) throw new Error(result.error || 'Screening unavailable.');
+    return result;
+  }
   get('afPortfolioForm').addEventListener('submit', async event => {
     event.preventDefault();
     const target = get('afPortfolioResult');
