@@ -12,8 +12,8 @@ function validQuestion(q){
     throw Object.assign(Error('Enter a question in 2–280 characters.'),{status:400});
   return q.trim();
 }
-async function plan(question,{allowPublic=false,requester=localRequest,model=MODEL,priorCases=[],excluded=[],observations=[]}={}){
-  const manifest=authorized({allowPublic}).filter(x=>!excluded.includes(x.id));
+async function plan(question,{allowPublic=false,isOwner=false,requester=localRequest,model=MODEL,priorCases=[],excluded=[],observations=[]}={}){
+  const manifest=authorized({allowPublic,isOwner}).filter(x=>!excluded.includes(x.id));
   if(!manifest.length)return {status:'NO_FURTHER_CAPABILITIES',model:null,capabilities:[],question};
   const FORMAT={type:'object',additionalProperties:false,
     properties:{
@@ -62,15 +62,15 @@ function responseSummary(plan,records){
     '. Inspect the sources below; no unsupported business conclusion was inferred.';
 }
 async function investigate(question,{state,revision='unknown',allowPublic=false,now=Date.now(),
-  planner=plan,executor=execute,synthesizer=synthesize,priorCases=[]}={}){
+  planner=plan,executor=execute,synthesizer=synthesize,priorCases=[],isOwner=false,draftDirectory}={}){
   const original=validQuestion(question);
-  const proposed=await planner(original,{allowPublic,priorCases});
+  const proposed=await planner(original,{allowPublic,isOwner,priorCases});
   let capabilities=proposed.capabilities;
   // Validate even injected/test planners.
-  capabilities=validatePlan({question:original,capabilities},authorized({allowPublic})).capabilities;
+  capabilities=validatePlan({question:original,capabilities},authorized({allowPublic,isOwner})).capabilities;
   const runs=[];
   for(const id of capabilities){
-    try{runs.push(await executor(id,{question:original,state,revision,allowPublic,now}));}
+    try{runs.push(await executor(id,{question:original,state,revision,allowPublic,isOwner,draftDirectory,now}));}
     catch{runs.push({capability:id,status:'HARNESS_UNAVAILABLE',evidence:[],claims:[]});}
   }
   // At most one evidence-driven revision. This cannot invent or execute capabilities.
@@ -80,17 +80,17 @@ async function investigate(question,{state,revision='unknown',allowPublic=false,
   let preliminaryAudit=auditEvidence(runs,preliminary);
   if(allowPublic && proposed.status==='MODEL_PLAN_VALIDATED' &&
       ['INSUFFICIENT','BACKGROUND_OR_LOCAL_ONLY','PRIMARY_LOCATOR_RETRIEVED_NOT_ANALYZED'].includes(preliminaryAudit.evidenceStatus)){
-    const remaining=authorized({allowPublic}).filter(x=>!capabilities.includes(x.id));
+    const remaining=authorized({allowPublic,isOwner}).filter(x=>!capabilities.includes(x.id));
     if(remaining.length){
       const replan=await planner(original,{
-        allowPublic,priorCases,excluded:capabilities,
+        allowPublic,isOwner,priorCases,excluded:capabilities,
         observations:[{coverage:preliminaryAudit.evidenceStatus,completed:capabilities,
           failures:preliminaryAudit.failedCapabilities,nextNeed:preliminaryAudit.nextEvidenceNeed}]
       });
       try{
         const followup=validatePlan({question:original,capabilities:replan.capabilities||[]},remaining).capabilities;
         for(const id of followup.slice(0,2)){
-          try{runs.push(await executor(id,{question:original,state,revision,allowPublic,now}));}
+          try{runs.push(await executor(id,{question:original,state,revision,allowPublic,isOwner,draftDirectory,now}));}
           catch{runs.push({capability:id,status:'HARNESS_UNAVAILABLE',evidence:[],claims:[]})}
           capabilities.push(id);
         }
