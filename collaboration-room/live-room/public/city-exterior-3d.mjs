@@ -4,7 +4,8 @@
 */
 import {createCinematicDisaster} from './cinematic-disaster-scenario.mjs';
 import {createCinematicStorm} from './cinematic-storm-system.mjs';
-export const CITY_VERSION='tf-exterior-3d-v4-cinematic-storms';
+import {createZombieOutbreak} from './cinematic-zombie-outbreak.mjs';
+export const CITY_VERSION='tf-exterior-3d-v5-zombie-apocalypse';
 export const CITY_EVENTS=Object.freeze([["normal","Normal city activity"],["sunny","Sunny"],["cloudy","Cloudy"],["rain","Rain"],["snow","Snow"],["blizzard","Blizzard / strong winds"],["thunder","Thunderstorm"],["severe","Severe thunderstorm / tornado / wind"],["fire","Urban fire"],["cataclysm","Cataclysm"],["typhoon","Typhoon (fictional)"],["hurricane","Hurricane (fictional)"],["zombie","Zombie apocalypse (fiction)"],["airborne","Airborne illness / emergency response (fiction)"],["purge","12-hour lawless-night (fiction)"],["rapture","Rapture: 3 phases (fictional interpretation)"],["sept11","Fictional NYC disaster cinematic (alternate history)"]].map(row=>Object.freeze(row)));
 
 const near=(a,b,e=.04)=>Math.abs(a-b)<e;
@@ -287,6 +288,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     lightning.position.set(-65,64,0);group.add(lightning);
     const disaster=createCinematicDisaster({THREE,urban});
     const cinematicStorm=createCinematicStorm({THREE,group,urban,streetLevel:STREET_LEVEL});
+    const zombieOutbreak=createZombieOutbreak({THREE,urban,scene});
     const chaos={enabled:false,scheme:'normal',events:0};
     const roadMats=[palette.road,wet];
     // Controls don't cover navigation: tiny inspector placed above original HUD.
@@ -324,7 +326,9 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       vortex.visible=next==='cataclysm';
       fireGroup.visible=['fire','cataclysm','purge'].includes(next);
       emergencyGroup.visible=['fire','cataclysm','airborne','purge'].includes(next);
-      peopleGroup.visible=['zombie','airborne','purge','rapture'].includes(next);
+      // New proximity-driven horde renderer owns zombie humans. Do not double render old boxes.
+      peopleGroup.visible=['airborne','purge','rapture'].includes(next);
+      if(next==='zombie')zombieOutbreak.start();else zombieOutbreak.stop();
       raptureGroup.visible=next==='rapture';
       if(next==='sept11')disaster.start();else disaster.stop();
       cinematicStorm.setMode(['severe','hurricane','typhoon','blizzard'].includes(next)?next:null);
@@ -342,6 +346,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       active=false;win.cancelAnimationFrame(raf);
       disaster.dispose();
       cinematicStorm.dispose();
+      zombieOutbreak.dispose();
       wall.visible=prior.wall;glass.visible=prior.glass;
       originalTrims.forEach(({object,visible})=>{object.visible=visible});
       leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
@@ -381,7 +386,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     button('Restore',stop);
     setMode('normal');
     const api=Object.freeze({
-      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,storm:cinematicStorm.state,skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
+      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,storm:cinematicStorm.state,outbreak:zombieOutbreak.state,skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
       setMode,dispose:stop
     });
     scene.add(group);wall.visible=false;glass.visible=false;doc.body.append(panel);
@@ -392,6 +397,10 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       sky.position.copy(camera.position);
       const delta=Math.min(.05,Math.max(0,(time-last)/1000));last=time;
       cinematicStorm.update(delta);
+      if(mode==='zombie'){
+        const z=zombieOutbreak.update(delta);
+        telemetry.textContent='21F · infected '+z.infected+'/'+z.population+' · collisions '+z.crashes+' · '+z.phase;
+      }else telemetry.textContent='21F · street -70 · clear corridor';
       if(mode==='sept11'){
         const p=disaster.update(delta);
         seek.value=String(Math.floor(p.elapsed));
@@ -455,6 +464,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       leftHitTargets.forEach(({object,raycast})=>{object.raycast=raycast});
     disaster.dispose();
     cinematicStorm.dispose();
+    zombieOutbreak.dispose();
     scene.remove(group);
     for(const g of geometries)g.dispose();
     for(const m of [...Object.values(palette),...effectMats])m.dispose();
