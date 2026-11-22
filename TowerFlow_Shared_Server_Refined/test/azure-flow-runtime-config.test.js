@@ -8,7 +8,8 @@ const {runtimeConfig}=require('../lib/azure-flow-runtime-config');
 test('Azure Flow core is independent of optional SEC identity and status leaks no secrets',()=>{
   const offline=runtimeConfig({isOwner:false,secIdentity:''});
   assert.equal(offline.core.enabled,true);
-  assert.equal(offline.research.defaultMode,'adaptive');
+  assert.equal(offline.research.defaultMode,'company');
+  assert.equal(offline.research.modes.find(x=>x.id==='company').enabled,true);
   assert.equal(offline.research.modes.find(x=>x.id==='official-sec').enabled,false);
   assert.ok(offline.capabilities.some(x=>x.id==='workspace.inventory'));
   assert.ok(!offline.capabilities.some(x=>x.id==='knowledge.findings'));
