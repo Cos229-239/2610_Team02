@@ -47,14 +47,10 @@
     button.disabled=true;output.hidden=false;
     output.replaceChildren(textNode('p','Planning an evidence-grounded investigation…'));
     try {
-      const sourceMode=get('afSourceMode').value;
-      if(sourceMode==='official-sec'&&!get('afAllowPublic').checked)
-        throw Error('Enable external research consent to query SEC EDGAR.');
-            const response=await fetch('/api/azure-flow/research',{
+      const response=await fetch('/api/azure-flow/research',{
         method:'POST',credentials:'same-origin',
         headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
-        body:JSON.stringify({question,allowPublic:get('afAllowPublic').checked,
-          sourceMode})
+        body:JSON.stringify({question,allowPublic:get('afAllowPublic').checked})
       });
       const result=await response.json();
       if(!response.ok)throw Error(result.error||'Research unavailable.');
@@ -64,8 +60,6 @@
         textNode('p','Plan: '+(result.plan?.status||'unknown')+
           ' · Authorized harnesses: '+(result.plan?.capabilities||[]).join(', '),'af-badge')
       );
-      if(result.plan?.status==='USER_SELECTED_OFFICIAL_SOURCE')
-        output.append(textNode('p','Official SEC source selected by you. This bypasses the experimental AI routing, not evidence validation.','af-badge'));
       if(result.plan?.model)output.append(textNode('p','Planner: '+result.plan.model,'af-badge'));
       if(result.evidenceAudit){
         const a=result.evidenceAudit;
@@ -107,7 +101,7 @@
         article.append(textNode('strong',source.title||source.source||'Evidence'),
           textNode('p',source.excerpt||'No excerpt.'),
           textNode('small',source.source+' · SHA-256 '+String(source.sha256||'').slice(0,12),'af-badge'));
-        if(typeof source.url==='string'&&/^https:\/\/(?:en\.wikipedia\.org\/wiki\/|www\.sec\.gov\/Archives\/edgar\/data\/|data\.sec\.gov\/api\/xbrl\/companyfacts\/CIK[0-9]{10}\.json)/.test(source.url)){
+        if(typeof source.url==='string'&&/^https:\/\/en\.wikipedia\.org\/wiki\//.test(source.url)){
           const anchor=document.createElement('a');
           anchor.href=source.url;anchor.rel='noopener noreferrer';anchor.target='_blank';
           anchor.textContent='Open cited source ↗';
