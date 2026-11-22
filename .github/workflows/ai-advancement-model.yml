@@ -1,0 +1,29 @@
+name: AI Advancement — coherent inventory decision model
+on:
+  push:
+    branches: [feature/ai-advancement-coherent-inventory-model-20261121]
+    paths:
+      - 'TowerFlow_Shared_Server_Refined/**'
+      - '.github/workflows/ai-advancement-model.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  decision-model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify model source and browser integration syntax
+        working-directory: TowerFlow_Shared_Server_Refined
+        run: |
+          node --check lib/decision-model.js
+          node --check lib/azure-guide.js
+          node --check public/app.js
+          node --check server.js
+      - name: Run full shared-inventory test suite
+        working-directory: TowerFlow_Shared_Server_Refined
+        run: npm test
