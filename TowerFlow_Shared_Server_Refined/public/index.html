@@ -83,8 +83,13 @@
                   <button type="submit" id="afAsk" class="af-main-action">Investigate ↗</button>
                 </div>
                 <label class="af-consent"><input type="checkbox" id="afAllowPublic">
-                  Authorize external background research (sends this question to Wikipedia; never workspace records)</label>
-                <small id="afSourceNote">External background research is optional; local investigation does not require an external account or operator identity.</small>
+                  Authorize external research (sends this question to SEC EDGAR and/or Wikipedia; never workspace records)</label>
+                <label class="af-consent" for="afSourceMode">Research strategy</label>
+                <select id="afSourceMode" class="af-source-mode" aria-describedby="afSourceNote">
+                  <option value="adaptive">Adaptive local AI (experimental)</option>
+                  <option value="official-sec">Official SEC filing + reported financial facts (public-company research)</option>
+                </select>
+                <small id="afSourceNote">Official SEC research needs external consent and an operator-identifying User-Agent configured on the server. No trading, quotations or advice.</small>
                 <div class="af-query-examples">
                   <button type="button" data-af-example="Sony">Sony</button>
                   <button type="button" data-af-example="Show my low-stock risks">Inventory risks</button>
