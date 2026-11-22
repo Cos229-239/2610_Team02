@@ -12,8 +12,10 @@ function validQuestion(q){
     throw Object.assign(Error('Enter a question in 2–280 characters.'),{status:400});
   return q.trim();
 }
-async function plan(question,{allowPublic=false,isOwner=false,requester=localRequest,model=MODEL,priorCases=[],excluded=[],observations=[]}={}){
+async function plan(question,{allowPublic=false,isOwner=false,requester=localRequest,model=MODEL,priorCases=[],excluded=[],observations=[],registryOrder='normal'}={}){
+  if(!['normal','reverse'].includes(registryOrder))throw Error('Unsupported audit registry order');
   const manifest=authorized({allowPublic,isOwner}).filter(x=>!excluded.includes(x.id));
+  if(registryOrder==='reverse')manifest.reverse();
   if(!manifest.length)return {status:'NO_FURTHER_CAPABILITIES',model:null,capabilities:[],question};
   const FORMAT={type:'object',additionalProperties:false,
     properties:{
