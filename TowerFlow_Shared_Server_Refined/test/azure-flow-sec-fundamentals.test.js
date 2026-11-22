@@ -96,3 +96,22 @@ test('a failed primary-fact provider never becomes a manufactured financial numb
   assert.equal(r.financialStatus,'XBRL_UNAVAILABLE');
   assert.equal(r.status,'SOURCES_FOUND'); // Metadata status alone != XBRL success.
 });
+
+test('most recent supported annual revenue tag outranks older legacy tag',()=>{
+  const reported=filings([annual(100,{start:'2024-07-01',end:'2025-06-30',
+    filed:'2025-08-20',accn:'0000789019-25-000001'})]);
+  reported.facts['us-gaap'].Revenues={units:{USD:[annual(220)]}};
+  const result=extract(reported,{cik:789019,now:time});
+  assert.equal(result.hits.length,1);
+  assert.equal(result.hits[0].value,220);
+  assert.equal(result.hits[0].tag,'Revenues');
+});
+test('same-period contradictory SEC revenue tags are withheld, not falsely reconciled',()=>{
+  const reported=filings([annual(100)]);
+  reported.facts['us-gaap'].Revenues={units:{USD:[annual(120)]}};
+  const result=extract(reported,{cik:789019,now:time});
+  assert.equal(result.status,'CONFLICTING_GAAP_TAGS');
+  assert.equal(result.hits.length,0);
+  assert.equal(result.conflicts.length,1);
+  assert.match(result.note,/withheld/);
+});
