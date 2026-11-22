@@ -101,6 +101,15 @@
               <button class="af-secondary" type="submit">Analyze entered holdings</button>
             </form>
             <div id="afPortfolioResult" role="status" aria-live="polite"></div>
+            <details class="af-market-lookup">
+              <summary>Check an optional free historical closing price</summary>
+              <form id="afMarketForm">
+                <label for="afMarketSymbol">U.S. share ticker (for example AAPL)</label>
+                <input id="afMarketSymbol" name="symbol" maxlength="7" pattern="[A-Za-z]{1,5}(\\.[A-Za-z])?" placeholder="AAPL" required>
+                <button type="submit" class="af-secondary">Check available close</button>
+              </form>
+              <div id="afMarketResult" role="status" aria-live="polite">Source availability varies. This is not real-time market data.</div>
+            </details>
           </details>
           <details class="af-feature" id="afModelTools">
             <summary>◈ Local intelligence · model screening</summary>
