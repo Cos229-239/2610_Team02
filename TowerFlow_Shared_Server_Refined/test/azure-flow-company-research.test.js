@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {subjects,researchBusiness,observation,urlFor}=require('../lib/azure-flow-company-research');
+const {subjects,researchBusiness,observation,urlFor,wikipediaBackground}=require('../lib/azure-flow-company-research');
 const {responseSummary}=require('../lib/azure-flow-intelligence');
 const {createApp}=require('../server');
 function entity(id,label,desc,site){
@@ -65,6 +65,27 @@ test('ambiguous and unavailable company matches do not invent facts',async()=>{
  assert.equal(unavailable.outcomes[0].status,'SOURCE_UNAVAILABLE');
  assert.equal(observation({id:'Q9',labels:{en:{value:'Random'}},
    descriptions:{en:{value:'fictional fictional'}},claims:{}},'Random',Date.now()),null);
+});
+test('linked Wikipedia business context requires exact article identity and is source-attributed',async()=>{
+ const t='Sony';
+ const hits=[];
+ const provider=async(url,options)=>{
+   hits.push(url);
+   return {ok:true,arrayBuffer:async()=>Buffer.from(JSON.stringify({
+     query:{pages:[{pageid:9123,title:t,extract:
+       'Sony Group Corporation is a Japanese multinational conglomerate corporation. The group operates across entertainment, gaming, imaging, and electronics businesses.'}]}
+   }))};
+ };
+ const background=await wikipediaBackground(t,{fetchImpl:provider,now:Date.parse('2026-11-22T23:00:00Z')});
+ assert.equal(background.source,'English Wikipedia (community-edited)');
+ assert.match(background.excerpt,/entertainment, gaming/);
+ assert.equal(background.url,'https://en.wikipedia.org/wiki/Sony');
+ assert.ok(hits[0].startsWith('https://en.wikipedia.org/w/api.php?'));
+ const wrong=await wikipediaBackground(t,{fetchImpl:async()=>({
+   ok:true,arrayBuffer:async()=>Buffer.from(JSON.stringify({query:{pages:[{
+     pageid:9123,title:'Other',extract:'Unrelated article with sufficient text to pass a basic string-length threshold.'}]}}))
+ })});
+ assert.equal(wrong,null);
 });
 test('authenticated HTTP company mode bypasses LLM and SEC with mandatory consent',async t=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'af-company-'));
