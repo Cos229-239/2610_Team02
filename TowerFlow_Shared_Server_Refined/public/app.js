@@ -404,12 +404,30 @@ async function runAzureGuide(command) {
   clearAzurePreview();
   $('#azureResults').hidden = true;
   $('#azureRows').replaceChildren();
+  const modelPanel = $('#azureModelResults');
+  modelPanel.hidden = true;
+  modelPanel.replaceChildren();
   $('#azureRun').disabled = true;
   $('#azureResponse').textContent = 'Running command…';
   try {
     const result = await request('/api/azure-guide', 'POST', { command });
     if (sequence !== azureCommandSequence) return;
     $('#azureResponse').textContent = result.message;
+    if (Array.isArray(result.modelRows)) {
+      modelPanel.hidden = false;
+      modelPanel.append(el('h3', '', '7-day evidence-based inventory outlook'),
+        el('p', 'subtle', 'Planning estimates, not a trained AI model or validated forecast. No inventory changes are made.'));
+      for (const item of result.modelRows) {
+        const card = el('div', 'list-row');
+        const title = el('strong', '', item.name + ' — ' + item.status.replaceAll('_', ' '));
+        const details = el('p', 'subtle', item.reason);
+        card.append(title, details);
+        modelPanel.append(card);
+      }
+      if (!result.modelRows.length) modelPanel.append(el('p', 'empty', 'No matching active products.'));
+      const assumptions = el('p', 'subtle', (result.modelAssumptions || []).join(' '));
+      modelPanel.append(assumptions);
+    }
     if (result.displayParts) {
       const rows = $('#azureRows');
       for (const part of result.displayParts) {
@@ -474,6 +492,8 @@ $('#azureClear').addEventListener('click', () => {
   $('#azureResults').hidden = true;
   $('#azureRows').replaceChildren();
   clearAzurePreview();
+  $('#azureModelResults').hidden = true;
+  $('#azureModelResults').replaceChildren();
   $('#azureResponse').textContent = 'Enter a command or choose a quick action.';
   $('#azureCommand').focus();
 });
