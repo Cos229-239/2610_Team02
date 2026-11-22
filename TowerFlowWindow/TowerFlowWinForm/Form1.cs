@@ -73,14 +73,14 @@ namespace TowerFlowWinForm
                             return;
                         }
                         bool saved = AzureStockGuide.Apply(advice.ProposedChange);
-                        answer.Text = saved ? "Saved through KuroKage inventory. " + advice.Message :
+                        answer.Text = saved ? "Stock update saved. Inventory grid refreshed." :
                             "Not saved. Part changed, was removed, or could not be found.";
                         RefreshGrid();
                     }
                 }
                 catch (Exception ex)
                 {
-                    answer.Text = "Inventory unchanged or save failed: " + ex.Message;
+                    answer.Text = "Operation failed; verify current inventory before retrying: " + ex.Message;
                 }
             }
             execute.Click += RunAzure;
