@@ -73,8 +73,8 @@ async function adjudicate(question,{allowPublic=false,isOwner=false,
     return {status:'EVIDENCE_FIT_NOT_VERIFIED',model,capabilities:[],findings:output,
       note:'At least one source assessment unresolved; no model qualification.'};
   // No forced three-source quota. Supporting is not a substitute for direct source.
-  const direct=output.filter(x=>x.relevance==='DIRECT').map(x=>x.id);
-  const supporting=output.filter(x=>x.relevance==='SUPPORTING').map(x=>x.id);
+  const direct=output.filter(x=>x.relevance==='DIRECT').map(x=>x.id).sort();
+  const supporting=output.filter(x=>x.relevance==='SUPPORTING').map(x=>x.id).sort();
   const chosen=[...direct,...supporting].slice(0,3);
   return {status:'EXPERIMENTAL_FIT_SCREEN',model,capabilities:chosen,
     findings:output,sourceCoverage:direct.length?'DIRECT_POSSIBLE':
