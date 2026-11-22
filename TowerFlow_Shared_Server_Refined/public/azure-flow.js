@@ -43,7 +43,7 @@
   async function askAzure(question) {
     const output=get('afAnswer'),button=get('afAsk');
     const saveArea=get('afSaveArea'),saveStatus=get('afSaveStatus');
-    latestEvidenceId=null;saveArea.hidden=true;get('afLearning').hidden=true;
+    latestEvidenceId=null;saveArea.hidden=true;get('afLearning').hidden=true;get('afSaveResearch').disabled=false;get('afFeedbackNote').value='';
     button.disabled=true;output.hidden=false;
     output.replaceChildren(textNode('p','Planning an evidence-grounded investigation…'));
     try {
@@ -147,7 +147,6 @@
       });
       const result=await response.json();
       if(!response.ok)throw Error(result.error||'Could not save.');
-      latestEvidenceId=null;
       status.textContent='Saved '+result.filename+' · SHA-256 '+result.sha256.slice(0,14)+
         ' · draft only, not published.';
       button.disabled=true;
