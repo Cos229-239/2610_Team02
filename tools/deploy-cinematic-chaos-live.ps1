@@ -8,7 +8,7 @@ $room=Join-Path $live 'public\room.js'
 $ref='origin/feature/preserved-exterior-integration-gates-20261121'
 $gitdir='collaboration-room/live-room/public/'
 $runtime=@('city-exterior-3d.mjs','cinematic-disaster-scenario.mjs','cinematic-storm-system.mjs','cinematic-zombie-outbreak.mjs')
-$tests=@('cinematic-disaster-scenario.test.mjs','cinematic-storm-system.test.mjs','cinematic-zombie-outbreak.test.mjs')
+$tests=@('cinematic-disaster-scenario.test.mjs','cinematic-storm-system.test.mjs','cinematic-zombie-outbreak.test.mjs','city-exterior-3d.test.mjs')
 $stage=Join-Path $env:TEMP ('tf-chaos-live-'+[guid]::NewGuid().ToString('N'))
 $report=New-Object System.Collections.Generic.List[string]
 $mutations=New-Object System.Collections.Generic.List[string]
@@ -60,7 +60,8 @@ try{
   $out=@(& $node --check (Join-Path $stage $name) 2>&1)
   Assert-OK ($LASTEXITCODE -eq 0) ('JS syntax failed '+$name+': '+($out -join '; '))
  }
- $testsOutput=@(& $node --test (Join-Path $stage $tests[0]) (Join-Path $stage $tests[1]) (Join-Path $stage $tests[2]) 2>&1)
+ $testFiles=@($tests | ForEach-Object { Join-Path $stage $_ })
+ $testsOutput=@(& $node --test @testFiles 2>&1)
  Assert-OK ($LASTEXITCODE -eq 0) ('Node tests failed: '+($testsOutput -join '; '))
  foreach($line in $testsOutput){if([string]$line -match '(tests |pass |fail |not ok)'){Report ('TEST '+([string]$line))}}
  Report '[3] MODULE SYNTAX AND SCENARIO CONTRACT TESTS: PASS'
