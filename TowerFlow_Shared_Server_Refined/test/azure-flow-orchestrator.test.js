@@ -23,7 +23,7 @@ test('local model adapter uses existing Ollama port and installed model only',as
     if(route==='/api/tags')return {models:[{name:'dolphin-llama3:8b'}]};
     assert.equal(body.model,'dolphin-llama3:8b');
     assert.equal(body.stream,false);
-    assert.equal(body.keep_alive,0);
+    assert.equal(body.keep_alive,'60s');
     return {message:{content:'{"findingIndex":0,"focus":"evidence"}'}};
   };
   const result=await focusSuggestion(report,{model:'dolphin-llama3:8b',requester});
