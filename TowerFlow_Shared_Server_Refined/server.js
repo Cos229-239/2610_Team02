@@ -15,6 +15,7 @@ const { interpret: guideInterpret, apply: guideApply } = require('./lib/azure-gu
 const { run: runAzureFlow } = require('./lib/azure-flow-harness');
 const { investigate: investigateAzureFlow } = require('./lib/azure-flow-orchestrator');
 const { calibrate: calibrateAzureFlow, snapshot: azureCalibrationStatus } = require('./lib/azure-flow-calibration');
+const { getDailyClose: marketClose } = require('./lib/azure-flow-market');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
@@ -200,6 +201,12 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/market-close') {
+        const body = await jsonBody(req);
+        if (Object.keys(body).sort().join(',') !== 'symbol') throw new InputError('Only a stock symbol is accepted.');
+        try { return respond(res, 200, await marketClose(body.symbol)); }
+        catch { throw new InputError('Enter a supported U.S. equity symbol.'); }
       }
       if (method === 'GET' && pathname === '/api/azure-flow/model-status') {
         return respond(res, 200, azureCalibrationStatus());
