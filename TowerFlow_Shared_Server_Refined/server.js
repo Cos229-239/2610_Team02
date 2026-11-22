@@ -242,6 +242,8 @@ function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researc
             status:sourceMode==='company'?'USER_SELECTED_COMPANY_RESEARCH':'USER_SELECTED_OFFICIAL_SOURCE',model:null,question,
             capabilities:[sourceMode==='company'?'research.company':'research.sec']
           })}:{}),
+          ...(sourceMode==='company'?{synthesizer:async()=>({state:'DIRECT_SOURCED_COMPANY_SUMMARY',
+            hypothesis:null,observations:[],unknowns:['Community-maintained company metadata is not independently verified.']})}:{}),
           draftDirectory:path.join(directory,'azure-flow-findings',user.id)});
         // Bounded ephemeral draft receipts, not persistent automatic memory writes.
         for(const [key,entry] of azureDrafts){
