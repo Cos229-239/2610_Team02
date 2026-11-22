@@ -14,6 +14,88 @@ namespace TowerFlowWinForm
             InitializeComponent();
             PartData.LoadParts();
             RefreshGrid();
+            InstallAzureGuide();
+        }
+
+        // Dulskinator96 — Azure: scoped solely to KuroKage's native inventory window.
+        // Add controls at runtime so William's designer-generated layout remains unchanged.
+        private void InstallAzureGuide()
+        {
+            ClientSize = new Size(800, 615);
+            var panel = new GroupBox
+            {
+                Name = "azureStockGuide",
+                Text = "KuroKage — Azure Stock Guide  |  Dulskinator96: Azure",
+                Location = new Point(12, 455),
+                Size = new Size(776, 145)
+            };
+            var prompt = new TextBox
+            {
+                Name = "azureCommand",
+                Location = new Point(12, 27),
+                Size = new Size(604, 27),
+                PlaceholderText = "Try: low stock | find Adapter | sort quantity | set 123/456789 to 8"
+            };
+            var execute = new Button
+            {
+                Name = "azureExecute",
+                Text = "Ask Azure",
+                Location = new Point(628, 26),
+                Size = new Size(130, 30)
+            };
+            var answer = new TextBox
+            {
+                Name = "azureAnswer",
+                ReadOnly = true,
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical,
+                Location = new Point(12, 65),
+                Size = new Size(746, 66),
+                Text = "Offline stock guide. Type help for supported commands. Inventory changes require confirmation."
+            };
+            void RunAzure(object? sender, EventArgs eventArgs)
+            {
+                try
+                {
+                    var advice = AzureStockGuide.Interpret(prompt.Text, PartData.GetAllParts());
+                    answer.Text = advice.Message;
+                    if (advice.DisplayParts is not null)
+                        RefreshGrid(source: advice.DisplayParts);
+
+                    if (advice.ProposedChange is not null)
+                    {
+                        var confirmed = MessageBox.Show(advice.Message + "\n\nApply this inventory change?",
+                            "Azure — confirm stock change", MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Question) == DialogResult.Yes;
+                        if (!confirmed)
+                        {
+                            answer.Text = "Canceled. Inventory unchanged.";
+                            return;
+                        }
+                        bool saved = AzureStockGuide.Apply(advice.ProposedChange);
+                        answer.Text = saved ? "Stock update saved. Inventory grid refreshed." :
+                            "Not saved. Part changed, was removed, or could not be found.";
+                        RefreshGrid();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    answer.Text = "Operation failed; verify current inventory before retrying: " + ex.Message;
+                }
+            }
+            execute.Click += RunAzure;
+            prompt.KeyDown += (sender, e) =>
+            {
+                if (e.KeyCode == Keys.Enter)
+                {
+                    e.SuppressKeyPress = true;
+                    RunAzure(sender, e);
+                }
+            };
+            panel.Controls.Add(prompt);
+            panel.Controls.Add(execute);
+            panel.Controls.Add(answer);
+            Controls.Add(panel);
         }
 
         private void ClearInputs()
@@ -25,9 +107,9 @@ namespace TowerFlowWinForm
             txtQuantity.Clear();
         }
 
-        private void RefreshGrid(string filter = "")
+        private void RefreshGrid(string filter = "", IEnumerable<Part>? source = null)
         {
-            var parts = PartData.GetPartsByName(filter);
+            var parts = source?.ToList() ?? PartData.GetPartsByName(filter);
             partsGrid.Rows.Clear();
             if (partsGrid.Columns.Count == 0)
             {

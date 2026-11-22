@@ -20,3 +20,7 @@ Step 1: Starting fresh from .Zip file or from Repository
  A: If your screen displays the blank layout, look at the View in the top bar and open the Solution Explorer and select the files provided to make editions.
 
  Happy TowerFlow.
+
+Dulskinator96 contribution — Azure Stock Guide (optional, already integrated into dev)
+-----------------------------------------------------------------------------------
+After following the steps above, see TowerFlowWindow/TowerFlowWinForm/AZURE_FOR_KUROKAGE.md for the one-page setup, commands, and test checklist. This feature is for KuroKage's WinForms app only.
