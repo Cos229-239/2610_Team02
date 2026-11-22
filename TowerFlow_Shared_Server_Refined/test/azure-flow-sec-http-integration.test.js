@@ -40,6 +40,8 @@ test('authenticated Azure Flow official SEC mode reaches evidence API while disa
   const script=await browser.text();
   assert.equal(browser.status,200);
   assert.match(script,/sourceMode/);
+  const noAuthConfig=await fetch(base+'/api/azure-flow/config');
+  assert.equal(noAuthConfig.status,401);
   const noAuth=await post('/api/azure-flow/research',{
     question:'Microsoft',allowPublic:true,sourceMode:'official-sec'});
   assert.equal(noAuth.status,401);
@@ -48,6 +50,17 @@ test('authenticated Azure Flow official SEC mode reaches evidence API while disa
     username:'azuretest',password:'LocalTestPassword_2026!'});
   assert.equal(created.status,201);
   const cookie=created.headers.get('set-cookie').split(';')[0];
+  const config=await fetch(base+'/api/azure-flow/config',{headers:{Cookie:cookie}});
+  assert.equal(config.status,200);
+  const configData=await config.json();
+  assert.equal(configData.schema,'towerflow.azure-flow.runtime-config/v1');
+  assert.equal(configData.core.researchEndpoint,'/api/azure-flow/research');
+  assert.equal(configData.research.defaultMode,'adaptive');
+  assert.equal(configData.research.externalConsentRequired,true);
+  assert.ok(configData.research.modes.some(x=>x.id==='adaptive'&&x.enabled));
+  assert.ok(configData.capabilities.some(x=>x.id==='workspace.inventory'));
+  assert.doesNotMatch(JSON.stringify(configData),/user.agent|@|password|cookie|token/i);
+
   const missingConsent=await post('/api/azure-flow/research',{
     question:'Microsoft',allowPublic:false,sourceMode:'official-sec'},cookie);
   assert.equal(missingConsent.status,400);
