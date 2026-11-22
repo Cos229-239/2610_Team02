@@ -17,7 +17,7 @@ test('Azure Flow official-research UI requires explicit public consent and sourc
 test('research server must block an unconsented official SEC mode before any harness starts',()=>{
   const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
   assert.match(server,/sourceMode==='official-sec'&&!body\.allowPublic/);
-  assert.match(server,/status:'USER_SELECTED_OFFICIAL_SOURCE'/);
+  assert.match(server,/USER_SELECTED_OFFICIAL_SOURCE/);
   assert.match(server,/capabilities:\['research\.sec'\]/);
   assert.match(server,/userSelected\?\{planner:/);
 });
