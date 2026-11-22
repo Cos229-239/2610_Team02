@@ -4,6 +4,7 @@
 const {overview}=require('./azure-flow-harness');
 const {retrieve,retrieveFindings}=require('./azure-flow-retrieval');
 const {publicSearch}=require('./azure-flow-public-research');
+const {researchBusiness}=require('./azure-flow-company-research');
 const {searchFilings}=require('./azure-flow-sec-filings');
 const {researchFacts}=require('./azure-flow-sec-fundamentals');
 const MANIFEST=Object.freeze([
@@ -11,6 +12,7 @@ const MANIFEST=Object.freeze([
   {id:'workspace.sales',description:'Inspect recorded sale movements, gross sales history and monthly sales totals from TowerFlow ledger',scope:'local',permission:'signed_in',kind:'structured'},
   {id:'knowledge.findings',description:'Recall the signed-in owner\'s saved research findings and proposed ADR Markdown drafts. Historical hypotheses are not primary facts.',scope:'local',permission:'owner_only',kind:'retrieval'},
   {id:'knowledge.markdown',description:'Retrieve passages from maintained Markdown design, research, knowledge and architecture files with hashes and citations',scope:'local',permission:'signed_in',kind:'retrieval'},
+  {id:'research.company',description:'Look up named companies and businesses through live Wikidata entity records. Return company description, recorded inception, official website identifier and ticker IDs where available, with source URLs. Does not supply verified revenue, live equity prices, news or investment advice.',scope:'external',permission:'explicit_public_opt_in',kind:'retrieval'},
   {id:'research.sec',description:'Identify a public issuer from official SEC company records; retrieve filing locators and available issuer-reported annual US-GAAP XBRL metrics. Does not calculate valuations or infer an investment decision. Requires explicit public opt-in and real operator identity.',scope:'external',permission:'explicit_public_opt_in',kind:'primary_source'},
   {id:'research.public',description:'Search a public encyclopedia for background about a named subject, company, person, place, or concept. Not a financial quote service.',scope:'external',permission:'explicit_public_opt_in',kind:'retrieval'}
 ]);
@@ -60,6 +62,11 @@ async function execute(id,{question,state,revision,now,allowPublic,isOwner=false
       financialStatus:financials.status,
       financialConflicts:financials.conflicts||[],
       note:[locator.note,financials.note].filter(Boolean).join(' ')};
+  }
+  if(id==='research.company') {
+    const found=await researchBusiness(question);
+    return {capability:id,status:found.status,evidence:found.hits,claims:[],
+      outcomes:found.outcomes,requested:found.requested,note:found.note};
   }
   if(id==='research.public') {
     const found=await publicImpl(question,{now});
