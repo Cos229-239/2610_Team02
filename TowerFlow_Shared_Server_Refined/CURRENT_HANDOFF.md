@@ -169,14 +169,14 @@ The application adds consolidated accounts, revision checking and notifications.
 - `lib/decision-model.js`: pure `analyze(state, {now, query})` function; checks sales demand and stock threshold, outputs auditable 7-day planning estimates with evidence, assumptions, status and reason.
 - `lib/azure-guide.js`: extends the existing authenticated guide with read-only `forecast` and `forecast <name/code>` commands; retains all prior `set`/`add` preview-and-confirm behavior.
 - `public/index.html`, `public/app.js`: **7-day outlook** shortcut and safe DOM text rendering of results. No new vendor integration, telemetry or API key.
-- `test/decision-model.test.js`: seven fixtures covering repeatability, no mutation, insufficient-data abstention, non-sales-event exclusion, priority, filtering and validation.
+- `test/decision-model.test.js`: eight fixtures covering repeatability, no mutation, insufficient-data abstention, non-sales-event exclusion, priority, filtering and validation.
 - `test/decision-model-route.test.js`: checks the existing authenticated HTTP route, response shape and that a forecast does not create an inventory file.
 - `.github/workflows/ai-advancement-model.yml`: tests the proposed changes using Node 24; this is independent of the previously failing Team 02 native C++ inventory workflow.
 
 ### Model contract and limitations
 
 1. Demand evidence = `sale` movements only; `transfer` and `remove` are explicitly excluded.
-2. Observation window = up to 30 calendar days since the **earliest recorded movement** at evaluation time. That earliest event is a **proxy** for the existence of history, not proof of completeness.
+2. Observation window = up to 30 calendar days since **each product's earliest recorded movement** at evaluation time. History from another product must never qualify this product. The earliest event is a **proxy** for the existence of history, not proof of completeness.
 3. Model abstains unless at least 14 recorded-history days **and** sales on 3 distinct days exist. This prevents ungrounded predictions from a new or sparse dataset.
 4. Daily sales rate = sale quantities in the observation window / observed days.
 5. Seven-day demand = ceil(7 × rate); projected units = max(0, current stock − demand).
