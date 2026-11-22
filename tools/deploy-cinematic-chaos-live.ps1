@@ -7,8 +7,8 @@ $live=Join-Path $env:USERPROFILE 'Desktop\Towerflow_Team02_Private_Invite_Room\T
 $room=Join-Path $live 'public\room.js'
 $ref='origin/feature/preserved-exterior-integration-gates-20261121'
 $gitdir='collaboration-room/live-room/public/'
-$runtime=@('city-exterior-3d.mjs','cinematic-disaster-scenario.mjs','cinematic-storm-system.mjs')
-$tests=@('cinematic-disaster-scenario.test.mjs','cinematic-storm-system.test.mjs')
+$runtime=@('city-exterior-3d.mjs','cinematic-disaster-scenario.mjs','cinematic-storm-system.mjs','cinematic-zombie-outbreak.mjs')
+$tests=@('cinematic-disaster-scenario.test.mjs','cinematic-storm-system.test.mjs','cinematic-zombie-outbreak.test.mjs')
 $stage=Join-Path $env:TEMP ('tf-chaos-live-'+[guid]::NewGuid().ToString('N'))
 $report=New-Object System.Collections.Generic.List[string]
 $mutations=New-Object System.Collections.Generic.List[string]
@@ -42,7 +42,7 @@ function Http-Match([string]$url,[string]$expected){
  }finally{Remove-Item $tmp -Force -ErrorAction SilentlyContinue}
 }
 try{
- Report '=== TOWERFLOW CINEMATIC CHAOS / THREE-AIRCRAFT SEQUENCE ==='
+ Report '=== TOWERFLOW CINEMATIC CHAOS / ZOMBIE OUTBREAK / THREE-AIRCRAFT SEQUENCE ==='
  Assert-OK (Test-Path (Join-Path $repo '.git')) 'Repository not found'
  Assert-OK (Test-Path $room) 'Live room.js not found'
  $current=[IO.File]::ReadAllText($room)
@@ -60,7 +60,7 @@ try{
   $out=@(& $node --check (Join-Path $stage $name) 2>&1)
   Assert-OK ($LASTEXITCODE -eq 0) ('JS syntax failed '+$name+': '+($out -join '; '))
  }
- $testsOutput=@(& $node --test (Join-Path $stage $tests[0]) (Join-Path $stage $tests[1]) 2>&1)
+ $testsOutput=@(& $node --test (Join-Path $stage $tests[0]) (Join-Path $stage $tests[1]) (Join-Path $stage $tests[2]) 2>&1)
  Assert-OK ($LASTEXITCODE -eq 0) ('Node tests failed: '+($testsOutput -join '; '))
  foreach($line in $testsOutput){if([string]$line -match '(tests |pass |fail |not ok)'){Report ('TEST '+([string]$line))}}
  Report '[3] MODULE SYNTAX AND SCENARIO CONTRACT TESTS: PASS'
@@ -77,10 +77,11 @@ try{
   $dest=Join-Path $live ('public\'+$name)
   Assert-OK (Http-Match ('http://127.0.0.1:4173/'+$name+'?chaos='+[guid]::NewGuid().ToString('N')) $dest) ('Live asset differs '+$name)
  }
- Report '[4] ALL THREE RUNTIME MODULES HTTP PARITY: PASS'
+ Report '[4] ALL FOUR RUNTIME MODULES HTTP PARITY: PASS'
  Report ('ROLLBACK DIRECTORY: '+$stage)
  Report 'CHAOS: severe tornado funnel + flying debris; hurricane/typhoon water surge, storm clouds, lightning'
  Report 'CINEMATIC DISASTER: three impacts (first 2 on tower 1, third on tower 2), sequential collapses, smoke, rubble'
+ Report 'ZOMBIE OUTBREAK: patient zero -> contagious tagging -> 420-character street crowd, responders, crash damage and indoor red alarms'
  Report 'EXTERIOR PREVIEW = PROCEDURAL FICTIONAL SCENARIO, NOT DOCUMENTARY RECONSTRUCTION'
  $url='http://127.0.0.1:4173/room/team02?tfCity3D=1'
  if($cfg.roomUrl){$b=[UriBuilder]::new($cfg.roomUrl);$b.Query='tfCity3D=1';$url=$b.Uri.AbsoluteUri}
