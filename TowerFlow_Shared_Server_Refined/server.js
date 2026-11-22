@@ -47,7 +47,7 @@ function sessionCookie(token, secure = false) {
   return `${cookieName}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_AGE}${secure ? '; Secure' : ''}`;
 }
 
-function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researchAzure } = {}) {
+function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researchAzure, liveMarketImpl = liveMarketSnapshot } = {}) {
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
   const accounts = new Accounts(directory);
   const storeFile = path.join(directory, 'inventory.json');
@@ -215,7 +215,7 @@ function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researc
         const body=await jsonBody(req);
         if(Object.keys(body).sort().join(',')!=='allowPublic' || body.allowPublic!==true)
           throw new InputError('Explicit external market-data consent is required.');
-        const snapshot=await liveMarketSnapshot();
+        const snapshot=await liveMarketImpl();
         return respond(res,200,snapshot);
       }
       if (method === 'GET' && pathname === '/api/azure-flow/config') {
