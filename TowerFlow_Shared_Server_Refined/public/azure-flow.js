@@ -116,6 +116,27 @@
     if (!reply.ok) throw new Error(result.error || 'Screening unavailable.');
     return result;
   }
+  get('afMarketForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const output = get('afMarketResult');
+    output.textContent = 'Checking the free daily close provider…';
+    try {
+      const response = await fetch('/api/azure-flow/market-close', {
+        method:'POST', credentials:'same-origin',
+        headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
+        body:JSON.stringify({symbol:get('afMarketSymbol').value.trim()})
+      });
+      const data = await response.json();
+      if(!response.ok) throw new Error(data.error||'Price unavailable');
+      if(data.status!=='OBSERVED'){
+        output.textContent = data.symbol + ': no verified recent close available. No price assumed.';
+      } else {
+        output.textContent = data.symbol + ' · USD ' + data.observation.closeUsd.toFixed(2) +
+          ' · closing date ' + data.observation.date + ' · ' + data.source +
+          ' · not live, potentially delayed.';
+      }
+    } catch(error){ output.textContent='Market lookup unavailable: '+error.message; }
+  });
   get('afPortfolioForm').addEventListener('submit', async event => {
     event.preventDefault();
     const target = get('afPortfolioResult');
