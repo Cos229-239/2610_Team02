@@ -78,6 +78,25 @@
         card.append(textNode('strong', finding.title), textNode('p', finding.basis), textNode('p', finding.action, 'af-badge'));
         rec.append(card);
       }
+      if (Array.isArray(result.reviewActions) && result.reviewActions.length) {
+        const heading = textNode('p', 'Prepared for your review · no changes made', 'af-badge');
+        rec.append(heading);
+        for (const action of result.reviewActions) {
+          const row = document.createElement('div');
+          row.className = 'af-review-row';
+          row.append(textNode('p', action.productName + ': ' +
+            (action.reviewQuantity ? 'review ' + action.reviewQuantity + ' additional units' : 'pending order covers minimum')));
+          const open = textNode('button', 'Review in ' + (action.targetTab === 'orders' ? 'Orders' : 'Inventory'));
+          open.type = 'button';
+          open.className = 'af-secondary';
+          open.addEventListener('click', () => {
+            const button = document.querySelector('.nav[data-page="' + action.targetTab + '"]');
+            if(button) button.click();
+          });
+          row.append(open);
+          rec.append(row);
+        }
+      }
       get('afHeadlineText').textContent = result.findings[0]?.title || 'Investigation complete';
       get('afMeta').textContent = 'Evidence ' + result.evidenceHash.slice(0, 12) +
         ' · ' + new Date(result.evaluatedAt).toLocaleString();
