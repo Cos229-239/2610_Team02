@@ -21,3 +21,17 @@ test('invalid source receipts and duplicates are flagged rather than counted as 
   assert.equal(x.citationReuse,1);
   assert.equal(x.evidenceStatus,'PROVENANCE_PROBLEM');
 });
+
+test('official filing metadata does not hide unavailable numerical data or tag contradiction',()=>{
+  const filing={sourceId:'filing',kind:'official_filing_metadata',source:'SEC EDGAR',
+    sha256:'c'.repeat(64)};
+  const unavailable=audit([{capability:'research.sec',status:'SOURCES_FOUND',
+    financialStatus:'XBRL_UNAVAILABLE'}],[filing]);
+  assert.equal(unavailable.evidenceStatus,'PRIMARY_LOCATOR_RETRIEVED_NOT_ANALYZED');
+  assert.ok(unavailable.failedCapabilities.some(x=>x.status==='XBRL_UNAVAILABLE'));
+  assert.equal(unavailable.verifiedFinancialFacts,false);
+  const conflict=audit([{capability:'research.sec',status:'SOURCES_FOUND',
+    financialStatus:'REPORTED_FACTS_FOUND',financialConflicts:['Revenue (reported, annual)']}],[filing]);
+  assert.equal(conflict.evidenceStatus,'ISSUER_FINANCIAL_CONFLICT_REQUIRES_REVIEW');
+  assert.deepEqual(conflict.financialConflicts,['Revenue (reported, annual)']);
+});
