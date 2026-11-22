@@ -62,6 +62,14 @@ function sourcePresentation(chunks){
 }
 function responseSummary(plan,records){
   const evidence=sourcePresentation(records);
+  const company=records.find(r=>r.capability==='research.company');
+  if(company&&Array.isArray(company.evidence)){
+    if(!company.evidence.length)return 'No identifiable public business profile was retrieved. The provider may be unavailable, the name ambiguous, or the organization unmatched; no company facts were invented.';
+    return company.evidence.map(x=>x.title+': '+x.description+
+      (x.officialWebsite?' · Recorded official website: '+x.officialWebsite:'')+
+      ' [community-maintained entity record]').join(' | ')+
+      '. These are background entity attributes, not independently validated financial performance or current news.';
+  }
   if(!evidence.length)return 'No verified matching evidence was retrieved. Azure Flow cannot justify an answer yet.';
   const valid=records.filter(r=>['EVIDENCE_FOUND','SOURCES_FOUND','REPORTED_FACTS_FOUND'].includes(r.status));
   if(!valid.length)return 'Available records did not establish the requested facts. No conclusion was manufactured.';
