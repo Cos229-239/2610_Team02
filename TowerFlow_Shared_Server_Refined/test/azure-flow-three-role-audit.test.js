@@ -85,3 +85,34 @@ test('No metric treats source fitness as factual verification',()=>{
   assert.equal(result.hiddenQualityCertified,false);
   assert.match(result.roles[0].verifiedClaim,/No source retrieval/);
 });
+
+test('Devil advocate catches false green when a failed model conveniently emits empty abstention',()=>{
+  const item=CASES.find(x=>x.id==='F12');
+  assert.equal(grade([],item).pass,true);
+  const reviewed=reviewCase(item,[],'MODEL_UNAVAILABLE');
+  assert.equal(reviewed.decision,'BLOCK');
+  const rows=CASES.map(item=>({item,selected:item.requiredAny.slice(0,1),
+    modelStatus:'MODEL_PLAN_VALIDATED',ms:1}));
+  rows.find(x=>x.item.id==='F12').modelStatus='MODEL_UNAVAILABLE';
+  const evaluated=assess(rows);
+  assert.equal(evaluated.failures.some(x=>x.id==='F12'&&x.reason==='MODEL_NOT_VERIFIED'),true);
+  assert.equal(evaluated.verdict,'NOT_QUALIFIED');
+});
+test('Evaluator rejects duplicated IDs that could hide four missing case families',()=>{
+  const rows=CASES.map((item,i)=>({
+    item:i<4?CASES[0]:item,
+    selected:i<4?['research.sec']:item.requiredAny.slice(0,1),
+    modelStatus:'MODEL_PLAN_VALIDATED',ms:1}));
+  const result=assess(rows);
+  assert.equal(result.exactCaseSet,false);
+  assert.equal(result.verdict,'NOT_QUALIFIED');
+});
+test('Critical source false positives invalidate qualification even when aggregate pass is high',()=>{
+  const rows=CASES.map(item=>({item,
+    selected:item.requiredAny.slice(0,1),modelStatus:'MODEL_PLAN_VALIDATED',ms:1}));
+  const f02=rows.find(x=>x.item.id==='F02');
+  f02.selected=['research.public'];
+  const assessed=assess(rows);
+  assert.equal(assessed.verdict,'NOT_QUALIFIED');
+  assert.ok(assessed.failures.some(x=>x.id==='F02'));
+});
