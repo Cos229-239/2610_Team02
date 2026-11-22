@@ -18,7 +18,7 @@ The **7-day outlook** quick action in **Azure Stock Guide** invokes `forecast`. 
 
 The model requires **14 days of recorded movement history for each product** and sales on **three distinct days** before estimating a constant seven-day demand rate. Without those minimum signals it returns `INSUFFICIENT_DATA` instead of making up a projection. It ignores movements such as transfers/removals when estimating demand. If evidence passes, it shows actual sales, observed time, projected units, suggested replenishment and the arithmetic behind the recommendation. These estimates are **not validated demand forecasts**, and no calibrated confidence is claimed.
 
-Code: `lib/decision-model.js` (pure inference), `lib/azure-guide.js` (existing authenticated command route), `public/` (guide interface). Verification: `test/decision-model.test.js`, `test/decision-model-route.test.js`, existing `npm test`. See `CURRENT_HANDOFF.md` section 8 for evidence and Trello/Git workflow. The feature must pass branch checks and a reviewed pull request before it is part of shared `dev`.
+Code: `lib/decision-model.js` (pure inference), `lib/azure-guide.js` (existing authenticated command route), `public/` (guide interface). Verification: `test/decision-model.test.js`, `test/decision-model-route.test.js`, existing `npm test`. See `CURRENT_HANDOFF.md` section 8 for evidence and Trello/Git workflow. This feature merged into shared `dev` through **PR #41**, merge commit `0c18aea9adcf3b24337f035b84f75adc50bafc6b`. Dedicated model CI and shared JavaScript checks passed. Separate native Linux inventory CI still has an existing unrelated failure; live browser acceptance remains outstanding.
 
 ## Shared work
 
