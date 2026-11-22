@@ -31,13 +31,22 @@ async function run({runner=plan,cases=CASES,clock=Date.now,logger=console.log}={
   const outcome=assess(rows);
   logger('RESULT '+JSON.stringify({
     passed:outcome.passed,total:outcome.total,accuracy:outcome.routeAccuracy,
-    byTier:outcome.byTier,verdict:outcome.verdict
+    byTier:outcome.byTier,criticalPasses:outcome.criticalPasses,
+    criticalTotal:outcome.criticalTotal,exactCaseSet:outcome.exactCaseSet,
+    falseGreenCandidates:outcome.falseGreenCandidates,verdict:outcome.verdict
   }));
   const triad=reviewRun(rows);
   logger('THREE_ROLE_REPORT '+JSON.stringify({
     roles:triad.roles,decision:triad.decision,
     falseGreenCandidates:triad.falseGreenCandidates,
     detectorEscapes:triad.detectorEscapes
+  }));
+  logger('NEXT DIAGNOSTIC '+JSON.stringify({
+    failedCases:outcome.failures.map(f=>({
+      id:f.id,reason:f.reason,unexpected:f.irrelevantFound||[],
+      modelStatus:f.modelStatus
+    })),
+    uncertainty:'The case oracle is a scoped judgment. Challenge ambiguous labels independently.'
   }));
   logger('Known-case diagnostic only; insufficient to certify general intelligence.');
   return outcome;
