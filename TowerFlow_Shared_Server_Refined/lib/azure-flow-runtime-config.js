@@ -10,8 +10,9 @@ function runtimeConfig({isOwner=false,secIdentity=process.env.TOWERFLOW_SEC_USER
     core:{enabled:true,researchEndpoint:'/api/azure-flow/research',
       inventoryAnalysisEndpoint:'/api/azure-flow/investigate',
       modelStatusEndpoint:'/api/azure-flow/model-health'},
-    research:{defaultMode:'adaptive',externalConsentRequired:true,
+    research:{defaultMode:'company',externalConsentRequired:true,
       modes:[
+        {id:'company',enabled:true,description:'Named-business research using live public Wikidata entity records; no LLM or SEC identity required.'},
         {id:'adaptive',enabled:true,description:'Local, read-only research; external sources require explicit consent.'},
         {id:'official-sec',enabled:secReady,
           description:secReady?'Optional SEC provider configured.':'Optional SEC provider not configured. Core remains available.'}
