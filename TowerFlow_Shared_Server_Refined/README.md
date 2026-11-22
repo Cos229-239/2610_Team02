@@ -49,3 +49,13 @@ Confirmed changes use the existing movement ledger (receive/remove), shared inve
 The shared version 2 JSON file contains work and purchase orders. Older desktop or local-only editions do not understand those extra order fields, so **do not restore a shared backup into an older edition** if you need to keep the orders. Migrate from the older editions into this server instead.
 
 `CONTRIBUTIONS.md` and `INTEGRATION.md` document what was incorporated from each teammate, including Daniel’s Azure Stock Guide. `SOURCE_AUDIT.csv` lists every file entry in the three supplied ZIPs and how it was treated. Run `npm test` for the included model and server checks.
+
+## Azure one-click insights (proposed)
+
+Select **Azure Stock Guide → Generate insights**. The default view contains three collapsed cards: **Inventory**, **Market · stocks & shares**, and **Recommended next step**. Existing stock search, preview, forecast and confirmation tools stay available in the collapsed **Stock Guide tools** section; nothing is removed or changed automatically.
+
+Inventory and suggestions come directly from the server's authenticated inventory state and deterministic decision model. The button is **read-only**; no model, account, stock adjustment, purchase order or credentials are required.
+
+Market context uses a small fixed example watchlist (SPY, AAPL, MSFT), **not the user's personal holdings**. An optional no-key Stooq daily CSV source is attempted only when the button is clicked, with a short timeout and 30-minute server-side cache. Data is labeled by the actual close date and provider; stale, blocked, malformed or unavailable quotes are **not presented as prices**. Stooq can restrict automated access or require credentials, so market availability is not guaranteed. This is neither real-time market data nor investment advice. No paid feed or key is installed.
+
+Acceptance needed before promotion: full Node test suite, real browser click and no-clutter check, existing Azure stock preview/confirmation regression, authenticated route check, and market-source unavailable state. The new UI is proposed on a feature branch until reviewed and merged.
