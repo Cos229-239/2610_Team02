@@ -9,16 +9,18 @@ function analyze(state, { now = Math.floor(Date.now()/1000), query = '' } = {}) 
   const term = query.trim().toLowerCase();
   const valid = state.movements.filter(m => Number.isSafeInteger(m.recordedAt) &&
     m.recordedAt >= 0 && m.recordedAt <= now);
-  const oldest = valid.reduce((min,m)=>Math.min(min,m.recordedAt),Infinity);
-  const days = oldest === Infinity ? 0 : Math.min(WINDOW,Math.floor((now-oldest)/DAY));
-  const since = now - days*DAY;
   const products = state.products.filter(p=>!p.archived && (!term ||
     [p.name,p.category,p.barcode,p.partNumber,p.serialNumber,
       p.partNumber!=null && p.serialNumber!=null ? `${p.partNumber}/${p.serialNumber}`:null]
       .some(x=>String(x??'').toLowerCase().includes(term)))).sort((a,b)=>a.id-b.id);
   const rows = products.slice(0,LIMIT).map(p=>{
     const stock = p.stock.reduce((n,x)=>n+x.quantity,0);
-    const sales = valid.filter(m=>m.productId===p.id && m.type==='sale' &&
+    // Do not borrow the age of unrelated products as evidence for this product.
+    const productHistory = valid.filter(m=>m.productId===p.id);
+    const first = productHistory.reduce((min,m)=>Math.min(min,m.recordedAt),Infinity);
+    const days = first===Infinity?0:Math.min(WINDOW,Math.floor((now-first)/DAY));
+    const since = now - days*DAY;
+    const sales = productHistory.filter(m=>m.type==='sale' &&
       m.recordedAt>=since && Number.isSafeInteger(m.quantity) && m.quantity>0);
     const saleDays = new Set(sales.map(m=>Math.floor(m.recordedAt/DAY))).size;
     const sold = sales.reduce((n,m)=>n+m.quantity,0);
