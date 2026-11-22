@@ -3,6 +3,7 @@
 // No fabricated confidence percentage or unsupported contradiction resolution.
 const TRUST=Object.freeze({
   official_filing_metadata:'PRIMARY_SOURCE_LOCATOR',
+  official_reported_financial_fact:'ISSUER_REPORTED_XBRL',
   inventory_snapshot:'AUTHENTICATED_LOCAL_RECORD',
   sales_snapshot:'AUTHENTICATED_LOCAL_RECORD',
   local_md:'LOCAL_DESIGN_KNOWLEDGE',
@@ -27,19 +28,21 @@ function audit(records,sources){
     'SEC_UNAVAILABLE','HARNESS_UNAVAILABLE','OPERATOR_IDENTITY_REQUIRED',
     'ISSUER_NOT_RESOLVED','ISSUER_AMBIGUOUS'].includes(r.status));
   const primary=counts.PRIMARY_SOURCE_LOCATOR||0;
+  const annualFacts=counts.ISSUER_REPORTED_XBRL||0;
   let evidenceStatus;
   if(!sources.length)evidenceStatus='INSUFFICIENT';
   else if(unattributed||citationReuse)evidenceStatus='PROVENANCE_PROBLEM';
+  else if(annualFacts)evidenceStatus='ISSUER_REPORTED_FACTS_PRESENT';
   else if(!primary)evidenceStatus='BACKGROUND_OR_LOCAL_ONLY';
   else evidenceStatus='PRIMARY_LOCATOR_RETRIEVED_NOT_ANALYZED';
   return {evidenceStatus,sourceCount:sources.length,
     independentOriginsObserved:observedOrigins.size,
     sourceClasses:counts,unattributed,citationReuse,
     failedCapabilities:failures.map(x=>({id:x.capability,status:x.status})),
-    verifiedFinancialFacts:false,contradictionsResolved:false,
+    issuerReportedFacts:annualFacts,verifiedFinancialFacts:false,contradictionsResolved:false,
     nextEvidenceNeed:evidenceStatus==='INSUFFICIENT'?
       'Retrieve a relevant authoritative source, or ask a narrower question.':
-      'Read primary documents and verify relevant units, dates, relationships and contradictions before making a financial claim.',
+      'Verify the reporting dates, units, accession numbers, and source documents before comparing periods or making an investment judgment.',
     interpretation:'Source class and count describe coverage; they are not calibrated factual accuracy or investment confidence.'
   };
 }
