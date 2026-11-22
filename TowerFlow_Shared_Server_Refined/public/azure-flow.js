@@ -161,11 +161,24 @@
       get('afCards').hidden = false;
       status.textContent = result.model?.state === 'MODEL_SUGGESTION_VALIDATED'
         ? 'Local model prioritized a verified finding · read-only'
-        : 'Verified harness analysis · local model unavailable or not validated';
+        : 'Recorded-data analysis only · AI not verified (' + (result.model?.state||'unknown') + ')';
 
     } catch (error) {
       status.textContent = 'Could not analyze: ' + error.message;
     } finally { button.disabled = false; }
+  });
+  get('afProbe').addEventListener('click', async () => {
+    const button=get('afProbe'), status=get('afModelHealth');
+    button.disabled=true;
+    status.textContent='Checking local Ollama availability without downloading anything…';
+    try {
+      const response=await fetch('/api/azure-flow/model-health',{credentials:'same-origin'});
+      if(!response.ok) throw Error('Model health HTTP '+response.status);
+      const data=await response.json();
+      status.textContent=data.state+' · '+data.next+
+        (data.installedAllowed?.length ? ' · Eligible installed: '+data.installedAllowed.join(', ') : '');
+    } catch(error){status.textContent='Cannot verify local AI: '+error.message;}
+    finally{button.disabled=false;}
   });
   get('afCalibrate').addEventListener('click', async () => {
     const button = get('afCalibrate'), status = get('afCalibrationStatus');
