@@ -27,18 +27,25 @@ function audit(records,sources){
   const failures=records.filter(r=>['NO_RECORDS','NO_MATCH','PROVIDER_UNAVAILABLE',
     'SEC_UNAVAILABLE','HARNESS_UNAVAILABLE','OPERATOR_IDENTITY_REQUIRED',
     'ISSUER_NOT_RESOLVED','ISSUER_AMBIGUOUS'].includes(r.status));
+  const financialGaps=records.filter(x=>x.capability==='research.sec'&&
+    x.financialStatus&&x.financialStatus!=='REPORTED_FACTS_FOUND')
+    .map(x=>({id:x.capability,status:x.financialStatus}));
+  const financialConflicts=records.filter(x=>x.capability==='research.sec')
+    .flatMap(x=>Array.isArray(x.financialConflicts)?x.financialConflicts:[]);
   const primary=counts.PRIMARY_SOURCE_LOCATOR||0;
   const annualFacts=counts.ISSUER_REPORTED_XBRL||0;
   let evidenceStatus;
   if(!sources.length)evidenceStatus='INSUFFICIENT';
   else if(unattributed||citationReuse)evidenceStatus='PROVENANCE_PROBLEM';
+  else if(financialConflicts.length)evidenceStatus='ISSUER_FINANCIAL_CONFLICT_REQUIRES_REVIEW';
   else if(annualFacts)evidenceStatus='ISSUER_REPORTED_FACTS_PRESENT';
   else if(!primary)evidenceStatus='BACKGROUND_OR_LOCAL_ONLY';
   else evidenceStatus='PRIMARY_LOCATOR_RETRIEVED_NOT_ANALYZED';
   return {evidenceStatus,sourceCount:sources.length,
     independentOriginsObserved:observedOrigins.size,
     sourceClasses:counts,unattributed,citationReuse,
-    failedCapabilities:failures.map(x=>({id:x.capability,status:x.status})),
+    failedCapabilities:[...failures.map(x=>({id:x.capability,status:x.status})),...financialGaps],
+    financialConflicts,
     issuerReportedFacts:annualFacts,verifiedFinancialFacts:false,contradictionsResolved:false,
     nextEvidenceNeed:evidenceStatus==='INSUFFICIENT'?
       'Retrieve a relevant authoritative source, or ask a narrower question.':
