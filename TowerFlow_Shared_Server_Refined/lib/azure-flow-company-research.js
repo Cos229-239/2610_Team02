@@ -73,6 +73,33 @@ function observation(entity,query,now){
     entityId:id,description,officialWebsite:site,sourceQuery:query,
     limitations:'Community-maintained entity record. This is neither independently verified financial performance, live securities pricing, nor an investment recommendation.'};
 }
+async function wikipediaBackground(title,{fetchImpl=fetch,now=Date.now()}={}){
+  if(typeof title!=='string'||!title.trim()||title.length>160||/[\\x00-\\x1f\\x7f]/.test(title))
+    return null;
+  const u=new URL('https://en.wikipedia.org/w/api.php');
+  for(const [key,value] of Object.entries({action:'query',prop:'extracts',titles:title,
+    exintro:'1',explaintext:'1',format:'json',formatversion:'2'}))u.searchParams.set(key,value);
+  try {
+    const response=await fetchImpl(u.toString(),{method:'GET',redirect:'error',
+      headers:{Accept:'application/json','User-Agent':'TowerFlowAzureCompanyResearch/1.0 (read-only context retrieval)'},
+      signal:AbortSignal.timeout(6500)});
+    if(!response.ok)return null;
+    const bytes=await response.arrayBuffer();
+    if(bytes.byteLength>180000)return null;
+    const json=JSON.parse(Buffer.from(bytes).toString('utf8'));
+    const page=json?.query?.pages?.[0];
+    if(!Number.isSafeInteger(page?.pageid)||page.pageid<=0||
+      page.title!==title||typeof page.extract!=='string')return null;
+    const excerpt=page.extract.replace(/\\s+/g,' ').trim().slice(0,1500);
+    if(excerpt.length<80)return null;
+    const sha256=crypto.createHash('sha256').update(excerpt).digest('hex');
+    return {sourceId:'wikipedia-'+page.pageid+'-'+sha256.slice(0,10),
+      kind:'public_reference',title:page.title,source:'English Wikipedia (community-edited)',
+      url:'https://en.wikipedia.org/wiki/'+encodeURIComponent(page.title.replace(/ /g,'_')),
+      excerpt,sha256,retrievedAt:new Date(now).toISOString(),
+      limitations:'Community-edited narrative background. Not an official financial report or a live current-event feed.'};
+  }catch{return null}
+}
 async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),requester=request}={}){
   const queries=subjects(question),hits=[],outcomes=[];
   for(const query of queries){
@@ -94,14 +121,19 @@ async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),request
       }
       const selected=exact[0];
       const payload=await requester(urlFor({action:'wbgetentities',ids:selected.id,
-        props:'labels|descriptions|claims',languages:'en'}),{fetchImpl,now});
+        props:'labels|descriptions|claims|sitelinks',languages:'en'}),{fetchImpl,now});
       const profile=observation(payload?.entities?.[selected.id],query,now);
       if(!profile){
         outcomes.push({query,status:'NO_BUSINESS_ENTITY_MATCH'});
         continue;
       }
       hits.push(profile);
-      outcomes.push({query,status:'ENTITY_MATCHED',id:profile.entityId});
+      // Follow Wikidata's explicit enwiki sitelink; never fuzzy-search an unrelated page.
+      const pageTitle=payload?.entities?.[selected.id]?.sitelinks?.enwiki?.title;
+      const background=await wikipediaBackground(pageTitle,{fetchImpl,now});
+      if(background)hits.push(background);
+      outcomes.push({query,status:'ENTITY_MATCHED',id:profile.entityId,
+        background:background?'WIKIPEDIA_CONTEXT_FOUND':'NOT_AVAILABLE'});
     }catch(e){
       outcomes.push({query,status:'SOURCE_UNAVAILABLE',reason:String(e.message).slice(0,90)});
     }
@@ -109,4 +141,4 @@ async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),request
   return {status:hits.length?'SOURCES_FOUND':'NO_MATCH',hits,outcomes,requested:queries,
     note:'Company identities and background attributes from Wikidata; no earnings, stock quotes, or recent news verified. If unavailable, no company facts are invented.'};
 }
-module.exports={BASE,subjects,urlFor,typed,observation,researchBusiness};
+module.exports={BASE,subjects,urlFor,typed,observation,wikipediaBackground,researchBusiness};
