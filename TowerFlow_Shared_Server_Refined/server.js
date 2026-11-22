@@ -17,6 +17,8 @@ const { investigate: investigateAzureFlow, diagnoseModel: diagnoseAzureModel } =
 const { calibrate: calibrateAzureFlow, snapshot: azureCalibrationStatus } = require('./lib/azure-flow-calibration');
 const { getDailyClose: marketClose } = require('./lib/azure-flow-market');
 const { answer: answerAzureQuery } = require('./lib/azure-flow-query');
+const { investigate: researchAzure } = require('./lib/azure-flow-intelligence');
+const { persist: saveAzureRecord } = require('./lib/azure-flow-evidence-record');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
@@ -52,6 +54,8 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
   const listeners = new Set();
   // Short-lived, single-use preview IDs; never trust stock quantities supplied by a browser.
   const guidePreviews = new Map();
+  // Save only an owner-initiated, source-checked investigation already issued by this server.
+  const azureDrafts = new Map();
   const server = http.createServer(handler);
 
   function publish() {
@@ -203,6 +207,33 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/research') {
+        const body = await jsonBody(req);
+        if (Object.keys(body).sort().join(',') !== 'allowPublic,question' ||
+          typeof body.allowPublic !== 'boolean') throw new InputError('Research requires a question and explicit public-search setting.');
+        const output = await researchAzure(body.question,{state,revision:revisionOf(fingerprint),
+          allowPublic:body.allowPublic});
+        // Bounded ephemeral draft receipts, not persistent automatic memory writes.
+        for(const [key,entry] of azureDrafts){
+          if(Date.now()-entry.at>600000)azureDrafts.delete(key);
+        }
+        if(azureDrafts.size>=40)azureDrafts.delete(azureDrafts.keys().next().value);
+        azureDrafts.set(output.provenance.evidenceId,{at:Date.now(),userId:user.id,result:output});
+        return respond(res,200,output);
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/save-research') {
+        if (user.role !== 'admin')throw new AuthError('Owner approval required to save research records.',403);
+        const body=await jsonBody(req);
+        if(Object.keys(body).join(',')!=='evidenceId'||typeof body.evidenceId!=='string'||
+          !/^[0-9a-f]{64}$/.test(body.evidenceId))throw new InputError('Valid evidence receipt required.');
+        const entry=azureDrafts.get(body.evidenceId);
+        if(!entry||entry.userId!==user.id||Date.now()-entry.at>600000)
+          throw new InputError('Research receipt expired; investigate again before saving.');
+        // Remove before writing, preventing duplicate saves for the same approved receipt.
+        azureDrafts.delete(body.evidenceId);
+        const saved=saveAzureRecord(entry.result,{directory:path.join(directory,'azure-flow-findings')});
+        return respond(res,201,saved);
       }
       if (method === 'POST' && pathname === '/api/azure-flow/query') {
         const body = await jsonBody(req);
