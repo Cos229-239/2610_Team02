@@ -183,11 +183,16 @@ export function createZombieOutbreak({THREE,urban,scene,seed=1729,population=OUT
           }
         }
         const goal=target>=0?agents[target]:{x:-23,z:Math.sin(i*1.8)*13};
-        // Infected eventually converge on the building, not off-screen.
-        const rush=elapsed>95?1:.52;
-        const [dx,dz]=normalize(goal.x-a.x,goal.z-a.z);
-        a.vx=dx*(1.1+Math.sin(a.seed)*.3+rush);
-        a.vz=dz*(1.1+Math.sin(a.seed+2)*.25+rush);
+        // After the outbreak establishes, increasingly bias movement toward
+        // the observation building. Keep short-range tag pursuit for contagion.
+        const [chaseX,chaseZ]=normalize(goal.x-a.x,goal.z-a.z);
+        const [rallyX,rallyZ]=normalize(-22.5-a.x,Math.sin(i*.24)*10-a.z);
+        const rallyBias=elapsed<95?0:Math.min(.9,(elapsed-95)/80);
+        const contact=target>=0&&distance2<10?1:1-rallyBias;
+        const dx=chaseX*contact+rallyX*(1-contact);
+        const dz=chaseZ*contact+rallyZ*(1-contact);
+        const speed=1.6+Math.sin(a.seed)*.22+Math.min(1.1,elapsed/100);
+        a.vx=dx*speed;a.vz=dz*speed;
       }else{
         const threat=target>=0&&distance2<120?agents[target]:null;
         const [dx,dz]=threat?normalize(a.x-threat.x,a.z-threat.z):
@@ -272,6 +277,7 @@ export function createZombieOutbreak({THREE,urban,scene,seed=1729,population=OUT
   function update(dt){
     if(!active)return status();
     if(!Number.isFinite(dt)||dt<0)throw Error('Invalid outbreak frame delta');
+    if(elapsed>=OUTBREAK_LIMITS.maximumSeconds)return status(); // freeze completed scene and persistent damage
     const bounded=Math.min(.1,dt);
     elapsed=Math.min(OUTBREAK_LIMITS.maximumSeconds,elapsed+bounded);
     accumulator+=bounded;
