@@ -34,6 +34,11 @@ test('forecast uses existing authenticated guide route, abstains without sales a
   const after=await (await fetch(origin+'/api/state',{headers:{Cookie:cookie}})).json();
   assert.deepEqual(after,before);
   assert.equal(fs.existsSync(path.join(directory,'inventory.json')),false);
+  const filtered = await post('/api/azure-guide', {command:'forecast BOLT-115'}, cookie);
+  assert.equal(filtered.status,200);
+  const filteredBody = await filtered.json();
+  assert.ok(Array.isArray(filteredBody.modelRows), 'filtered forecast must execute the model');
+  assert.match(filteredBody.message,/Coherent Inventory Decision Model/);
   const invalid=await post('/api/azure-guide',{command:'forecast '+'x'.repeat(161)},cookie);
   assert.equal(invalid.status,400);
   assert.match((await invalid.json()).error,/160 characters/);
