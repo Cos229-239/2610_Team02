@@ -63,6 +63,25 @@
       if(result.plan?.model)output.append(textNode('p','Planner: '+result.plan.model,'af-badge'));
       if(result.plan?.status==='MODEL_UNAVAILABLE')output.append(textNode('p',
         'Local model could not plan this inquiry. Only local Markdown retrieval ran.','af-badge'));
+      if(result.synthesis?.state==='MODEL_HYPOTHESIS_SOURCE_MATCHED'){
+        const box=document.createElement('section');
+        box.className='af-reasoning';
+        box.append(textNode('strong','Provisional interpretation · requires verification'),
+          textNode('p',result.synthesis.hypothesis),
+          textNode('p','Next research: '+result.synthesis.nextStep,'af-badge'));
+        for(const observation of result.synthesis.observations||[]){
+          box.append(textNode('p','Source '+observation.sourceId+': "'+observation.quote+'"','af-badge'));
+        }
+        if(result.synthesis.unknowns?.length)
+          box.append(textNode('p','Unknowns: '+result.synthesis.unknowns.join(' · '),'af-badge'));
+        output.append(box);
+      } else {
+        output.append(textNode('p','Synthesis status: '+
+          (result.synthesis?.state||'not available')+
+          '. Source excerpts are not independent proof of investment suitability.','af-badge'));
+      }
+      if(result.learning?.recalled)output.append(textNode('p',
+        'Recalled '+result.learning.recalled+' owner-approved routing example(s). No model weights changed.','af-badge'));
       if(!result.sources?.length)output.append(textNode('p',
         'No verified sources found. Azure cannot substantiate a factual conclusion.','af-badge'));
       for(const source of (result.sources||[])){
