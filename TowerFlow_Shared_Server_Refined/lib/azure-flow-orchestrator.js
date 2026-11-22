@@ -85,4 +85,21 @@ async function investigate(state,{revision='unknown',now=Math.floor(Date.now()/1
     }
   };
 }
-module.exports={MODEL,FORMAT,localRequest,validateSuggestion,focusSuggestion,investigate};
+async function diagnoseModel({model=MODEL,requester=localRequest}={}) {
+  model=acceptModelName(model);
+  try {
+    const tags=await requester('/api/tags',undefined,{timeoutMs:2800});
+    const installed=Array.isArray(tags.models) ? tags.models.map(x=>x.name).filter(x=>typeof x==='string') : [];
+    return {
+      state:installed.includes(model)?'MODEL_INSTALLED':'MODEL_NOT_INSTALLED',
+      configured:model,
+      installedAllowed:installed.filter(x=>['dolphin-llama3:8b','qwen3:8b','hermes3:latest'].includes(x)),
+      next:installed.includes(model)?'Model present; structured-response test is still required.':
+        'Use an already installed eligible model or configure TOWERFLOW_AZURE_MODEL on the host; no automatic installation.'
+    };
+  }catch{
+    return {state:'OLLAMA_UNREACHABLE',configured:model,installedAllowed:[],
+      next:'Start your existing local Ollama service on 127.0.0.1:11434; Azure still provides deterministic evidence without it.'};
+  }
+}
+module.exports={MODEL,FORMAT,localRequest,validateSuggestion,focusSuggestion,investigate,diagnoseModel};
