@@ -127,3 +127,42 @@ test('explicit owner feedback changes routing memory only, never model weights',
   assert.equal(learning.similar('buy stocks?',learning.read(root,{userId:uid}))
     .some(x=>x.question==='Should I buy stocks?'),false);
 });
+
+test('Owner saved research drafts become recallable but never grant reader access by default',t=>{
+  const root=cleanup(t),fileDir=path.join(root,'data','azure-flow-findings','test-owner');
+  const result={schema:'azure-flow-investigation/v1',original:'What determines sustainable cash runway?',
+    answer:'Cash runway depends on burn and liquidity.',sources:[],
+    provenance:{evidenceId:'d'.repeat(64),retrievedAt:'2026-11-22T17:00:00.000Z',sourceRevision:'git'},
+    note:'No external source',unknowns:['Future burn']};
+  const saved=persist(result,{directory:fileDir});
+  const {retrieveFindings}=require('../lib/azure-flow-retrieval');
+  const hits=retrieveFindings('sustainable cash runway',{directory:fileDir});
+  assert.equal(hits.hits.length>0,true);
+  assert.equal(hits.hits[0].kind,'draft_research_memory');
+  assert.equal(authorized({allowPublic:true,isOwner:false}).some(x=>x.id==='knowledge.findings'),false);
+  assert.equal(authorized({allowPublic:false,isOwner:true}).some(x=>x.id==='knowledge.findings'),true);
+  assert.match(hits.hits[0].limitations,/not independently verified/);
+  assert.equal(fs.existsSync(path.join(fileDir,saved.filename)),true);
+});
+test('Iterative research retries once only with user-authorized public capabilities',async()=>{
+  const ids=[];
+  const planner=async(q,args)=>args.excluded?.length?
+    {status:'MODEL_PLAN_VALIDATED',model:'test',capabilities:['research.public']}:
+    {status:'MODEL_PLAN_VALIDATED',model:'test',capabilities:['knowledge.markdown']};
+  const executor=async id=>{
+    ids.push(id);
+    return {capability:id,status:id==='research.public'?'SOURCES_FOUND':'NO_MATCH',
+      evidence:id==='research.public'?[{sourceId:'wiki-ref',kind:'public_reference',source:'Wikipedia',
+        title:'Example',sha256:'e'.repeat(64),excerpt:'Verified text retrieved from an allowed mock source.'}]:[]};
+  };
+  const synth=async()=>({state:'MODEL_SYNTHESIS_UNAVAILABLE',hypothesis:null});
+  const a=await investigate('Research company evidence',{
+    state:emptyInventory(),allowPublic:true,planner,executor,synthesizer:synth});
+  assert.equal(a.retrievalPasses,2);
+  assert.deepEqual(ids,['knowledge.markdown','research.public']);
+  ids.length=0;
+  const b=await investigate('Research company evidence',{
+    state:emptyInventory(),allowPublic:false,planner,executor,synthesizer:synth});
+  assert.equal(b.retrievalPasses,1);
+  assert.deepEqual(ids,['knowledge.markdown']);
+});
