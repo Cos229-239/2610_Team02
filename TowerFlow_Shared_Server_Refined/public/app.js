@@ -477,6 +477,22 @@ async function runAzureGuide(command) {
     if (sequence === azureCommandSequence) $('#azureRun').disabled = false;
   }
 }
+$('#localLLMForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = $('#localLLMAsk');
+  const answer = $('#localLLMAnswer');
+  button.disabled = true;
+  answer.textContent = 'Asking local model…';
+  try {
+    const result = await request('/api/local-llm/ask', 'POST',
+      { question: $('#localLLMQuestion').value }, null);
+    answer.textContent = result.answer + '\\n\\n(Read-only local LLM response. Verify before acting.)';
+  } catch (error) {
+    answer.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
 $('#azureForm').addEventListener('submit', event => {
   event.preventDefault();
   runAzureGuide($('#azureCommand').value);
