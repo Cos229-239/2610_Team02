@@ -47,10 +47,14 @@
     button.disabled=true;output.hidden=false;
     output.replaceChildren(textNode('p','Planning an evidence-grounded investigation…'));
     try {
-      const response=await fetch('/api/azure-flow/research',{
+      const sourceMode=get('afSourceMode').value;
+      if(sourceMode==='official-sec'&&!get('afAllowPublic').checked)
+        throw Error('Enable external research consent to query SEC EDGAR.');
+            const response=await fetch('/api/azure-flow/research',{
         method:'POST',credentials:'same-origin',
         headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
-        body:JSON.stringify({question,allowPublic:get('afAllowPublic').checked})
+        body:JSON.stringify({question,allowPublic:get('afAllowPublic').checked,
+          sourceMode})
       });
       const result=await response.json();
       if(!response.ok)throw Error(result.error||'Research unavailable.');
@@ -60,6 +64,8 @@
         textNode('p','Plan: '+(result.plan?.status||'unknown')+
           ' · Authorized harnesses: '+(result.plan?.capabilities||[]).join(', '),'af-badge')
       );
+      if(result.plan?.status==='USER_SELECTED_OFFICIAL_SOURCE')
+        output.append(textNode('p','Official SEC source selected by you. This bypasses the experimental AI routing, not evidence validation.','af-badge'));
       if(result.plan?.model)output.append(textNode('p','Planner: '+result.plan.model,'af-badge'));
       if(result.evidenceAudit){
         const a=result.evidenceAudit;
