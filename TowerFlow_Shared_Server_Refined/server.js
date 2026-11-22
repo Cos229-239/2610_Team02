@@ -210,24 +210,6 @@ function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researc
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
       }
-      // Deterministic, read-only next action from actual signed-in workspace state.
-      // No LLM source routing, provider calls, record creation or implicit mutations.
-      if (method === 'GET' && pathname === '/api/azure-flow/next-action') {
-        const products=state.products.filter(p=>!p.archived).length;
-        const recordedSales=state.movements.filter(m=>m.type==='sale').length;
-        const phase=!products?'NEEDS_PRODUCTS':!recordedSales?'NEEDS_SALES':'READY';
-        return respond(res,200,{
-          schema:'towerflow.azure-flow.next-action/v1',
-          phase,products,recordedSales,revision:revisionOf(fingerprint),
-          action:phase==='NEEDS_PRODUCTS'?'add-product':
-            phase==='NEEDS_SALES'?'open-operations':'analyze',
-          message:phase==='NEEDS_PRODUCTS'?
-            'This workspace has no active products. Add your first real product to enable stock analysis.':
-            phase==='NEEDS_SALES'?
-            'Products are recorded. Record an actual sale when one occurs to build a sales trajectory.':
-            'Recorded products and sales are available. Run business analysis on your real ledger.'
-        });
-      }
       if (method === 'GET' && pathname === '/api/azure-flow/config') {
         return respond(res,200,azureRuntimeConfig({isOwner:user.role==='admin'}));
       }
