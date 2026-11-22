@@ -320,6 +320,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     const cinematicStorm=createCinematicStorm({THREE,group,urban,streetLevel:STREET_LEVEL});
     const zombieOutbreak=createZombieOutbreak({THREE,urban,scene});
     const chaos={enabled:false,scheme:'normal',events:0};
+    let simulationSpeed=1; // 1x realism, 4x inspection, 12x fast-forward.
     const roadMats=[palette.road,wet];
     // Controls don't cover navigation: tiny inspector placed above original HUD.
     const panel=doc.createElement('div');
@@ -344,6 +345,11 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       if(!CITY_EVENTS.some(([id])=>id===next))throw Error('Unknown scenario '+next);
       mode=next;
       chaos.enabled=chaosModes.has(next);chaos.scheme=next;chaos.events=0;
+      simulationSpeed=next==='zombie'?4:1;
+      if(typeof speedSelect!=='undefined'&&speedSelect){
+        speedSelect.value=String(simulationSpeed);
+        speedSelect.style.display=chaos.enabled?'inline-block':'none';
+      }
       particles.visible=rainModes.has(next)||snowModes.has(next);
       particleMaterial.color.set(snowModes.has(next)?'#e9f2ff':'#a6d7f0');
       particleMaterial.size=snowModes.has(next)?.16:.065;
@@ -409,6 +415,19 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       phaseStatus.textContent=p.phaseLabel;
     });
     panel.appendChild(seek);
+    const speedSelect=doc.createElement('select');
+    speedSelect.id='tfCityChaosSpeed';
+    speedSelect.setAttribute('aria-label','Chaos simulation speed');
+    speedSelect.style.cssText='padding:6px;background:#153646;color:#fff;border:1px solid #52aec8;max-width:100px;display:none';
+    for(const [v,title] of [[1,'1× REAL'],[4,'4× VIEW'],[12,'12× FAST']]){
+      const option=doc.createElement('option');option.value=String(v);
+      option.textContent=title;speedSelect.appendChild(option);
+    }
+    speedSelect.value='1';
+    speedSelect.addEventListener('change',()=>{
+      simulationSpeed=Number(speedSelect.value);
+    });
+    panel.appendChild(speedSelect);
     const schemeSelect=doc.createElement('select');
     schemeSelect.id='tfCityChaosSchemes';
     schemeSelect.setAttribute('aria-label','City activity and Chaos Schemes');
@@ -422,11 +441,16 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
     button('Restore',stop);
     setMode('normal');
     const api=Object.freeze({
-      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,storm:cinematicStorm.state,outbreak:zombieOutbreak.state,
+      get state(){return {active,mode,frames:frameCount,drawCalls,streetLevel:STREET_LEVEL,observerStorey:21,storm:cinematicStorm.state,outbreak:zombieOutbreak.state,simulationSpeed,
         visibleScenarioEffects:{clouds:atmosphereGroup.visible,smoke:civilSmokeGroup.visible,
           emergency: ['fire','cataclysm','airborne','purge','zombie'].includes(mode)},
         skippedForSightline,leftWindowClickable:false,originalFloorUntouched:true}},
-      setMode,dispose:stop
+      setMode,
+      setSimulationSpeed(value){
+        if(![1,4,12].includes(value))throw Error('Unsupported simulation speed');
+        simulationSpeed=value;speedSelect.value=String(value);
+      },
+      dispose:stop
     });
     scene.add(group);wall.visible=false;glass.visible=false;doc.body.append(panel);
     const tick=(time)=>{
@@ -435,7 +459,8 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
       // appears as a rectangular photograph when looking up or sideways.
       sky.position.copy(camera.position);
       const delta=Math.min(.05,Math.max(0,(time-last)/1000));last=time;
-      cinematicStorm.update(delta);
+      const simulationDelta=delta*simulationSpeed;
+      cinematicStorm.update(simulationDelta);
       if(atmosphereGroup.visible){
         for(const c of atmosphere){
           c.obj.position.z=c.baseZ+Math.sin(time*.00012+c.speed)*16;
@@ -454,11 +479,11 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         civilPoliceLight.intensity=flash?0:34;
       }else civilEmergencyLight.intensity=civilPoliceLight.intensity=0;
       if(mode==='zombie'){
-        const z=zombieOutbreak.update(delta);
-        telemetry.textContent='21F · infected '+z.infected+'/'+z.population+' · collisions '+z.crashes+' · '+z.phase;
+        const z=zombieOutbreak.update(simulationDelta);
+        telemetry.textContent='21F · outbreak '+Math.floor(z.elapsed)+'s · infected '+z.infected+'/'+z.population+' · crashes '+z.crashes+' · '+z.phase;
       }else telemetry.textContent='21F · street -70 · clear corridor';
       if(mode==='sept11'){
-        const p=disaster.update(delta);
+        const p=disaster.update(simulationDelta);
         seek.value=String(Math.floor(p.elapsed));
         phaseStatus.textContent=p.phaseLabel+' · '+Math.floor(p.elapsed)+'s';
       }
@@ -475,7 +500,7 @@ export function installCityExterior3D({THREE,scene,renderer,camera,document:doc=
         raptureGroup.children.forEach((o,i)=>o.visible=i<=phase);
       }
       for(const car of cars){
-        car.vehicle.position.z+=car.velocity*delta*(mode==='purge'?2.5:mode==='severe'?.55:1);
+        car.vehicle.position.z+=car.velocity*simulationDelta*(mode==='purge'?2.5:mode==='severe'?.55:1);
         if(car.vehicle.position.z>75)car.vehicle.position.z=-75;
         if(car.vehicle.position.z< -75)car.vehicle.position.z=75;
       }
