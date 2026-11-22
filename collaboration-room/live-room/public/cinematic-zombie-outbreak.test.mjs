@@ -22,7 +22,7 @@ test('spatial hash buckets are stable, negative-coordinate aware and grid-local'
 });
 
 function fakeTHREE(){
-  class Vec { constructor(){this.x=this.y=this.z=0;}set(x,y,z){this.x=x;this.y=y;this.z=z;return this;} }
+  class Vec { constructor(){this.x=this.y=this.z=0;}set(x,y,z){this.x=x;this.y=y;this.z=z;return this;}setScalar(s){this.x=this.y=this.z=s;return this;} }
   class Object3D {
     constructor(){this.position=new Vec();this.rotation=new Vec();this.scale=new Vec().set(1,1,1);this.children=[];this.visible=true;this.matrix={};}
     add(...xs){this.children.push(...xs);}
