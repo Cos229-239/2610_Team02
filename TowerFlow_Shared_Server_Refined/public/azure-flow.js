@@ -260,13 +260,36 @@
     button.disabled=true;
     status.textContent='Checking the running research endpoint…';
     try {
+      const configReply=await fetch('/api/azure-flow/config',{credentials:'same-origin'});
+      if(!configReply.ok){
+        status.textContent=configReply.status===401?'SIGN IN · Your session is missing or expired.':
+          configReply.status===404?'OUTDATED SERVER · Runtime configuration endpoint missing.':
+          'UNVERIFIED · Config API returned HTTP '+configReply.status+'.';
+        return;
+      }
+      const config=await configReply.json();
+      if(config.schema!=='towerflow.azure-flow.runtime-config/v1' ||
+          config.core?.researchEndpoint!=='/api/azure-flow/research')
+        throw Error('Unexpected runtime configuration contract.');
+      const sec=config.research?.modes?.find(x=>x.id==='official-sec');
+      const select=get('afSourceMode'),opt=select?.querySelector('option[value="official-sec"]');
+      if(opt) {
+        opt.disabled=!sec?.enabled;
+        if(!sec?.enabled&&select.value==='official-sec')select.value='adaptive';
+      }
+      const note=get('afSourceNote');
+      if(note)note.textContent=sec?.enabled?
+        'SEC research is optional and configured; external access still requires consent.':
+        'SEC research is optional and not configured. Local research and business analysis remain available.';
       const response=await fetch('/api/azure-flow/research',{
         method:'POST',credentials:'same-origin',
         headers:{'Content-Type':'application/json','X-TowerFlow-Request':'1'},
         body:'{}'
       });
       if(response.status===400){
-        status.textContent='READY · Live backend recognizes the research endpoint. Research providers not checked.';
+        status.textContent='READY · Live backend and config API responding. '+
+          (sec?.enabled?'Optional SEC configured.':'Optional SEC not configured.')+
+          ' No external retrieval attempted.';
       }else if(response.status===404){
         status.textContent='OUTDATED SERVER · Research endpoint missing from running backend. Restart the authoritative Node process after coordinating active sessions.';
       }else if(response.status===401){
