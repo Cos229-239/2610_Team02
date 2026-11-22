@@ -10,15 +10,15 @@ test('Azure Flow official-research UI requires explicit public consent and sourc
   assert.match(html,/id="afSourceMode"/);
   assert.match(html,/value="official-sec"/);
   assert.match(html,/Allow public company research/);
-  assert.match(browser,/sourceMode!=='adaptive'&&!get\\('afAllowPublic'\\)\\.checked/);
+  assert.ok(browser.includes("sourceMode!=='adaptive'&&!get('afAllowPublic').checked"));
   assert.match(browser,/body:JSON\.stringify\(\{question,allowPublic:get\('afAllowPublic'\)\.checked,/);
   assert.match(browser,/sourceMode/);
 });
 test('research server must block an unconsented official SEC mode before any harness starts',()=>{
   const server=fs.readFileSync(path.join(root,'server.js'),'utf8');
-  assert.match(server,/sourceMode!=='adaptive'&&!body\\.allowPublic/);
+  assert.ok(server.includes("sourceMode!=='adaptive'&&!body.allowPublic"));
   assert.match(server,/USER_SELECTED_OFFICIAL_SOURCE/);
-  assert.match(server,/sourceMode==='company'\\?'research\\.company':'research\\.sec'/);
+  assert.ok(server.includes("sourceMode==='company'?'research.company':'research.sec'"));
   assert.match(server,/userSelected\?\{planner:/);
 });
 test('explicit official-source selection must not modify inventory or existing business permissions',()=>{
