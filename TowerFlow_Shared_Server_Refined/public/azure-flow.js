@@ -71,6 +71,14 @@
           ' · Recorded sales: '+report.operations.recordedSales));
         const issue=(report.findings||[])[0];
         if(issue) output.append(textNode('p','Next review: '+issue.action));
+        const targetTab=result.intent==='sales'?'movements':'inventory';
+        const review=textNode('button','Review source in '+(targetTab==='sales'?'Sales':'TowerFlow'),'af-secondary');
+        review.type='button';
+        review.textContent=targetTab==='movements'?'Open Movements':'Open Inventory';
+        review.addEventListener('click',()=>{
+          document.querySelector('.nav[data-page="'+targetTab+'"]')?.click();
+        });
+        output.append(review);
       }
       for(const phrase of (result.suggestions||[]).slice(0,4)){
         const choice=textNode('button',phrase,'af-example-action');
