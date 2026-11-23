@@ -127,7 +127,7 @@ async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),request
         // description and a leading organization name. Do not assume the first
         // fuzzy hit is the intended company.
         const leader=names[0];
-        const parent=/\b(multinational conglomerate|holding company|parent company|corporate group)\b/i.test(leader?.description||'');
+        const parent=/\b(conglomerate|holding company|parent company|corporate group)\b/i.test(leader?.description||'');
         const prefixed=norm(leader?.label).startsWith(norm(query)+' ');
         if(parent&&prefixed){
           selected=leader;resolution='RANKED_PARENT_ORGANIZATION';
