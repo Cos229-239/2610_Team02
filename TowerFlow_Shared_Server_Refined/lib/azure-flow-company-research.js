@@ -111,15 +111,33 @@ async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),request
       if(!names.length){outcomes.push({query,status:'NO_MATCH'});continue}
       // Search establishes exact label/alias identity before downloading ONE entity.
       // Avoid downloading huge claim graphs for unrelated top-five suggestions.
-      const exact=names.filter(item=>item.label.toLocaleLowerCase('en')===query.toLocaleLowerCase('en')||
-        (typeof item.match?.text==='string'&&
-          item.match.text.toLocaleLowerCase('en')===query.toLocaleLowerCase('en')));
-      if(exact.length!==1){
+      const norm=x=>String(x||'').trim().toLocaleLowerCase('en');
+      const exactLabel=names.filter(item=>norm(item.label)===norm(query));
+      const exactAlias=names.filter(item=>norm(item.match?.text)===norm(query));
+      // Exact label outranks a shared keyword or alias match. Microsoft's name
+      // must outrank "Microsoft Windows", "Microsoft Store" and other products.
+      // A search hit that merely contains "Sony" is not automatically Sony Group.
+      let selected=null,resolution=null;
+      if(exactLabel.length===1){
+        selected=exactLabel[0];resolution='EXACT_ENTITY_LABEL';
+      }else if(exactLabel.length===0 && exactAlias.length===1){
+        selected=exactAlias[0];resolution='UNIQUE_EXACT_ALIAS';
+      }else if(exactLabel.length===0 && exactAlias.length===0){
+        // Preserve public provider rank only for an explicit parent-organization
+        // description and a leading organization name. Do not assume the first
+        // fuzzy hit is the intended company.
+        const leader=names[0];
+        const parent=/\\b(multinational conglomerate|holding company|parent company|corporate group)\\b/i.test(leader?.description||'');
+        const prefixed=norm(leader?.label).startsWith(norm(query)+' ');
+        if(parent&&prefixed){
+          selected=leader;resolution='RANKED_PARENT_ORGANIZATION';
+        }
+      }
+      if(!selected){
         outcomes.push({query,status:'AMBIGUOUS_OR_NOT_EXACT',
-          candidates:names.map(x=>({title:x.label,id:x.id}))});
+          candidates:names.map(x=>({title:x.label,id:x.id,description:x.description||''}))});
         continue;
       }
-      const selected=exact[0];
       const payload=await requester(urlFor({action:'wbgetentities',ids:selected.id,
         props:'labels|descriptions|claims|sitelinks',languages:'en'}),{fetchImpl,now});
       const profile=observation(payload?.entities?.[selected.id],query,now);
@@ -132,7 +150,7 @@ async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),request
       const pageTitle=payload?.entities?.[selected.id]?.sitelinks?.enwiki?.title;
       const background=await wikipediaBackground(pageTitle,{fetchImpl,now});
       if(background)hits.push(background);
-      outcomes.push({query,status:'ENTITY_MATCHED',id:profile.entityId,
+      outcomes.push({query,status:'ENTITY_MATCHED',id:profile.entityId,resolution,
         background:background?'WIKIPEDIA_CONTEXT_FOUND':'NOT_AVAILABLE'});
     }catch(e){
       outcomes.push({query,status:'SOURCE_UNAVAILABLE',reason:String(e.message).slice(0,90)});
