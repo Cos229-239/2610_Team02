@@ -1,0 +1,32 @@
+name: TowerFlow account access
+
+on:
+  pull_request:
+    paths:
+      - 'TowerFlow_Shared_Server_Refined/**'
+      - '.github/workflows/towerflow-account-access.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  account-access:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: TowerFlow_Shared_Server_Refined
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check server and browser scripts
+        run: |
+          node --check server.js
+          node --check lib/accounts.js
+          node --check public/app.js
+          node --check test/accounts-access.test.js
+          node --check test/account-access-http.test.js
+      - name: Run complete shared-server test suite
+        run: npm test
