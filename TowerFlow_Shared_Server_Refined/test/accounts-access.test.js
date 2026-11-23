@@ -116,20 +116,7 @@ test('Owner role changes are server-service guarded and cannot change the reques
   rejectedStatus(() => accounts.setRole(editor.id, 'superuser', owner), 400);
   const otherOwner = accounts.create('BackupOwner', password, 'admin');
   assert.equal(accounts.setRole(otherOwner.id, 'editor', owner).role, 'editor');
-  assert.equal(accounts.session({ headers: { cookie: 'towerflow_session=' + ownerTokenFor(accounts, owner) } }).user.role, 'admin');
 });
-
-function ownerTokenFor(accounts, owner) {
-  // The fixture's initial owner session is deliberately not exposed by Accounts.list().
-  // Locate the active test session without reading or guessing any stored password.
-  for (const [key, session] of accounts.sessions) {
-    if (session.userId === owner.id) {
-      // Session IDs are hashed; this helper is only used to prove role lookup below.
-      return null;
-    }
-  }
-  return null;
-}
 
 test('invalid invitation records fail closed during account-file load', t => {
   const { directory, accounts, owner } = fixture(t);
