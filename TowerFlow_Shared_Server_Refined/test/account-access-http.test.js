@@ -70,9 +70,14 @@ test('invitation lifecycle and role administration are enforced by HTTP routes',
   const payload = await created.json();
   assert.match(payload.invitePath, /^\/#invite=[A-Za-z0-9_-]{43}$/);
   const token = new URL(payload.invitePath, origin).hash.slice('#invite='.length);
+  assert.equal(payload.invitation.role, 'editor');
   const stored = JSON.parse(fs.readFileSync(path.join(directory, 'accounts.json'), 'utf8'));
   assert.equal(JSON.stringify(stored).includes(token), false);
-  assert.equal((await owner('/api/invitations')).status, 200);
+  const invitationList = await owner('/api/invitations');
+  assert.equal(invitationList.status, 200);
+  const listed = await invitationList.json();
+  assert.equal(JSON.stringify(listed).includes(token), false);
+  assert.equal(JSON.stringify(listed).includes('tokenHash'), false);
 
   const invalidOrigin = await owner('/api/invitations', 'POST', { expiresInDays: 7, maxUses: 1 }, 'http://attacker.example');
   assert.equal(invalidOrigin.status, 403);
@@ -92,7 +97,9 @@ test('invitation lifecycle and role administration are enforced by HTTP routes',
 
   assert.equal((await invited('/api/users/' + acceptedPayload.user.id + '/role', 'PATCH', { role: 'admin' })).status, 403);
   assert.equal((await owner('/api/users/' + acceptedPayload.user.id + '/role', 'PATCH', { role: 'admin' })).status, 200);
+  assert.equal((await (await invited('/api/auth/status')).json()).user.role, 'admin');
   assert.equal((await owner('/api/users/' + acceptedPayload.user.id + '/role', 'PATCH', { role: 'editor' })).status, 200);
+  assert.equal((await (await invited('/api/auth/status')).json()).user.role, 'editor');
   assert.equal((await owner('/api/users/' + acceptedPayload.user.id + '/role', 'PATCH', { role: 'admin' }, 'http://attacker.example')).status, 403);
   assert.equal((await owner('/api/users/' + (await (await owner('/api/auth/status')).json()).user.id + '/role', 'PATCH', { role: 'editor' })).status, 403);
 
