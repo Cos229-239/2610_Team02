@@ -1,0 +1,21 @@
+{
+  "name": "TowerFlow teammate workspace",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-24-bookworm",
+  "forwardPorts": [
+    4174
+  ],
+  "portsAttributes": {
+    "4174": {
+      "label": "My TowerFlow preview",
+      "onAutoForward": "notify",
+      "visibility": "private"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "debug.javascript.autoAttachFilter": "smart"
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "TowerFlow — Run with F5",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:4174",
+      "webRoot": "${workspaceFolder}/TowerFlow",
+      "preLaunchTask": "TowerFlow: Start local server"
+    },
+    {
+      "name": "TowerFlow — Debug server / Codespaces",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/TowerFlow/server.js",
+      "cwd": "${workspaceFolder}",
+      "env": {"PORT": "4174"},
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "serverReadyAction": {
+        "pattern": "TowerFlow server listening at (http://[^ ]+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
+    }
+  ]
+}

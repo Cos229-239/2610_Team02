@@ -1,0 +1,68 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include "Part.cpp"
+#include "Menu.cpp"
+#include "PartActions.cpp"
+#include "MenuEnums.cpp"
+#include <fstream>
+#include <sstream>
+
+
+//TowerFlow is going to be a shell of an inventory to grow
+// on that is planned to be a software as a service (SaaS) for the management of inventory and sales for small businesses.
+// The goal is to provide a simple and intuitive interface for users to manage their products, track sales, and generate reports.
+
+
+//Running this file will start the TowerFlow inventory system within the Terminal or command window
+//Hit Ctrl+F5 to run the program without debugging
+//Hit F5 to run the program with debugging
+
+
+int main() {
+
+	bool PowerOn = true;
+	int UserInput;
+
+	LoadParts(); // Restore saved parts before showing the menu
+
+	while (PowerOn) {
+		Intro();
+		Input(UserInput);
+
+		switch (UserInput) {
+		case(TOTAL_STOCK):
+			Wipe();
+			TotalStockCount();
+			break;
+		case(CREATE_PART):
+			Wipe();
+			CreatePart();
+			break;
+		case(LIST_PART):
+			Wipe();
+			ListParts();
+			break;
+		case(EDIT_PART):
+			Wipe();
+			EditPart();
+			break;
+		case(DELETE_PART):
+			Wipe();
+			DeletePart();
+			break;
+
+		case(QUIT): // enter 16 to quit, currently on the enum list
+			Wipe();
+			PowerOn = false;
+			break;
+
+		default:
+			Wipe();
+			std::cout << "Invalid selection. Please try again." << std::endl;
+			break;
+
+		}
+	}
+	return 0;
+}

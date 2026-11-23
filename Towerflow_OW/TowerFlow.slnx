@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="TowerFlow/TowerFlow.vcxproj" Id="cb57c5f5-b41f-4d45-847b-91e710555206" />
+</Solution>
