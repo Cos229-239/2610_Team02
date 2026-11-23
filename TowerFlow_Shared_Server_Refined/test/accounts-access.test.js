@@ -46,8 +46,10 @@ test('only an Owner can create, list, or revoke invitations', t => {
   const editor = accounts.create('Editor', password, 'editor');
   const created = accounts.createInvitation(owner, 7, 2);
   rejectedStatus(() => accounts.createInvitation(editor, 7, 1), 403);
+  rejectedStatus(() => accounts.createInvitation({ id: editor.id, role: 'admin' }, 7, 1), 403);
   rejectedStatus(() => accounts.listInvitations(editor), 403);
   rejectedStatus(() => accounts.revokeInvitation(editor, created.invitation.id), 403);
+  rejectedStatus(() => accounts.remove(editor.id, editor), 403);
   const revoked = accounts.revokeInvitation(owner, created.invitation.id);
   assert.equal(revoked.status, 'revoked');
   rejectedStatus(() => accounts.acceptInvitation(created.token, 'BlockedEditor', password), 410);
