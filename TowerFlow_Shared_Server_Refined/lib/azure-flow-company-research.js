@@ -122,12 +122,12 @@ async function researchBusiness(question,{fetchImpl=fetch,now=Date.now(),request
         selected=exactLabel[0];resolution='EXACT_ENTITY_LABEL';
       }else if(exactLabel.length===0 && exactAlias.length===1){
         selected=exactAlias[0];resolution='UNIQUE_EXACT_ALIAS';
-      }else if(exactLabel.length===0 && exactAlias.length===0){
+      }else if(exactLabel.length===0){
         // Preserve public provider rank only for an explicit parent-organization
         // description and a leading organization name. Do not assume the first
         // fuzzy hit is the intended company.
         const leader=names[0];
-        const parent=/\\b(multinational conglomerate|holding company|parent company|corporate group)\\b/i.test(leader?.description||'');
+        const parent=/\b(multinational conglomerate|holding company|parent company|corporate group)\b/i.test(leader?.description||'');
         const prefixed=norm(leader?.label).startsWith(norm(query)+' ');
         if(parent&&prefixed){
           selected=leader;resolution='RANKED_PARENT_ORGANIZATION';
