@@ -165,6 +165,12 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
         return respond(res, 200, { loggedOut: true }, undefined,
           { 'Set-Cookie': `${cookieName}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0` });
       }
+      if (method === 'POST' && pathname === '/api/invitations/accept') {
+        const body = await jsonBody(req);
+        const result = accounts.acceptInvitation(body.token, body.username, body.password);
+        return respond(res, 201, { user: result.user }, undefined,
+          { 'Set-Cookie': sessionCookie(result.token, req.socket.encrypted) });
+      }
       if (!session) throw new AuthError('Sign in to use this inventory.', 401);
       const user = session.user;
       if (method === 'PUT' && pathname === '/api/auth/password') {
@@ -181,7 +187,14 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
           const body = await jsonBody(req);
           return respond(res, 201, accounts.create(body.username, body.password, body.role));
         }
-        const id = new RegExp(`^/api/users/(${UUID})$`).exec(pathname);
+        const role = new RegExp('^/api/users/(' + UUID + ')/role$').exec(pathname);
+        if (role && method === 'PATCH') {
+          const body = await jsonBody(req);
+          const changed = accounts.setRole(role[1], body.role, user);
+          publish();
+          return respond(res, 200, changed);
+        }
+        const id = new RegExp('^/api/users/(' + UUID + ')$').exec(pathname);
         if (id && method === 'DELETE') {
           const removed = accounts.remove(id[1], user); publish();
           return respond(res, 200, removed);
@@ -191,6 +204,24 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
           const body = await jsonBody(req);
           const changed = accounts.reset(reset[1], body.password); publish();
           return respond(res, 200, changed);
+        }
+      }
+      if (pathname.startsWith('/api/invitations')) {
+        if (user.role !== 'admin') throw new AuthError('Owner access is required.', 403);
+        if (method === 'GET' && pathname === '/api/invitations') {
+          return respond(res, 200, { invitations: accounts.listInvitations(user) });
+        }
+        if (method === 'POST' && pathname === '/api/invitations') {
+          const body = await jsonBody(req);
+          const created = accounts.createInvitation(user, Number(body.expiresInDays ?? 7), Number(body.maxUses ?? 1));
+          return respond(res, 201, {
+            invitation: created.invitation,
+            invitePath: '/#invite=' + encodeURIComponent(created.token)
+          });
+        }
+        const revoke = new RegExp('^/api/invitations/(' + UUID + ')/revoke$').exec(pathname);
+        if (revoke && method === 'POST') {
+          return respond(res, 200, { invitation: accounts.revokeInvitation(user, revoke[1]) });
         }
       }
       if (method === 'GET' && pathname === '/api/state') {

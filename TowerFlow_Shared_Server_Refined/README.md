@@ -7,7 +7,7 @@ This edition lets authorized teammates edit the **same inventory** from their br
 1. Install Node.js 20 or newer if necessary. Extract this ZIP into a folder you can write to, such as Documents.
 2. In that folder, run `node server.js` as your normal user. Leave it running while teammates work. The default port is 4173; it needs no administrator/root permissions.
 3. On the server computer, visit **http://127.0.0.1:4173/** and create the first owner account **if the data directory is new**. Choose a unique username and a password of at least 12 characters. Initial setup works only from the server computer. **If an existing `data/accounts.json` is included**, the accounts are already initialized: use an existing account, or consult the workspace owner, instead of creating another first owner.
-4. Open **Data & exports → Give someone access** and create an account for each teammate. Editors can manage inventory and their own password. Owners can also create/remove accounts, reset passwords, and restore a backup. Share each person's username and temporary password privately.
+4. Open **Data & exports → Owner access**. Prefer **Create Editor invitation**: choose an expiry (1–30 days) and redemption limit (1–100), then copy and privately share the generated link. The recipient chooses a username and password. The link can be revoked at any time. You can still create a named account directly when needed. Owners can also change other members' roles, reset passwords, remove access, and restore a backup.
 5. Teammates on the same private network or VPN visit **http://SERVER_PRIVATE_IP:4173/** and sign in. Replace `SERVER_PRIVATE_IP` with the host computer's IPv4 address shown in its network settings. If a firewall prompts, allow this server only on the private network.
 
 The process listens on the computer's IPv4 network interfaces. It does not expose a collaboration room, source editor, arbitrary file API, command route, Win32 API, Registry access, or privilege-elevation feature. Do not expose this HTTP server directly to the public internet. HTTP does not encrypt passwords on a plain LAN; a trusted VPN is preferable if the network is not fully trusted.
@@ -19,6 +19,16 @@ The **7-day outlook** quick action in **Azure Stock Guide** invokes `forecast`. 
 The model requires **14 days of recorded movement history for each product** and sales on **three distinct days** before estimating a constant seven-day demand rate. Without those minimum signals it returns `INSUFFICIENT_DATA` instead of making up a projection. It ignores movements such as transfers/removals when estimating demand. If evidence passes, it shows actual sales, observed time, projected units, suggested replenishment and the arithmetic behind the recommendation. These estimates are **not validated demand forecasts**, and no calibrated confidence is claimed.
 
 Code: `lib/decision-model.js` (pure inference), `lib/azure-guide.js` (existing authenticated command route), `public/` (guide interface). Verification: `test/decision-model.test.js`, `test/decision-model-route.test.js`, existing `npm test`. See `CURRENT_HANDOFF.md` section 8 for evidence and Trello/Git workflow. This feature merged into shared `dev` through **PR #41**, merge commit `0c18aea9adcf3b24337f035b84f75adc50bafc6b`. Dedicated model CI and shared JavaScript checks passed. Separate native Linux inventory CI still has an existing unrelated failure; live browser acceptance remains outstanding.
+
+## Account invitations and roles
+
+- Only an authenticated **Owner** (the existing `admin` role) can create, list, or revoke invitations, or manage another account's role.
+- Invitation links create **Editor** accounts only. They are 256-bit random bearer tokens; only SHA-256 hashes are persisted in `data/accounts.json`. The raw token is returned once when the link is created and is not recoverable from the invitation list.
+- Expiry is configurable from 1–30 days and redemption count from 1–100. Revocation, expiry, and exhausted-use checks happen on the server before an account is created.
+- The invitee chooses their own username and password. No email is sent and there is no public sign-up route; share the link through a trusted private channel.
+- Owners can promote or demote another account between Editor and Owner. Self-role changes are blocked, and the last Owner cannot be demoted or removed.
+- Existing version 1 `accounts.json` files are accepted. The next account/invitation write migrates the file to version 2 and creates the normal `accounts.json.bak` backup before replacement.
+- This remains a **single Node.js process** with file-backed account/invitation state and in-memory sessions. It is not multi-instance transactional storage. Before hybrid or multi-host operation, move identity, invitations, and sessions to a shared transactional database and durable session store.
 
 ## Shared work
 
