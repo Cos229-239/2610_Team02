@@ -96,6 +96,12 @@ class Accounts {
 
   get initialized() { return this.users.length > 0; }
 
+  requireAdmin(requester) {
+    const actor = requester && this.users.find(user => user.id === requester.id);
+    if (!actor || actor.role !== 'admin') throw new AuthError('Owner access is required.', 403);
+    return actor;
+  }
+
   checkExternal() {
     const current = fs.existsSync(this.filename) ? sha256(fs.readFileSync(this.filename)) : null;
     if (current !== this.fingerprint) throw new AuthError('Accounts changed outside this server. Restart it to reload access.', 409);
@@ -184,7 +190,7 @@ class Accounts {
   }
 
   createInvitation(requester, expiresInDays = 7, maxUses = 1) {
-    if (!requester || requester.role !== 'admin') throw new AuthError('Owner access is required.', 403);
+    const actor = this.requireAdmin(requester);
     if (!Number.isInteger(expiresInDays) || expiresInDays < 1 || expiresInDays > 30) {
       throw new AuthError('Invitation expiry must be between 1 and 30 days.');
     }
@@ -198,7 +204,7 @@ class Accounts {
       id: crypto.randomUUID(),
       tokenHash: sha256(token),
       role: 'editor',
-      createdBy: requester.id,
+      createdBy: actor.id,
       createdAt: new Date(now).toISOString(),
       expiresAt: new Date(now + expiresInDays * 86400000).toISOString(),
       maxUses,
@@ -211,7 +217,7 @@ class Accounts {
   }
 
   listInvitations(requester) {
-    if (!requester || requester.role !== 'admin') throw new AuthError('Owner access is required.', 403);
+    this.requireAdmin(requester);
     return this.invitations
       .slice()
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
@@ -219,7 +225,7 @@ class Accounts {
   }
 
   revokeInvitation(requester, invitationId) {
-    if (!requester || requester.role !== 'admin') throw new AuthError('Owner access is required.', 403);
+    this.requireAdmin(requester);
     const invitation = this.invitations.find(item => item.id === invitationId);
     if (!invitation) throw new AuthError('Invitation not found.', 404);
     if (invitation.revokedAt) return invitationView(invitation);
@@ -254,9 +260,9 @@ class Accounts {
   }
 
   setRole(userId, role, requester) {
-    if (!requester || requester.role !== 'admin') throw new AuthError('Owner access is required.', 403);
+    const actor = this.requireAdmin(requester);
     if (!['editor', 'admin'].includes(role)) throw new AuthError('Invalid account role.');
-    if (userId === requester.id) throw new AuthError('You cannot change your own role.', 403);
+    if (userId === actor.id) throw new AuthError('You cannot change your own role.', 403);
     const user = this.users.find(u => u.id === userId);
     if (!user) throw new AuthError('Account not found.', 404);
     if (user.role === 'admin' && role === 'editor' &&
@@ -286,7 +292,8 @@ class Accounts {
   }
 
   remove(userId, requester) {
-    if (userId === requester.id) throw new AuthError('You cannot remove your own account.');
+    const actor = this.requireAdmin(requester);
+    if (userId === actor.id) throw new AuthError('You cannot remove your own account.');
     const index = this.users.findIndex(u => u.id === userId);
     if (index < 0) throw new AuthError('Account not found.', 404);
     if (this.users[index].role === 'admin' && this.users.filter(u => u.role === 'admin').length === 1) {
