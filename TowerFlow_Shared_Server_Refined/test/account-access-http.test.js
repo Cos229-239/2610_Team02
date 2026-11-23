@@ -47,6 +47,14 @@ async function ownerSession(origin) {
 test('invitation lifecycle and role administration are enforced by HTTP routes', async t => {
   const { directory, origin } = await start(t);
   const anonymous = client(origin);
+  const page = await anonymous('/');
+  assert.equal(page.status, 200);
+  const markup = await page.text();
+  assert.match(markup, /id="inviteAcceptForm"/);
+  assert.match(markup, /id="invitationForm"/);
+  const script = await anonymous('/app.js');
+  assert.equal(script.status, 200);
+  assert.match(await script.text(), /api\/invitations\/accept/);
   const ownerCookie = await ownerSession(origin);
   const owner = client(origin, ownerCookie);
 
