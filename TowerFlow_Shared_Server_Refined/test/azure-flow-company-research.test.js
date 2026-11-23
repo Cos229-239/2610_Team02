@@ -56,6 +56,46 @@ test('real provider protocol yields sourced Sony and Microsoft profiles with exa
  assert.match(answer,/Sony Group Corporation/);assert.match(answer,/Microsoft/);
  assert.doesNotMatch(answer,/revenue of \$/);
 });
+test('observed search collision: Microsoft exact label outranks products, Sony Group parent selected only with organization evidence',async()=>{
+ const seen=[];
+ const source=async url=>{
+  const u=new URL(url);
+  seen.push(u.searchParams.get('action')+':'+(u.searchParams.get('search')||u.searchParams.get('ids')));
+  if(u.searchParams.get('action')==='wbsearchentities'){
+   if(u.searchParams.get('search')==='Microsoft')return {search:[
+    {id:'Q2283',label:'Microsoft',description:'American multinational technology corporation',match:{text:'Microsoft'}},
+    {id:'Q1406',label:'Microsoft Windows',description:'operating system',match:{text:'Microsoft'}},
+    {id:'Q135288',label:'Microsoft Store',description:'application store',match:{text:'Microsoft'}}]};
+   return {search:[
+    {id:'Q41187',label:'Sony Group',description:'Japanese multinational conglomerate corporation',match:{text:'Sony'}},
+    {id:'Q10683',label:'PlayStation 3',description:'video game console',match:{text:'Sony'}},
+    {id:'Q330629',label:'Sony Music',description:'music company',match:{text:'Sony'}}]};
+  }
+  const id=u.searchParams.get('ids');
+  return {entities:{[id]:id==='Q41187'?entity('Q41187','Sony Group',
+    'Japanese multinational conglomerate corporation'):mock.Q2283}};
+ };
+ const got=await researchBusiness('Compare Sony and Microsoft',{requester:source});
+ assert.deepEqual(got.outcomes.map(x=>x.status),['ENTITY_MATCHED','ENTITY_MATCHED']);
+ assert.deepEqual(got.outcomes.map(x=>x.id),['Q41187','Q2283']);
+ assert.deepEqual(got.outcomes.map(x=>x.resolution),['RANKED_PARENT_ORGANIZATION','EXACT_ENTITY_LABEL']);
+ assert.deepEqual(seen.filter(x=>x.startsWith('wbgetentities:')),
+   ['wbgetentities:Q41187','wbgetentities:Q2283']);
+ const obscure=await researchBusiness('Sony',{requester:async url=>{
+  const u=new URL(url);
+  if(u.searchParams.get('action')==='wbsearchentities')return {search:[
+   {id:'Q41187',label:'Sony Group',description:'Japanese multinational conglomerate corporation',match:{text:'Sony'}},
+   {id:'Q330629',label:'Sony Music',description:'music company',match:{text:'Sony'}}]};
+  return {entities:{Q41187:entity('Q41187','Sony Group','Japanese multinational conglomerate corporation')}};
+ }});
+ assert.equal(obscure.outcomes[0].status,'ENTITY_MATCHED');
+ const noGuess=await researchBusiness('Sony',{requester:async()=>({search:[
+   {id:'Q330629',label:'Sony Music',description:'music company',match:{text:'Sony'}},
+   {id:'Q10683',label:'PlayStation 3',description:'video game console',match:{text:'Sony'}}]
+ })});
+ assert.equal(noGuess.hits.length,0);
+ assert.equal(noGuess.outcomes[0].status,'AMBIGUOUS_OR_NOT_EXACT');
+});
 test('ambiguous and unavailable company matches do not invent facts',async()=>{
  const unmatched=await researchBusiness('Example',{requester});
  assert.equal(unmatched.hits.length,0);
