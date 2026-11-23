@@ -12,6 +12,7 @@ const { InputError, emptyInventory, label, createProduct, editProduct,
   createPurchaseOrder, receivePurchaseOrder, cancelPurchaseOrder } = require('./lib/inventory');
 const { dashboard } = require('./lib/report');
 const { interpret: guideInterpret, apply: guideApply } = require('./lib/azure-guide');
+const { insight: azureInsight, market: marketSnapshot } = require('./lib/azure-insights');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
@@ -195,6 +196,11 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
+      }
+      if (method === 'POST' && pathname === '/api/azure-insights') {
+        const snapshot = azureInsight(state);
+        const market = await marketSnapshot();
+        return respond(res, 200, { ...snapshot, market });
       }
       if (method === 'POST' && pathname === '/api/azure-guide') {
         const body = await jsonBody(req);

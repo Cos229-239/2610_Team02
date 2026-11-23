@@ -525,6 +525,34 @@ async function runAzureGuide(command) {
     if (sequence === azureCommandSequence) $('#azureRun').disabled = false;
   }
 }
+// Azure one-click insights — existing Stock Guide remains unchanged.
+$('#azureInsightsButton').addEventListener('click', async () => {
+  const button = $('#azureInsightsButton');
+  const status = $('#azureInsightsStatus');
+  const cards = $('#azureInsightsCards');
+  button.disabled = true;
+  status.textContent = 'Analyzing inventory…';
+  try {
+    const data = await request('/api/azure-insights', 'POST', {});
+    const inventory = $('#azureInsightsInventory');
+    const market = $('#azureInsightsMarket');
+    const actions = $('#azureInsightsActions');
+    inventory.replaceChildren(); market.replaceChildren(); actions.replaceChildren();
+    inventory.append(el('p', '', data.inventory.products + ' products · ' + data.inventory.units + ' units'));
+    inventory.append(el('p', '', data.inventory.lowStock + ' at or below minimum'));
+    inventory.append(el('p', 'subtle', 'Inventory value: ' + money(data.inventory.valueCents)));
+    for (const q of (data.market?.quotes || [])) {
+      market.append(el('p', '', q.symbol + ': USD ' + Number(q.close).toFixed(2) + ' (close ' + q.asOf + ')'));
+    }
+    market.append(el('p', 'subtle', data.market?.message || 'Market data unavailable.'));
+    for (const item of data.attention) actions.append(el('p', '', item.text));
+    if (!data.attention.length) actions.append(el('p', '', 'No immediate stock alerts.'));
+    actions.append(el('p', 'subtle', 'Review Stock Guide tools for details. No inventory changes made.'));
+    cards.hidden = false;
+    status.textContent = 'Insights ready · expand a card for details.';
+  } catch (error) { status.textContent = 'Insights unavailable: ' + error.message; }
+  finally { button.disabled = false; }
+});
 $('#azureForm').addEventListener('submit', event => {
   event.preventDefault();
   runAzureGuide($('#azureCommand').value);

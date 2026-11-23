@@ -65,6 +65,16 @@
         </section>
         <section data-view="azure" hidden>
           <div class="heading"><div><span class="eyebrow">DANIEL DULSKY · LOCAL STOCK TOOL</span><h2>Azure Stock Guide</h2><p>Find stock, spot reorder needs, and safely adjust part quantities. Adapted from Daniel's original C# Stock Guide.</p></div></div>
+          <div class="panel padded" aria-label="One-click Azure insights">
+            <div class="guide-intro"><div><span class="eyebrow">ONE-CLICK OVERVIEW</span><h3>What needs attention?</h3><p>Inventory, market context and next steps. Expand only what interests you.</p></div><button id="azureInsightsButton" class="primary" type="button">✨ Generate insights</button></div>
+            <p id="azureInsightsStatus" class="subtle" role="status" aria-live="polite">Ready when you are.</p>
+            <div id="azureInsightsCards" class="credit-grid" hidden>
+              <details class="panel padded"><summary><strong>Inventory</strong></summary><div id="azureInsightsInventory"></div></details>
+              <details class="panel padded"><summary><strong>Market · stocks &amp; shares</strong></summary><div id="azureInsightsMarket"></div></details>
+              <details class="panel padded"><summary><strong>Recommended next step</strong></summary><div id="azureInsightsActions"></div></details>
+            </div>
+          </div>
+          <details class="panel padded" id="azureAdvanced"><summary><strong>Stock Guide tools</strong> · search, forecast and confirmed adjustments</summary>
           <div class="panel padded azure-panel">
             <div class="guide-intro"><div><span class="eyebrow">INVENTORY ASSISTANCE</span><h3>Guide commands</h3><p>Inspect stock, find products by name or code, review reorder needs, and prepare controlled stock adjustments. All information comes from your shared inventory.</p></div><span class="guide-local">Offline · No API key</span></div>
             <div class="guide-shortcuts" id="azureShortcuts" aria-label="Quick guide commands">
@@ -89,6 +99,7 @@
               <p class="subtle">Previews expire after 5 minutes, can be used once, and are rejected if the inventory changes. Adjustments appear in the normal movement history. For multi-location parts, use Inventory → Set stock to choose the correct location.</p>
             </div>
           </div>
+          </details>
         </section>
         <section data-view="data" hidden>
           <div class="heading"><div><span class="eyebrow">SETTINGS &amp; PORTABILITY</span><h2>Data &amp; exports</h2><p>Bring your older TowerFlow data forward and keep a copy.</p></div></div>
