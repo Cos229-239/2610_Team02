@@ -80,6 +80,15 @@
             <p class="guide-hint" id="azureHint">Try <code>find bolt</code> or <code>find BOLT-115</code>. For changes: <code>set 115/902701 to 10</code> or <code>add 115/902701 by 5</code>. Previews never save automatically.</p>
             <p id="azureResponse" class="azure-response" role="status" aria-live="polite">Enter a command or choose an example to inspect inventory.</p>
             <div id="azureModelResults" class="panel padded" hidden aria-label="Explainable seven-day inventory outlook"></div>
+            <div class="panel padded" aria-label="Local LLM assistant">
+              <h3>Local LLM assistant · Ollama</h3>
+              <p>Ask questions about the inventory summary using a model running on the server computer. No API key, no cloud service, no stock changes. Answers can be wrong; check underlying records.</p>
+              <form id="localLLMForm" class="guide-form">
+                <label class="grow">Question<input id="localLLMQuestion" maxlength="1200" required autocomplete="off" placeholder="What does low stock mean here?"></label>
+                <button type="submit" class="primary" id="localLLMAsk">Ask local model</button>
+              </form>
+              <p id="localLLMAnswer" class="azure-response" role="status" aria-live="polite">Waiting for a question.</p>
+            </div>
             <div id="azureResults" class="tablewrap" hidden><table><thead><tr><th>PART / PRODUCT</th><th>PART / SERIAL</th><th>QUANTITY</th><th>MINIMUM</th><th>LOCATIONS</th><th>REORDER</th><th>ACTION</th></tr></thead><tbody id="azureRows"></tbody></table></div>
             <div id="azurePreview" class="azure-preview" hidden>
               <strong>Review stock adjustment — not saved</strong>

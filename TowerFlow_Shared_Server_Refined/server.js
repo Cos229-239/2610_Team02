@@ -12,6 +12,7 @@ const { InputError, emptyInventory, label, createProduct, editProduct,
   createPurchaseOrder, receivePurchaseOrder, cancelPurchaseOrder } = require('./lib/inventory');
 const { dashboard } = require('./lib/report');
 const { interpret: guideInterpret, apply: guideApply } = require('./lib/azure-guide');
+const { ask: askLocalLLM, HarnessError } = require('./lib/local-llm-harness');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
@@ -196,6 +197,12 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
       }
+      // Authenticated, read-only local model: no external API key and no write tools.
+      if (method === 'POST' && pathname === '/api/local-llm/ask') {
+        const body = await jsonBody(req);
+        const result = await askLocalLLM(state, body.question);
+        return respond(res, 200, result);
+      }
       if (method === 'POST' && pathname === '/api/azure-guide') {
         const body = await jsonBody(req);
         const guide = guideInterpret(state, body.command);
@@ -355,7 +362,7 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       return respond(res, 404, { error: 'Route not found.' });
     } catch (error) {
-      const status = error instanceof InputError || error instanceof AuthError ? (error.status || 400) : 500;
+      const status = error instanceof InputError || error instanceof AuthError || error instanceof HarnessError ? (error.status || 400) : 500;
       if (status === 500) console.error(error);
       if (!res.headersSent) respond(res, status, { error: status === 500 ? 'Could not complete the request; inventory was not changed.' : error.message });
     }
