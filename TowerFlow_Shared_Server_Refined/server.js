@@ -194,7 +194,7 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
           publish();
           return respond(res, 200, changed);
         }
-        const id = new RegExp('^/api/users/(' + UUID + ')' + "$").exec(pathname);
+        const id = new RegExp('^/api/users/(' + UUID + ')$').exec(pathname);
         if (id && method === 'DELETE') {
           const removed = accounts.remove(id[1], user); publish();
           return respond(res, 200, removed);
