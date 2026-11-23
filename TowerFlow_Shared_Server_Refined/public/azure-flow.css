@@ -1,0 +1,414 @@
+/* Azure Flow only. Zero global selectors or overrides of TowerFlow tabs. */
+#azureFlow{--af-magenta:#ea43c7;--af-gold:#f4cf86;--af-platinum:#e7e8f3;--af-ink:#0b0717;position:relative;isolation:isolate;color:var(--af-platinum);background:radial-gradient(ellipse at 74% 4%,#411436 0%,transparent 46%),linear-gradient(142deg,#0c091b,#160b25 70%,#0b0717);padding:clamp(18px,3vw,44px);border-radius:22px;min-height:720px;overflow:hidden;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+#azureFlow *{box-sizing:border-box}
+#azureFlow .af-horizon{position:absolute;inset:0 0 auto;height:280px;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0 59px,#e08acd13 60px 61px),linear-gradient(180deg,#f8c57711,transparent);mask-image:linear-gradient(black,transparent)}
+#azureFlow .af-hero{position:relative;display:flex;justify-content:space-between;gap:30px;align-items:center;padding:24px 5px 30px;border-bottom:1px solid #bf6fb14a}
+#azureFlow .af-hero-copy{max-width:660px;min-width:0;position:relative;z-index:1}
+#azureFlow .af-kicker{font-size:11px;font-weight:700;letter-spacing:.22em;color:var(--af-gold)}
+#azureFlow .af-title-stage{perspective:850px;perspective-origin:center}
+#azureFlow .af-title{font-size:clamp(36px,6vw,78px);line-height:1.1;margin:17px 0 12px;letter-spacing:.07em;font-weight:900;color:#ffe9fb;transform:rotateX(7deg) rotateY(-8deg);transform-style:preserve-3d;text-shadow:0 1px #7b3c77,0 2px #8b3e79,0 3px #723468,0 4px #50254b,0 5px #3b203e,0 7px 14px #ec38c359,0 19px 35px #030008}
+#azureFlow .af-mission{font-size:clamp(17px,2.2vw,24px);font-weight:700;color:var(--af-platinum);margin:12px 0}
+#azureFlow .af-submission{color:#c2b6ce;line-height:1.55;max-width:580px}
+#azureFlow .af-command{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:28px}
+#azureFlow button{font:inherit;cursor:pointer}
+#azureFlow .af-main-action{background:linear-gradient(115deg,#f0c976,#ffdd9f 35%,#df70c7 100%);color:#1b1021;border:0;border-radius:12px;box-shadow:0 10px 40px #d22b9a48;padding:16px 24px;font-weight:800}
+#azureFlow .af-main-action:hover{filter:brightness(1.08)}
+#azureFlow .af-main-action:disabled,#azureFlow .af-secondary:disabled{opacity:.5;cursor:wait}
+#azureFlow .af-status,#azureFlow .af-footnote{font-size:12px;color:#bfb5cf}
+#azureFlow .af-orbit{flex:0 0 clamp(140px,23vw,250px);aspect-ratio:1;border:1px solid #e3aac468;border-radius:50%;display:grid;place-items:center;box-shadow:inset 0 0 50px #9f308c63,0 0 60px #d342b23d;transform:rotateX(17deg) rotateY(-15deg);position:relative}
+#azureFlow .af-orbit:before,#azureFlow .af-orbit:after{content:"";position:absolute;inset:12%;border:1px solid #d6b57170;border-radius:50%;transform:rotateY(65deg)}
+#azureFlow .af-orbit:after{transform:rotateX(66deg)}
+#azureFlow .af-core{border-radius:50%;background:radial-gradient(circle at 30% 20%,#fff0bf,#a82b92 48%,#200c2d);height:52%;width:52%;display:grid;place-items:center;font-size:29px;font-weight:900;box-shadow:0 0 38px #bd35a5}
+#azureFlow .af-headline{border-left:3px solid var(--af-gold);padding:14px 18px;margin-top:24px;background:#fff7e60b;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#azureFlow [hidden]{display:none!important}
+#azureFlow .af-headline small{color:#b6a2be}
+#azureFlow .af-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0 24px}
+#azureFlow .af-card,#azureFlow .af-feature{background:linear-gradient(145deg,#21142d,#140d21);border:1px solid #986d8c6b;border-radius:14px;min-width:0;overflow:hidden}
+#azureFlow summary{cursor:pointer;list-style:none;padding:20px;font-weight:750;color:#f4deee}
+#azureFlow summary::-webkit-details-marker{display:none}
+#azureFlow summary:after{content:'＋';float:right;color:var(--af-gold)}
+#azureFlow details[open]>summary:after{content:'−'}
+#azureFlow .af-card summary{display:flex;gap:10px;align-items:center}
+#azureFlow .af-card summary:after{margin-left:auto}
+#azureFlow .af-index{color:var(--af-gold);letter-spacing:.08em;font-size:12px}
+#azureFlow .af-card-body{padding:0 20px 20px;color:#e1d5e6;line-height:1.65;overflow-wrap:anywhere}
+#azureFlow .af-card-body p{margin:7px 0}
+#azureFlow .af-feature{margin:14px 0}
+#azureFlow .af-feature>p,#azureFlow .af-feature>form,#azureFlow .af-feature>div:not(.af-scale){margin:12px 20px 20px}
+#azureFlow label{display:block;font-size:13px;color:#f2d9eb}
+#azureFlow textarea{display:block;width:100%;margin:10px 0;background:#130b1d;color:#f8e9f6;border:1px solid #9b7195;border-radius:9px;padding:12px;resize:vertical;font:12px/1.5 ui-monospace,monospace}
+#azureFlow .af-secondary{padding:11px 17px;background:#422846;color:#fff0d5;border:1px solid #c89b72;border-radius:9px}
+#azureFlow .af-scale{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0 20px 12px}
+#azureFlow .af-scale>div{background:#120b1a;border:1px solid #67455c;border-radius:10px;padding:14px}
+#azureFlow .af-scale b,#azureFlow .af-scale small,#azureFlow .af-scale span{display:block;margin-bottom:8px}
+#azureFlow .af-scale small{color:#c8bccc;line-height:1.5}
+#azureFlow .af-scale span{font-size:10px;letter-spacing:.12em;color:#edcb87}
+#azureFlow .af-chart{display:flex;align-items:end;gap:5px;height:90px;margin:14px 0}
+#azureFlow .af-bar{flex:1;min-width:8px;max-width:24px;background:linear-gradient(0deg,#73307e,#f0c57c);border-radius:4px 4px 0 0}
+#azureFlow .af-badge{font-size:11px;color:#e8c47f}
+#azureFlow :focus-visible{outline:3px solid #ffdb97;outline-offset:4px}
+@media(max-width:900px){#azureFlow .af-cards,#azureFlow .af-scale{grid-template-columns:1fr}#azureFlow .af-orbit{display:none}}
+@media(prefers-reduced-motion:reduce){#azureFlow .af-title{transform:none}}
+
+#azureFlow .af-market-lookup{margin:12px 20px 20px;border-top:1px solid #78516f}
+#azureFlow .af-market-lookup summary{padding:12px 0}
+#azureFlow .af-market-lookup form{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:12px 0}
+#azureFlow .af-market-lookup label{display:flex;flex-direction:column;gap:6px}
+#azureFlow .af-market-lookup input{width:180px;max-width:100%;background:#170c23;color:#faeffa;border:1px solid #ab749e;border-radius:8px;padding:10px;font:inherit}
+#azureFlow #afMarketResult{color:#edcfb8;padding:10px 0 14px;font-size:13px}
+#azureFlow .af-review-row{border-top:1px solid #583b56;margin-top:12px;padding:10px 0}
+#azureFlow .af-review-row .af-secondary{font-size:12px;padding:8px 11px}
+
+/* Dedicated Azure inquiry surface: no global selectors or other-tab styling. */
+#azureFlow .af-query{margin:25px 0 12px;position:relative;z-index:2}
+#azureFlow .af-query label{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--af-gold);margin-bottom:9px}
+#azureFlow .af-query-row{display:flex;align-items:stretch;gap:10px}
+#azureFlow .af-query input{width:100%;min-width:0;flex:1;background:linear-gradient(110deg,#28182e,#17101f);color:#fff8ff;border:1px solid #b28ea9;border-radius:11px;padding:15px 17px;font:inherit;font-size:15px;box-shadow:inset 0 1px 10px #0006}
+#azureFlow .af-query input::placeholder{color:#c1acc0}
+#azureFlow .af-query .af-main-action{white-space:nowrap}
+#azureFlow .af-query-examples{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+#azureFlow .af-query-examples button,#azureFlow .af-example-action{background:#ffffff0a;color:#f2dbee;padding:8px 12px;font-size:12px;border:1px solid #886b88;border-radius:20px}
+#azureFlow .af-query-examples button:hover,#azureFlow .af-example-action:hover{border-color:#f2d48d;background:#ffffff1c}
+#azureFlow .af-answer{position:relative;z-index:2;margin:14px 0 22px;padding:20px;border:1px solid #c9959b;background:linear-gradient(115deg,#341e3e,#1a1325);border-radius:12px;color:#f6e7f0;line-height:1.6}
+#azureFlow .af-answer h3{color:#f4d493;font-size:19px;margin:0 0 10px}
+#azureFlow .af-answer strong{display:block;color:#ffe4a0;font-size:25px;letter-spacing:.01em}
+#azureFlow .af-answer .af-badge{display:block;font-size:12px;color:#d9c4d7;margin-top:12px}
+#azureFlow .af-answer .af-example-action{margin:8px 8px 0 0}
+@media(max-width:720px){#azureFlow .af-query-row{flex-direction:column}#azureFlow .af-query .af-main-action{width:100%}}
+
+
+/* Azure Flow presence layer. Existing TF orb geometry/colors are preserved. */
+/* Compositor-friendly transforms and opacity; no canvas, timers, or heavyweight 3D engine. */
+@keyframes af-orb-drift {
+  0%,100% {transform:translate3d(0,0,0) rotateX(17deg) rotateY(-15deg)}
+  45% {transform:translate3d(5px,-11px,0) rotateX(20deg) rotateY(-9deg)}
+  75% {transform:translate3d(-4px,-5px,0) rotateX(15deg) rotateY(-21deg)}
+}
+@keyframes af-ring-sweep-y {
+  0% {transform:rotateY(65deg) rotateZ(0deg)}
+  100% {transform:rotateY(425deg) rotateZ(360deg)}
+}
+@keyframes af-ring-sweep-x {
+  0% {transform:rotateX(66deg) rotateZ(0deg)}
+  100% {transform:rotateX(426deg) rotateZ(360deg)}
+}
+@keyframes af-core-breathe {
+  0%,100% {filter:brightness(1)}
+  50% {filter:brightness(1.13)}
+}
+@keyframes af-state-busy {
+  0%,100% {opacity:.5}
+  50% {opacity:1}
+}
+@keyframes af-answer-appear {
+  from {opacity:0;transform:translate3d(0,6px,0)}
+  to {opacity:1;transform:translate3d(0,0,0)}
+}
+#azureFlow[data-af-motion="enabled"] .af-orbit {
+  animation:af-orb-drift 9s ease-in-out infinite;
+  transition:transform .45s ease,box-shadow .4s ease;
+  cursor:crosshair;
+  will-change:transform;
+}
+#azureFlow[data-af-motion="enabled"] .af-orbit:before {
+  animation:af-ring-sweep-y 23s linear infinite;
+}
+#azureFlow[data-af-motion="enabled"] .af-orbit:after {
+  animation:af-ring-sweep-x 29s linear infinite reverse;
+}
+#azureFlow[data-af-motion="enabled"] .af-core {
+  animation:af-core-breathe 6s ease-in-out infinite;
+  transition:box-shadow .5s ease,filter .5s ease;
+}
+#azureFlow[data-af-motion="enabled"] .af-orbit:hover {
+  animation-play-state:paused;
+  transform:translate3d(var(--af-pointer-x,0px),var(--af-pointer-y,0px),0)
+    rotateX(calc(17deg + var(--af-tilt-y,0deg)))
+    rotateY(calc(-15deg + var(--af-tilt-x,0deg)));
+}
+#azureFlow[data-af-state="busy"] .af-orbit {
+  box-shadow:inset 0 0 50px #9f308c63,0 0 72px #d342b26b,0 0 20px #e4be83a8;
+}
+#azureFlow[data-af-state="busy"] .af-core {
+  animation-duration:1.2s;
+}
+#azureFlow[data-af-state="busy"] .af-kicker {
+  animation:af-state-busy 1.25s ease-in-out infinite;
+}
+#azureFlow[data-af-state="ready"] .af-orbit {
+  box-shadow:inset 0 0 50px #9f308c63,0 0 65px #d342b255,0 0 28px #f4cf867a;
+}
+#azureFlow[data-af-state="error"] .af-orbit {
+  box-shadow:inset 0 0 50px #9f308c63,0 0 40px #b94d7166;
+}
+#azureFlow[data-af-state="focused"] .af-orbit {
+  box-shadow:inset 0 0 50px #9f308c63,0 0 75px #f4cf8655;
+}
+#azureFlow[data-af-motion="enabled"] .af-answer:not([hidden]) {
+  animation:af-answer-appear .3s ease-out both;
+}
+#azureFlow[data-af-motion="enabled"] .af-card {
+  transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease;
+}
+#azureFlow[data-af-motion="enabled"] .af-card:hover,
+#azureFlow[data-af-motion="enabled"] .af-card:focus-within {
+  transform:translate3d(0,-2px,0);
+  border-color:#d5a47e99;
+  box-shadow:0 10px 20px #05020c70;
+}
+#azureFlow[data-af-visible="false"] .af-orbit,
+#azureFlow[data-af-visible="false"] .af-orbit:before,
+#azureFlow[data-af-visible="false"] .af-orbit:after,
+#azureFlow[data-af-visible="false"] .af-core,
+#azureFlow[data-af-visible="false"] .af-kicker,
+#azureFlow[data-af-visible="false"] .af-answer {
+  animation-play-state:paused!important;
+}
+@media (prefers-reduced-motion:reduce) {
+  #azureFlow .af-orbit,
+  #azureFlow .af-orbit:before,
+  #azureFlow .af-orbit:after,
+  #azureFlow .af-core,
+  #azureFlow .af-kicker,
+  #azureFlow .af-answer,
+  #azureFlow .af-card {
+    animation:none!important;
+    transition:none!important;
+    will-change:auto!important;
+  }
+  #azureFlow[data-af-motion="enabled"] .af-orbit:hover {
+    transform:rotateX(17deg) rotateY(-15deg);
+  }
+}
+
+
+/* Optional research evidence, memory feedback and human-approved draft decisions. */
+#azureFlow .af-consent{display:flex;gap:9px;align-items:center;margin:12px 0;color:#e9d7e2;font-size:12px;line-height:1.4}
+#azureFlow .af-consent input{width:16px;flex:0 0 16px;accent-color:#d58abd}
+#azureFlow .af-evidence,#azureFlow .af-reasoning{background:#ffffff08;border-left:2px solid #d2a96b;margin:13px 0;padding:11px 14px;border-radius:6px;overflow-wrap:anywhere}
+#azureFlow .af-evidence strong,#azureFlow .af-reasoning strong{font-size:14px;color:#ffe7ab}
+#azureFlow .af-evidence p{white-space:pre-wrap;font-size:13px}
+#azureFlow .af-evidence a{color:#f3cea0;font-size:12px}
+#azureFlow .af-learning,#azureFlow .af-research-save{margin:14px 0;padding:14px 17px;border:1px solid #9c7098;border-radius:10px;background:#26162b;color:#f9e6f1}
+#azureFlow .af-learning>strong{font-size:14px;color:#ffe7ab}
+#azureFlow .af-learning p,#azureFlow .af-research-save small,#azureFlow .af-learning small{display:block;font-size:12px;line-height:1.5;color:#ddc5da;margin:8px 0}
+#azureFlow .af-learning-actions{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+#azureFlow #afFeedbackNote{display:block;width:100%;padding:10px;background:#150e21;color:#f8edf4;border:1px solid #936c92;border-radius:7px;margin:8px 0}
+
+
+/* Azure Flow controls v2 — scoped to this view; behavior and other tabs untouched.
+   Visual hierarchy: decisive primary action, outlined secondary actions, subdued examples.
+   Responsive controls, keyboard focus and reduced-motion preferences stay intact. */
+#azureFlow{
+  --af-control-border:#82617e;
+  --af-control-border-active:#ecc58c;
+  --af-control-surface:#21142d;
+}
+#azureFlow .af-query{
+  display:grid;
+  gap:0;
+  max-width:690px;
+}
+#azureFlow .af-query-row{
+  gap:12px;
+  align-items:stretch;
+}
+#azureFlow .af-query-row input{
+  min-height:52px;
+  border-radius:12px;
+  padding:13px 17px;
+  background:#1b1225;
+  border:1px solid #846581;
+  box-shadow:inset 0 1px 7px #08040e55;
+}
+#azureFlow .af-query-row input:hover,
+#azureFlow .af-query-row input:focus-visible{
+  border-color:var(--af-control-border-active);
+}
+#azureFlow .af-main-action{
+  min-height:48px;
+  padding:12px 20px;
+  border:1px solid #f8d5a6;
+  border-radius:11px;
+  background:linear-gradient(115deg,#f6d18e 0%,#efb8aa 57%,#dc81c1 100%);
+  color:#211327;
+  box-shadow:0 4px 15px #bb609b32;
+  font-weight:750;
+  font-size:13px;
+  letter-spacing:.01em;
+  line-height:1.2;
+  transition:background .15s ease,box-shadow .15s ease,transform .15s ease,border-color .15s ease;
+}
+#azureFlow .af-main-action:hover:not(:disabled){
+  filter:none;
+  transform:translateY(-1px);
+  box-shadow:0 7px 20px #b9609c42;
+}
+#azureFlow .af-main-action:active:not(:disabled){transform:translateY(0)}
+#azureFlow .af-secondary,
+#azureFlow .af-query-examples button,
+#azureFlow .af-example-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:9px 15px;
+  border:1px solid var(--af-control-border);
+  border-radius:10px;
+  background:linear-gradient(180deg,#312039,#24182e);
+  color:#f4e2f1;
+  font:600 12px/1.35 system-ui,-apple-system,'Segoe UI',sans-serif;
+  letter-spacing:0;
+  text-align:center;
+  white-space:normal;
+  box-shadow:inset 0 1px #ffffff0a;
+  transition:border-color .15s ease,background .15s ease,transform .15s ease;
+}
+#azureFlow .af-secondary:hover:not(:disabled),
+#azureFlow .af-query-examples button:hover:not(:disabled),
+#azureFlow .af-example-action:hover:not(:disabled){
+  background:#422849;
+  border-color:var(--af-control-border-active);
+  transform:translateY(-1px);
+}
+#azureFlow .af-secondary:active:not(:disabled),
+#azureFlow .af-query-examples button:active:not(:disabled){transform:translateY(0)}
+#azureFlow .af-query-examples{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  flex-wrap:wrap;
+  margin:14px 0 0;
+}
+#azureFlow .af-query-examples [data-af-example]{
+  min-height:34px;
+  border-radius:999px;
+  padding:7px 15px;
+  background:#ffffff08;
+  border-color:#705575;
+  color:#ded0e1;
+  font-size:12px;
+  font-weight:500;
+}
+#azureFlow .af-query-examples [data-af-example]:hover:not(:disabled){
+  color:#fff1d7;
+  background:#ffffff13;
+}
+#azureFlow #afCheckRoute{
+  border-color:#b18b8b;
+  color:#ffe3ad;
+  min-height:36px;
+  border-radius:9px;
+  background:#36243d;
+}
+#azureFlow #afRouteStatus{
+  display:inline-block;
+  flex:1 1 250px;
+  color:#bcaec5;
+  font-size:12px;
+  line-height:1.5;
+  max-width:480px;
+}
+#azureFlow .af-query .af-consent{
+  display:flex;
+  align-items:flex-start;
+  gap:11px;
+  margin:17px 0 13px;
+  color:#ddd0e0;
+  font-size:12px;
+  line-height:1.55;
+  letter-spacing:normal;
+  font-weight:500;
+  text-transform:none;
+  cursor:pointer;
+}
+#azureFlow .af-query .af-consent input[type=checkbox]{
+  appearance:auto;
+  flex:0 0 17px;
+  width:17px;
+  min-width:17px;
+  height:17px;
+  min-height:17px;
+  margin:1px 0 0;
+  padding:0;
+  border:0;
+  border-radius:3px;
+  accent-color:#e8aacf;
+  box-shadow:none;
+}
+#azureFlow #afSourceMode{
+  display:block;
+  width:100%;
+  min-height:44px;
+  padding:10px 40px 10px 14px;
+  border:1px solid #886b87;
+  border-radius:10px;
+  background-color:#25182f;
+  color:#f5e9f6;
+  font:500 13px/1.4 system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+  cursor:pointer;
+}
+#azureFlow #afSourceMode:hover,
+#azureFlow #afSourceMode:focus-visible{border-color:var(--af-control-border-active)}
+#azureFlow #afSourceNote{
+  display:block;
+  margin:9px 0 0;
+  color:#b8a9be;
+  font-size:11px;
+  line-height:1.5;
+  max-width:630px;
+}
+#azureFlow .af-command{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-top:22px;
+}
+#azureFlow #afAnalyze{
+  background:linear-gradient(180deg,#33243d,#26182f);
+  border:1px solid #caa4a6;
+  color:#ffe4af;
+  box-shadow:none;
+}
+#azureFlow #afAnalyze:hover:not(:disabled){
+  background:#44304b;
+  box-shadow:0 5px 14px #0003;
+}
+#azureFlow .af-learning-actions .af-secondary,
+#azureFlow .af-research-save .af-secondary{min-height:40px}
+@media(max-width:720px){
+  #azureFlow .af-query-row{flex-direction:column}
+  #azureFlow .af-query-row .af-main-action{width:100%;min-height:48px}
+  #azureFlow .af-query-examples{gap:8px}
+  #azureFlow .af-command{align-items:stretch;flex-direction:column}
+  #azureFlow #afAnalyze{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  #azureFlow .af-main-action,
+  #azureFlow .af-secondary,
+  #azureFlow .af-query-examples button,
+  #azureFlow .af-example-action{transition:none!important;transform:none!important}
+}
+
+/* Public read-only exchange observations — bounded 3-card responsive panel. */
+#azureFlow .af-live-feed{
+  position:relative;z-index:2;max-width:920px;
+  margin:22px 0 16px;padding:20px;
+  border:1px solid #8b6389;border-radius:16px;
+  background:linear-gradient(140deg,#251732,#180f26);
+}
+#azureFlow .af-live-header{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#azureFlow .af-live-eyebrow{color:#f4ce89;letter-spacing:.12em;font-size:10px;font-weight:800}
+#azureFlow .af-live-header h3{font-size:20px;letter-spacing:-.02em;margin:5px 0 7px;color:#fff1f8}
+#azureFlow .af-live-header p,#azureFlow .af-live-feed>small{color:#cbbacf;font-size:12px;line-height:1.5;margin:0}
+#azureFlow #afLiveToggle{min-width:142px;min-height:42px;border-color:#dda96f;color:#ffeac5}
+#azureFlow #afLiveToggle[aria-pressed=true]{background:#633354;border-color:#f0c488}
+#azureFlow .af-live-status{margin:14px 0;color:#e7cbab;font-size:12px;line-height:1.5}
+#azureFlow .af-live-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+#azureFlow .af-live-card{min-width:0;border:1px solid #795672;background:#160f20;border-radius:12px;padding:15px;display:flex;flex-direction:column;gap:8px}
+#azureFlow .af-live-card strong{font-size:12px;color:#efdaed;letter-spacing:.08em}
+#azureFlow .af-live-card b{font-size:clamp(19px,2.2vw,30px);line-height:1.15;color:#fff3db;font-variant-numeric:tabular-nums}
+#azureFlow .af-live-card small{font-size:11px;line-height:1.35;color:#c2b6c9}
+#azureFlow .af-live-card a{font-size:11px;color:#f4c992;overflow-wrap:anywhere}
+@media(max-width:750px){#azureFlow .af-live-grid{grid-template-columns:1fr}#azureFlow .af-live-feed{padding:16px}}

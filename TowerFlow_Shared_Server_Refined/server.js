@@ -12,12 +12,25 @@ const { InputError, emptyInventory, label, createProduct, editProduct,
   createPurchaseOrder, receivePurchaseOrder, cancelPurchaseOrder } = require('./lib/inventory');
 const { dashboard } = require('./lib/report');
 const { interpret: guideInterpret, apply: guideApply } = require('./lib/azure-guide');
+const { run: runAzureFlow } = require('./lib/azure-flow-harness');
+const { investigate: investigateAzureFlow, diagnoseModel: diagnoseAzureModel } = require('./lib/azure-flow-orchestrator');
+const { calibrate: calibrateAzureFlow, snapshot: azureCalibrationStatus } = require('./lib/azure-flow-calibration');
+const { getDailyClose: marketClose } = require('./lib/azure-flow-market');
+const { answer: answerAzureQuery } = require('./lib/azure-flow-query');
+const { investigate: researchAzure } = require('./lib/azure-flow-intelligence');
+const { persist: saveAzureRecord } = require('./lib/azure-flow-evidence-record');
+const {runtimeConfig: azureRuntimeConfig}=require('./lib/azure-flow-runtime-config');
+const {liveSnapshot: liveMarketSnapshot}=require('./lib/azure-flow-live-market');
+const { read: readAzureLearning, append: recordAzureLearning, similar: recallAzureLearning } = require('./lib/azure-flow-learning');
 
 const ROOT = __dirname;
 const STATIC = path.join(ROOT, 'public');
 const MIME = { '/': ['index.html', 'text/html; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
-  '/styles.css': ['styles.css', 'text/css; charset=utf-8'] };
+  '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
+  '/azure-flow.js': ['azure-flow.js', 'text/javascript; charset=utf-8'],
+  '/azure-flow-motion.js': ['azure-flow-motion.js', 'text/javascript; charset=utf-8'],
+  '/azure-flow.css': ['azure-flow.css', 'text/css; charset=utf-8'] };
 const UUID = '[a-f0-9-]{36}';
 const cookieName = 'towerflow_session';
 const hash = data => data === null ? null : crypto.createHash('sha256').update(data).digest('hex');
@@ -34,7 +47,7 @@ function sessionCookie(token, secure = false) {
   return `${cookieName}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_AGE}${secure ? '; Secure' : ''}`;
 }
 
-function createApp({ directory = path.join(ROOT, 'data') } = {}) {
+function createApp({ directory = path.join(ROOT, 'data'), researchImpl = researchAzure, liveMarketImpl = liveMarketSnapshot } = {}) {
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
   const accounts = new Accounts(directory);
   const storeFile = path.join(directory, 'inventory.json');
@@ -44,6 +57,8 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
   const listeners = new Set();
   // Short-lived, single-use preview IDs; never trust stock quantities supplied by a browser.
   const guidePreviews = new Map();
+  // Save only an owner-initiated, source-checked investigation already issued by this server.
+  const azureDrafts = new Map();
   const server = http.createServer(handler);
 
   function publish() {
@@ -195,6 +210,115 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       if (method === 'GET' && pathname === '/api/state') {
         return respond(res, 200, { ...state, summary: summary(state), revision: revisionOf(fingerprint) });
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/live-market') {
+        const body=await jsonBody(req);
+        if(Object.keys(body).sort().join(',')!=='allowPublic' || body.allowPublic!==true)
+          throw new InputError('Explicit external market-data consent is required.');
+        const snapshot=await liveMarketImpl();
+        return respond(res,200,snapshot);
+      }
+      if (method === 'GET' && pathname === '/api/azure-flow/config') {
+        return respond(res,200,azureRuntimeConfig({isOwner:user.role==='admin'}));
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/research') {
+        const body = await jsonBody(req);
+        const sourceMode=body.sourceMode||'adaptive';
+        if (!['adaptive','official-sec','company'].includes(sourceMode) ||
+          !['allowPublic,question','allowPublic,question,sourceMode'].includes(Object.keys(body).sort().join(',')) ||
+          typeof body.allowPublic !== 'boolean' ||
+          (sourceMode!=='adaptive'&&!body.allowPublic))
+          throw new InputError('Research requires authorized public access for the selected source mode.');
+        // Read only same-owner approved precedents; other users do not share episodes.
+        const learningDir=path.join(directory,'azure-flow-learning');
+        const precedents=recallAzureLearning(body.question,
+          readAzureLearning(learningDir,{userId:user.id}));
+        // Explicit user source selection is a bounded, user-authorized choice.
+        // It never grants mutation rights and does not certify factual correctness.
+        const userSelected=sourceMode!=='adaptive';
+        const output = await researchImpl(body.question,{state,revision:revisionOf(fingerprint),
+          allowPublic:body.allowPublic,priorCases:precedents,isOwner:user.role==='admin',
+          ...(userSelected?{planner:async question=>({
+            status:sourceMode==='company'?'USER_SELECTED_COMPANY_RESEARCH':'USER_SELECTED_OFFICIAL_SOURCE',model:null,question,
+            capabilities:[sourceMode==='company'?'research.company':'research.sec']
+          })}:{}),
+          ...(sourceMode==='company'?{synthesizer:async()=>({state:'DIRECT_SOURCED_COMPANY_SUMMARY',
+            hypothesis:null,observations:[],unknowns:['Community-maintained company metadata is not independently verified.']})}:{}),
+          draftDirectory:path.join(directory,'azure-flow-findings',user.id)});
+        // Bounded ephemeral draft receipts, not persistent automatic memory writes.
+        for(const [key,entry] of azureDrafts){
+          if(Date.now()-entry.at>600000)azureDrafts.delete(key);
+        }
+        if(azureDrafts.size>=40)azureDrafts.delete(azureDrafts.keys().next().value);
+        azureDrafts.set(output.provenance.evidenceId,{at:Date.now(),userId:user.id,result:output});
+        return respond(res,200,output);
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/feedback') {
+        if (user.role !== 'admin')throw new AuthError('Owner access required to train routing memory.',403);
+        const body=await jsonBody(req);
+        if(Object.keys(body).sort().join(',')!=='evidenceId,grade,note')throw new InputError('Feedback requires evidenceId, grade, note.');
+        const entry=azureDrafts.get(body.evidenceId);
+        if(!entry||entry.userId!==user.id||Date.now()-entry.at>600000)
+          throw new InputError('Research receipt expired or belongs to another user.');
+        try {
+          const recorded=recordAzureLearning(path.join(directory,'azure-flow-learning'),
+            entry.result,body,{userId:user.id});
+          return respond(res,201,recorded);
+        } catch(error) {
+          throw new InputError(error.message);
+        }
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/save-research') {
+        if (user.role !== 'admin')throw new AuthError('Owner approval required to save research records.',403);
+        const body=await jsonBody(req);
+        if(Object.keys(body).join(',')!=='evidenceId'||typeof body.evidenceId!=='string'||
+          !/^[0-9a-f]{64}$/.test(body.evidenceId))throw new InputError('Valid evidence receipt required.');
+        const entry=azureDrafts.get(body.evidenceId);
+        if(!entry||entry.userId!==user.id||Date.now()-entry.at>600000)
+          throw new InputError('Research receipt expired; investigate again before saving.');
+        // Remove before writing, preventing duplicate saves for the same approved receipt.
+        if(entry.saved)throw new InputError('Receipt already saved.');
+        const saved=saveAzureRecord(entry.result,{directory:path.join(directory,'azure-flow-findings',user.id)});
+        entry.saved=true;
+        return respond(res,201,saved);
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/query') {
+        const body = await jsonBody(req);
+        if (Object.keys(body).sort().join(',') !== 'question') throw new InputError('Azure Flow accepts only a question.');
+        const output = await answerAzureQuery(body.question,state,{revision:revisionOf(fingerprint)});
+        return respond(res, 200, output);
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/market-close') {
+        const body = await jsonBody(req);
+        if (Object.keys(body).sort().join(',') !== 'symbol') throw new InputError('Only a stock symbol is accepted.');
+        try { return respond(res, 200, await marketClose(body.symbol)); }
+        catch { throw new InputError('Enter a supported U.S. equity symbol.'); }
+      }
+      if (method === 'GET' && pathname === '/api/azure-flow/model-health') {
+        return respond(res, 200, await diagnoseAzureModel());
+      }
+      if (method === 'GET' && pathname === '/api/azure-flow/model-status') {
+        return respond(res, 200, azureCalibrationStatus());
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/calibrate') {
+        if (user.role !== 'admin') throw new AuthError('Owner access is required to screen local models.', 403);
+        const body = await jsonBody(req);
+        if (Object.keys(body).length) throw new InputError('Model screening accepts no user-supplied parameters.');
+        return respond(res, 200, await calibrateAzureFlow());
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/investigate') {
+        const body = await jsonBody(req);
+        if (Object.keys(body).length) throw new InputError('Azure Flow investigation takes no browser-authored instructions.');
+        const output = await investigateAzureFlow(state, {revision:revisionOf(fingerprint)});
+        return respond(res, 200, output);
+      }
+      if (method === 'POST' && pathname === '/api/azure-flow/evaluate') {
+        const body = await jsonBody(req);
+        const permitted = ['inventory.read','sales.aggregate','portfolio.evaluate-import'];
+        if (!permitted.includes(body.capability)) throw new InputError('Unsupported Azure Flow capability.');
+        const output = runAzureFlow(state, { capability: body.capability,
+          revision: revisionOf(fingerprint), portfolioRows: body.portfolioRows });
+        return respond(res, 200, output);
       }
       if (method === 'POST' && pathname === '/api/azure-guide') {
         const body = await jsonBody(req);
@@ -355,7 +479,7 @@ function createApp({ directory = path.join(ROOT, 'data') } = {}) {
       }
       return respond(res, 404, { error: 'Route not found.' });
     } catch (error) {
-      const status = error instanceof InputError || error instanceof AuthError ? (error.status || 400) : 500;
+      const status = error instanceof InputError || error instanceof AuthError || (error.status === 400) ? (error.status || 400) : 500;
       if (status === 500) console.error(error);
       if (!res.headersSent) respond(res, status, { error: status === 500 ? 'Could not complete the request; inventory was not changed.' : error.message });
     }
