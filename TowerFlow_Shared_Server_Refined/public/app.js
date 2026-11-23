@@ -12,6 +12,7 @@ let workEditingId = null;
 let workRevision = null;
 let movementRevision = null;
 let currentUser = null;
+let pendingInvitationToken = null;
 let events = null;
 let azurePreviewId = null;
 let azurePreviewRevision = null;
@@ -40,7 +41,7 @@ async function request(url, method = 'GET', body, revision = state?.revision) {
   const headers = method === 'GET' ? undefined : {
     ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
     'X-TowerFlow-Request': '1',
-    ...(/^\/api\/(?:auth|users)/.test(url) || url.endsWith('/preview') || revision == null ? {} : { 'X-TowerFlow-Revision': revision })
+    ...(/^\/api\/(?:auth|users|invitations)/.test(url) || url.endsWith('/preview') || revision == null ? {} : { 'X-TowerFlow-Revision': revision })
   };
   const response = await fetch(url, {
     method, headers,
@@ -622,7 +623,10 @@ $('#restoreButton').addEventListener('click', async () => {
 
 function showAuth(status) {
   events?.close(); events = null;
-  state = null; currentUser = null;
+  state = null; currentUser = null; pendingInvitationToken = null;
+  $('#inviteAcceptForm').hidden = true;
+  $('#inviteAcceptError').hidden = true;
+  $('#inviteAcceptForm').reset();
   clearAzurePreview();
   $('#azureResults').hidden = true;
   $('#azureRows').replaceChildren();
@@ -632,7 +636,7 @@ function showAuth(status) {
   const setup = status.setupAvailable;
   $('#authTitle').textContent = setup ? 'Create owner account' : 'Sign in';
   $('#authHint').textContent = setup ? 'Only the server computer can create the first owner account.' :
-    status.initialized ? 'Use the account the owner created for you.' :
+    status.initialized ? 'Use your TowerFlow account to sign in.' :
       'The owner must finish setup on the server computer first.';
   $('#authForm').hidden = !setup && !status.initialized;
   $('#authSubmit').textContent = setup ? 'Create owner account' : 'Sign in';
@@ -641,8 +645,24 @@ function showAuth(status) {
   $('#authForm').reset();
   $('#authForm').dataset.setup = setup ? '1' : '0';
 }
+function showInvitation(token) {
+  events?.close(); events = null;
+  state = null; currentUser = null; pendingInvitationToken = token;
+  clearAzurePreview();
+  $('#shell').hidden = true;
+  $('#authPanel').hidden = false;
+  $('#authTitle').textContent = 'Accept invitation';
+  $('#authHint').textContent = 'Create an Editor account. The invitation link is valid only until it expires, is revoked, or reaches its use limit.';
+  $('#authError').hidden = true;
+  $('#authForm').hidden = true;
+  $('#inviteAcceptForm').hidden = false;
+  $('#inviteAcceptError').hidden = true;
+  $('#inviteAcceptForm').reset();
+}
 async function enter(user) {
   clearAzurePreview();
+  pendingInvitationToken = null;
+  $('#inviteAcceptForm').hidden = true;
   currentUser = user;
   $('#signedInAs').textContent = `${user.username} · ${user.role}`;
   $('#adminPanel').hidden = user.role !== 'admin';
@@ -666,22 +686,52 @@ async function loadUsers() {
   const list = $('#userList'); list.replaceChildren();
   for (const user of users) {
     const row = el('div', 'user-row');
-    row.append(el('span', '', `${user.username} · ${user.role}`));
+    row.append(el('span', '', user.username + ' · ' + user.role));
     if (user.id !== currentUser.id) {
+      const role = document.createElement('select');
+      role.setAttribute('aria-label', 'Role for ' + user.username);
+      role.add(new Option('Editor', 'editor'));
+      role.add(new Option('Owner', 'admin'));
+      role.value = user.role;
+      const saveRole = el('button', 'textbtn', 'Save role');
+      saveRole.addEventListener('click', async () => {
+        try { await request('/api/users/' + user.id + '/role', 'PATCH', { role: role.value }); await loadUsers(); notice('Role updated.'); }
+        catch (error) { notice(error.message, true); }
+      });
       const reset = el('button', 'textbtn', 'Reset password');
       reset.addEventListener('click', async () => {
-        const password = prompt(`New temporary password for ${user.username} (12+ characters):`);
+        const password = prompt('New temporary password for ' + user.username + ' (12+ characters):');
         if (password == null) return;
-        try { await request(`/api/users/${user.id}/password`, 'PUT', { password }); await loadUsers(); notice('Password reset; previous sessions ended.'); }
+        try { await request('/api/users/' + user.id + '/password', 'PUT', { password }); await loadUsers(); notice('Password reset; previous sessions ended.'); }
         catch (error) { notice(error.message, true); }
       });
       const remove = el('button', 'textbtn danger', 'Remove access');
       remove.addEventListener('click', async () => {
-        if (!confirm(`Remove ${user.username}'s access?`)) return;
-        try { await request(`/api/users/${user.id}`, 'DELETE'); await loadUsers(); notice('Access removed.'); }
+        if (!confirm('Remove ' + user.username + ' access?')) return;
+        try { await request('/api/users/' + user.id, 'DELETE'); await loadUsers(); notice('Access removed.'); }
         catch (error) { notice(error.message, true); }
       });
-      row.append(reset, remove);
+      row.append(role, saveRole, reset, remove);
+    }
+    list.append(row);
+  }
+  await loadInvitations();
+}
+async function loadInvitations() {
+  const result = await request('/api/invitations');
+  const list = $('#inviteList'); list.replaceChildren();
+  for (const invitation of result.invitations) {
+    const row = el('div', 'user-row');
+    const expiry = new Date(invitation.expiresAt).toLocaleString();
+    row.append(el('span', '', 'Editor · ' + invitation.uses + '/' + invitation.maxUses + ' uses · ' + invitation.status + ' · expires ' + expiry));
+    if (invitation.status === 'active') {
+      const revoke = el('button', 'textbtn danger', 'Revoke link');
+      revoke.addEventListener('click', async () => {
+        if (!confirm('Revoke this invitation link?')) return;
+        try { await request('/api/invitations/' + invitation.id + '/revoke', 'POST', {}); await loadInvitations(); notice('Invitation revoked.'); }
+        catch (error) { notice(error.message, true); }
+      });
+      row.append(revoke);
     }
     list.append(row);
   }
@@ -711,6 +761,46 @@ $('#passwordForm').addEventListener('submit', async event => {
     showAuth({ initialized: true });
   } catch (error) { notice(error.message, true); }
 });
+$('#invitationForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const fields = event.currentTarget.elements;
+  try {
+    const result = await request('/api/invitations', 'POST', {
+      expiresInDays: Number(fields.expiresInDays.value),
+      maxUses: Number(fields.maxUses.value)
+    });
+    $('#inviteLink').value = new URL(result.invitePath, location.origin).href;
+    $('#inviteLinkPanel').hidden = false;
+    await loadInvitations();
+    notice('Editor invitation created. Copy the link and share it privately.');
+  } catch (error) { notice(error.message, true); }
+});
+$('#copyInviteLink').addEventListener('click', async () => {
+  const field = $('#inviteLink');
+  try { await navigator.clipboard.writeText(field.value); notice('Invitation link copied.'); }
+  catch { field.focus(); field.select(); notice('Select and copy the invitation link manually.'); }
+});
+$('#inviteAcceptForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const fields = event.currentTarget.elements;
+  try {
+    const result = await request('/api/invitations/accept', 'POST', {
+      token: pendingInvitationToken, username: fields.username.value, password: fields.password.value
+    });
+    history.replaceState(null, '', location.pathname + location.search);
+    pendingInvitationToken = null;
+    await enter(result.user);
+  } catch (error) {
+    $('#inviteAcceptError').textContent = error.message;
+    $('#inviteAcceptError').hidden = false;
+  }
+});
+$('#inviteCancel').addEventListener('click', () => {
+  history.replaceState(null, '', location.pathname + location.search);
+  pendingInvitationToken = null;
+  request('/api/auth/status').then(status => status.user ? enter(status.user) : showAuth(status))
+    .catch(error => { showAuth({ initialized: false }); $('#authHint').textContent = error.message; });
+});
 $('#userForm').addEventListener('submit', async event => {
   event.preventDefault();
   const f = event.currentTarget.elements;
@@ -719,5 +809,7 @@ $('#userForm').addEventListener('submit', async event => {
     event.currentTarget.reset(); await loadUsers(); notice(`Account created for ${user.username}.`);
   } catch (error) { notice(error.message, true); }
 });
-request('/api/auth/status').then(status => status.user ? enter(status.user) : showAuth(status))
+const inviteFromLink = new URLSearchParams(location.hash.slice(1)).get('invite');
+if (inviteFromLink) showInvitation(inviteFromLink);
+else request('/api/auth/status').then(status => status.user ? enter(status.user) : showAuth(status))
   .catch(error => { showAuth({ initialized: false }); $('#authHint').textContent = error.message; });
