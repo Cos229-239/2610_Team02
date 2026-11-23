@@ -189,3 +189,15 @@ The public research control now defaults to `company` mode and, after explicit u
 **Not asserted:** universal company coverage; verified earnings, financial performance, official annual statements, real-time equity quotes, current company news, investment valuation or independent corroboration of the public database. Unavailable providers, ambiguous names and absent values must be shown as unknown, not generated. Optional SEC filing mode retains its identity and consent requirements. The public-source capability does not modify the existing business ledger.
 
 **Acceptance pending:** Current code and newly added mocked business-route tests need Windows `npm.cmd test` and actual network queries for Sony and Microsoft on the user's host; production browser acceptance requires a controlled restart after tests, the owner's existing login and a consented research request. Do not promote to `dev` solely because source files were committed.
+
+## 2026-11-22 — Owner-run Sony / Microsoft provider acceptance
+
+**Source commit on feature branch:** company identification logic including parent-organization disambiguation; final owner report recorded after revision `e54d49e`.
+
+- **Full native Node suite:** **120/120 PASS**, **0 failures**, exit **0**.
+- **Real public provider:** `SOURCES_FOUND`, **2/2 actual business identities** resolved via Wikidata; linked English Wikipedia background found for both.
+- **Sony:** `Sony Group` — Wikidata `Q41187`; `RANKED_PARENT_ORGANIZATION`; community record describes a Japanese multinational conglomerate corporation, inception 1946-05-07, reported website `https://www.sony.com/en/`. Linked background at `https://en.wikipedia.org/wiki/Sony`.
+- **Microsoft:** `Microsoft` — Wikidata `Q2283`; `EXACT_ENTITY_LABEL`; community record describes an American multinational technology corporation, inception 1975-04-04, reported website `https://www.microsoft.com/`. Linked background at `https://en.wikipedia.org/wiki/Microsoft`.
+- **Preservation:** owner reports `BACKEND_RESTARTED: NO`, `DEV_BRANCH_CHANGED: NO`, `EXISTING_ACCOUNTS_MODIFIED: NO`. No production browser acceptance was conducted during this command.
+
+**Evidence boundary:** This is a successful **live entity-discovery/background-source vertical slice**, **not** a complete business investigation, validated financial-statement analysis, current company news, reliable market valuation, or production UI acceptance. Because the server was not restarted after source updates, do not claim the new mode is active in the running web app. No claim of universal business-entity match accuracy from 2/2 examples. Preserve `dev`; user is moving to presentation work. Next iteration only if explicitly requested.
