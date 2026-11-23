@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TowerFlowWinForm")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+06cfad3c40457337d8e6da1e65cc451f3149573a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c29c91282f7910b0637d115654e90bdf5490903e")]
 [assembly: System.Reflection.AssemblyProductAttribute("TowerFlowWinForm")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TowerFlowWinForm")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
